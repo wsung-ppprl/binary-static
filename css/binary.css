@@ -1911,38 +1911,6 @@ ol.start {
   display: block;
 }
 
-#live_chart_form_wrapper {
-  margin: 0 auto;
-}
-#live_chart_form_wrapper a {
-  text-decoration: underline;
-  cursor: pointer;
-}
-#live_chart_form_wrapper input {
-  border-radius: 4px;
-}
-#live_chart_form_wrapper input[type=button] {
-  color: #fff;
-  text-decoration: none;
-  text-align: center;
-  line-height: 100%;
-  background: #2e8836;
-  border-radius: 3px;
-  text-transform: capitalize;
-  padding: 10px 25px;
-  display: inline-block;
-  letter-spacing: 0.75px;
-  padding: 6px 15px;
-  font-size: 14px;
-}
-#live_chart_form_wrapper input[type=button]:visited {
-  color: #fff;
-}
-#live_chart_form_wrapper input[type=button]:hover, #live_chart_form_wrapper input[type=button]:active {
-  text-decoration: none;
-  background-color: #14602b;
-}
-
 .chart-notice {
   text-align: left;
   font-size: 80%;
