@@ -18355,12 +18355,9 @@
 	
 	var MBTradePage = __webpack_require__(302);
 	var TradePage_Beta = __webpack_require__(476);
-	var Highchart = __webpack_require__(453);
 	var reloadPage = __webpack_require__(441).reloadPage;
 	var Notifications = __webpack_require__(443);
-	var TickDisplay = __webpack_require__(457);
 	var TradePage = __webpack_require__(502);
-	var ViewPopup = __webpack_require__(451);
 	var updateBalance = __webpack_require__(505);
 	var Client = __webpack_require__(426);
 	var Clock = __webpack_require__(450);
@@ -18477,13 +18474,22 @@
 	        return promise_obj.promise;
 	    };
 	
-	    var send = function send(data, force_send, msg_type) {
+	    /**
+	     * @param {Object} data: request object
+	     * @param {Object} options:
+	     *      forced  : {boolean}  sends the request regardless the same msg_type has been sent before
+	     *      msg_type: {string}   specify the type of request call
+	     *      callback: {function} to call on response of streaming requests
+	     */
+	    var send = function send(data) {
+	        var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+	
 	        var promise_obj = new PromiseClass();
 	
-	        msg_type = msg_type || no_duplicate_requests.find(function (c) {
+	        var msg_type = options.msg_type || no_duplicate_requests.find(function (c) {
 	            return c in data;
 	        });
-	        if (!force_send && msg_type) {
+	        if (!options.forced && msg_type) {
 	            var last_response = State.get(['response', msg_type]);
 	            if (last_response) {
 	                promise_obj.resolve(last_response);
@@ -18504,7 +18510,11 @@
 	        }
 	        promises[data.req_id] = {
 	            callback: function callback(response) {
-	                promise_obj.resolve(response);
+	                if (typeof options.callback === 'function') {
+	                    options.callback(response);
+	                } else {
+	                    promise_obj.resolve(response);
+	                }
 	            },
 	            subscribe: !!data.subscribe
 	        };
@@ -18594,21 +18604,10 @@
 	                var passthrough = getPropertyValue(response, ['echo_req', 'passthrough']);
 	                var dispatch_to = void 0;
 	                if (passthrough) {
-	                    dispatch_to = passthrough.dispatch_to;
 	                    var this_req_number = passthrough.req_number;
 	                    if (this_req_number) {
 	                        clearInterval(timeouts[this_req_number]);
 	                        delete timeouts[this_req_number];
-	                    } else {
-	                        switch (dispatch_to) {
-	                            case 'ViewPopup':
-	                                ViewPopup.dispatch(response);break;
-	                            case 'ViewChart':
-	                                Highchart.dispatch(response);break;
-	                            case 'ViewTickDisplay':
-	                                TickDisplay.dispatch(response);break;
-	                            // no default
-	                        }
 	                    }
 	                }
 	
@@ -34401,7 +34400,7 @@
 	            } else if (website_status.website_status.clients_country === 'jp' || getLanguage() === 'JA') {
 	                req.landing_company = 'japan';
 	            }
-	            BinarySocket.send(req, false, 'active_symbols');
+	            BinarySocket.send(req, { forced: false, msg_type: 'active_symbols' });
 	            need_page_update = update;
 	        });
 	    };
@@ -38870,7 +38869,6 @@
 	var Client = __webpack_require__(426);
 	var toJapanTimeIfNeeded = __webpack_require__(450).toJapanTimeIfNeeded;
 	var localize = __webpack_require__(429).localize;
-	var State = __webpack_require__(421).State;
 	var urlParam = __webpack_require__(423).param;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
 	var jpClient = __webpack_require__(424).jpClient;
@@ -38900,10 +38898,14 @@
 	        $portfolio_loading.show();
 	        showLoadingImage($portfolio_loading);
 	        is_first_response = true;
-	        BinarySocket.send({ portfolio: 1 });
+	        BinarySocket.send({ portfolio: 1 }).then(function (response) {
+	            updatePortfolio(response);
+	        });
 	        // Subscribe to transactions to auto update new purchases
-	        BinarySocket.send({ transaction: 1, subscribe: 1 });
-	        BinarySocket.send({ oauth_apps: 1 });
+	        BinarySocket.send({ transaction: 1, subscribe: 1 }, { callback: transactionResponseHandler });
+	        BinarySocket.send({ oauth_apps: 1 }).then(function (response) {
+	            updateOAuthApps(response);
+	        });
 	        is_initialized = true;
 	
 	        // Display ViewPopup according to contract_id in query string
@@ -38967,7 +38969,7 @@
 	                updateFooter();
 	
 	                // request "proposal_open_contract"
-	                BinarySocket.send({ proposal_open_contract: 1, subscribe: 1 });
+	                BinarySocket.send({ proposal_open_contract: 1, subscribe: 1 }, { callback: updateIndicative });
 	            })();
 	        }
 	        // ready to show portfolio table
@@ -38980,7 +38982,9 @@
 	        if (response.hasOwnProperty('error')) {
 	            errorMessage(response.error.message);
 	        } else if (response.transaction.action === 'buy') {
-	            BinarySocket.send({ portfolio: 1 });
+	            BinarySocket.send({ portfolio: 1 }).then(function (res) {
+	                updatePortfolio(res);
+	            });
 	        } else if (response.transaction.action === 'sell') {
 	            removeContract(response.transaction.contract_id);
 	        }
@@ -39057,32 +39061,7 @@
 	    };
 	
 	    var onLoad = function onLoad() {
-	        if (!State.get('is_beta_trading') && !State.get('is_mb_trading')) {
-	            BinarySocket.init({
-	                onmessage: function onmessage(msg) {
-	                    var response = JSON.parse(msg.data);
-	                    var msg_type = response.msg_type;
-	
-	                    switch (msg_type) {
-	                        case 'portfolio':
-	                            PortfolioInit.updatePortfolio(response);
-	                            break;
-	                        case 'transaction':
-	                            PortfolioInit.transactionResponseHandler(response);
-	                            break;
-	                        case 'proposal_open_contract':
-	                            PortfolioInit.updateIndicative(response);
-	                            break;
-	                        case 'oauth_apps':
-	                            PortfolioInit.updateOAuthApps(response);
-	                            break;
-	                        default:
-	                        // msg_type is not what PortfolioInit handles, so ignore it.
-	                    }
-	                }
-	            });
-	        }
-	        PortfolioInit.init();
+	        init();
 	        ViewPopup.viewButtonOnClick('#portfolio-table');
 	    };
 	
@@ -39095,7 +39074,6 @@
 	    };
 	
 	    return {
-	        init: init,
 	        updateBalance: updateBalance,
 	        updatePortfolio: updatePortfolio,
 	        updateIndicative: updateIndicative,
@@ -39411,7 +39389,7 @@
 	        containerSetText('status', contract.status, { class: contract.is_ended ? 'loss' : 'profit' });
 	        containerSetText('stop_loss_level', contract.stop_loss_level);
 	        containerSetText('stop_profit_level', contract.stop_profit_level);
-	        containerSetText('pl_value', parseFloat(contract.current_value_in_dollar).toFixed(2), { class: contract.current_value_in_dollar * 1 >= 0 ? 'profit' : 'loss' });
+	        containerSetText('pl_value', parseFloat(contract.current_value_in_dollar).toFixed(2), { class: +contract.current_value_in_dollar >= 0 ? 'profit' : 'loss' });
 	        containerSetText('pl_point', parseFloat(contract.current_value_in_point).toFixed(2));
 	
 	        if (!contract.is_ended) {
@@ -39525,11 +39503,11 @@
 	        if (!chart_started && !contract.tick_count) {
 	            if (!tick_forgotten) {
 	                tick_forgotten = true;
-	                socketSend({ forget_all: 'ticks' });
+	                BinarySocket.send({ forget_all: 'ticks' });
 	            }
 	            if (!candle_forgotten) {
 	                candle_forgotten = true;
-	                socketSend({ forget_all: 'candles' });
+	                BinarySocket.send({ forget_all: 'candles' });
 	                Highchart.showChart(contract);
 	            }
 	            if (candle_forgotten && tick_forgotten) {
@@ -39551,7 +39529,9 @@
 	            normalContractEnded(parseFloat(profit_loss) >= 0);
 	            if (contract.is_valid_to_sell && contract.is_settleable && !contract.is_sold && !is_sell_clicked) {
 	                ViewPopupUI.forgetStreams();
-	                socketSend({ sell_expired: 1, passthrough: {} }, getContract);
+	                BinarySocket.send({ sell_expired: 1 }).then(function (response) {
+	                    getContract(response);
+	                });
 	            }
 	            if (!contract.tick_count) Highchart.showChart(contract, 'update');
 	        }
@@ -39748,7 +39728,9 @@
 	                e.stopPropagation();
 	                is_sell_clicked = true;
 	                sellSetVisibility(false);
-	                socketSend({ sell: contract_id, price: contract.bid_price, passthrough: {} }, responseSell);
+	                BinarySocket.send({ sell: contract_id, price: contract.bid_price }).then(function (response) {
+	                    responseSell(response);
+	                });
 	            });
 	        } else {
 	            if (!is_exist) return;
@@ -39768,7 +39750,7 @@
 	                subscribe: 1
 	            };
 	            if (option === 'no-subscribe') delete req.subscribe;
-	            socketSend(req);
+	            BinarySocket.send(req, { callback: responseProposal });
 	        }
 	    };
 	
@@ -39776,12 +39758,14 @@
 	    var getCorporateActions = function getCorporateActions() {
 	        var epoch = window.time.unix();
 	        var end_time = epoch < contract.date_expiry ? epoch.toFixed(0) : contract.date_expiry;
-	        socketSend({
+	        BinarySocket.send({
 	            get_corporate_actions: '1',
 	            symbol: contract.underlying,
 	            start: contract.date_start,
 	            end: end_time
-	        }, responseCorporateActions);
+	        }).then(function (response) {
+	            responseCorporateActions(response);
+	        });
 	    };
 	
 	    var responseCorporateActions = function responseCorporateActions(response) {
@@ -39817,32 +39801,18 @@
 	        }
 	    };
 	
-	    var socketSend = function socketSend(req, fnc) {
-	        if (!req.hasOwnProperty('passthrough')) {
-	            req.passthrough = {};
+	    var responseProposal = function responseProposal(response) {
+	        if (response.error) {
+	            if (response.error.code !== 'AlreadySubscribed' && response.echo_req.contract_id === contract_id) {
+	                showErrorPopup(response, response.error.message);
+	            }
+	            return;
 	        }
-	        req.passthrough.dispatch_to = 'ViewPopup';
-	        BinarySocket.send(req).then(function (response) {
-	            if (fnc && typeof fnc === 'function') fnc(response);
-	        });
-	    };
-	
-	    var dispatch = function dispatch(response) {
-	        switch (response.msg_type) {
-	            case 'proposal_open_contract':
-	                if (response.proposal_open_contract) {
-	                    if (response.proposal_open_contract.contract_id === contract_id) {
-	                        ViewPopupUI.storeSubscriptionID(response.proposal_open_contract.id);
-	                        responseContract(response);
-	                    } else {
-	                        BinarySocket.send({ forget: response.proposal_open_contract.id });
-	                    }
-	                } else if (response.echo_req.contract_id === contract_id && response.error && response.error.code !== 'AlreadySubscribed') {
-	                    showErrorPopup(response, response.error.message);
-	                }
-	                break;
-	            default:
-	                break;
+	        if (response.proposal_open_contract.contract_id === contract_id) {
+	            ViewPopupUI.storeSubscriptionID(response.proposal_open_contract.id);
+	            responseContract(response);
+	        } else {
+	            BinarySocket.send({ forget: response.proposal_open_contract.id });
 	        }
 	        var dates = ['#trade_details_start_date', '#trade_details_end_date', '#trade_details_current_date', '#trade_details_live_date'];
 	        for (var i = 0; i < dates.length; i++) {
@@ -39860,7 +39830,6 @@
 	
 	    return {
 	        init: init,
-	        dispatch: dispatch,
 	        spreadUpdate: spreadUpdate,
 	        normalUpdate: normalUpdate,
 	        viewButtonOnClick: viewButtonOnClick
@@ -40229,23 +40198,10 @@
 	        }
 	    };
 	
-	    // use this instead of BinarySocket.send to avoid overriding the onmessage of trading page
-	    var socketSend = function socketSend(req) {
-	        if (!req) return;
-	        if (!req.hasOwnProperty('passthrough')) {
-	            req.passthrough = {};
-	        }
-	        // send dispatch_to to help socket.js forward the correct response back to here
-	        req.passthrough.dispatch_to = 'ViewChart';
-	        BinarySocket.send(req);
-	    };
-	
-	    var dispatch = function dispatch(response) {
+	    var handleResponse = function handleResponse(response) {
 	        var type = response.msg_type;
 	        var error = response.error;
-	        if (type === 'contracts_for' && (!error || error.code && error.code === 'InvalidSymbol')) {
-	            delayedChart(response);
-	        } else if (/(history|candles|tick|ohlc)/.test(type) && !error) {
+	        if (/(history|candles|tick|ohlc)/.test(type) && !error) {
 	            response_id = response[type].id;
 	            // send view popup the response ID so view popup can forget the calls if it's closed before contract ends
 	            if (response_id) ViewPopupUI.storeSubscriptionID(response_id, 'chart');
@@ -40357,7 +40313,12 @@
 	            handleDelay(stored_delay);
 	            showEntryError();
 	        } else if (!is_contracts_for_send && update === '') {
-	            socketSend({ contracts_for: underlying });
+	            BinarySocket.send({ contracts_for: underlying }).then(function (response) {
+	                var error = response.error;
+	                if (!error || error.code && error.code === 'InvalidSymbol') {
+	                    delayedChart(response);
+	                }
+	            });
 	            is_contracts_for_send = true;
 	        }
 	    };
@@ -40377,7 +40338,7 @@
 	        } else if (!is_history_send) {
 	            is_history_send = true;
 	            if (request.subscribe) is_chart_subscribed = true;
-	            socketSend(request);
+	            BinarySocket.send(request, { callback: handleResponse });
 	        }
 	    };
 	
@@ -40565,7 +40526,7 @@
 	            var last_data = data[data.length - 1];
 	            var last = parseInt(last_data.x || last_data[0]);
 	            if (last > end_time * 1000 || last > sell_time * 1000) {
-	                socketSend({ forget: response_id });
+	                BinarySocket.send({ forget: response_id });
 	                is_chart_forget = true;
 	            }
 	        }
@@ -40628,8 +40589,7 @@
 	    };
 	
 	    return {
-	        showChart: showChart,
-	        dispatch: dispatch
+	        showChart: showChart
 	    };
 	}();
 	
@@ -41633,14 +41593,6 @@
 	        updatePurchaseStatus(final_price, final_price - pnl, contract_status);
 	    };
 	
-	    var socketSend = function socketSend(req) {
-	        if (!req.hasOwnProperty('passthrough')) {
-	            req.passthrough = {};
-	        }
-	        req.passthrough.dispatch_to = 'ViewTickDisplay';
-	        BinarySocket.send(req);
-	    };
-	
 	    var dispatch = function dispatch(data) {
 	        var tick_chart = document.getElementById('tick_chart');
 	
@@ -41649,7 +41601,6 @@
 	        }
 	
 	        if (window.subscribe && data.tick && document.getElementById('sell_content_wrapper')) {
-	            if (data.echo_req.hasOwnProperty('passthrough') && data.echo_req.passthrough.dispatch_to === 'ViewChart') return;
 	            window.responseID = data.tick.id;
 	            ViewPopupUI.storeSubscriptionID(window.responseID);
 	        }
@@ -41754,7 +41705,7 @@
 	            } else {
 	                request.end = contract.date_expiry;
 	            }
-	            socketSend(request);
+	            BinarySocket.send(request, { callback: dispatch });
 	        } else {
 	            dispatch(data);
 	        }
@@ -42211,7 +42162,6 @@
 	var MBPurchase = __webpack_require__(461);
 	var MBTick = __webpack_require__(439);
 	var Process = __webpack_require__(462);
-	var PortfolioInit = __webpack_require__(448);
 	var GTM = __webpack_require__(473);
 	var State = __webpack_require__(421).State;
 	
@@ -42247,12 +42197,6 @@
 	                MBTick.processHistory(response);
 	            } else if (type === 'trading_times') {
 	                Process.processTradingTimes(response);
-	            } else if (type === 'portfolio') {
-	                PortfolioInit.updatePortfolio(response);
-	            } else if (type === 'proposal_open_contract') {
-	                PortfolioInit.updateIndicative(response);
-	            } else if (type === 'transaction') {
-	                PortfolioInit.transactionResponseHandler(response);
 	            }
 	        }
 	    };
@@ -46240,7 +46184,7 @@
 	            req.landing_company = 'japan';
 	        }
 	        if (should_request_active_symbols) {
-	            BinarySocket.send(req, false, 'active_symbols').then(function (response) {
+	            BinarySocket.send(req, { forced: false, msg_type: 'active_symbols' }).then(function (response) {
 	                TradingTimesUI.setActiveSymbols(response);
 	            });
 	        }
@@ -49078,14 +49022,6 @@
 	        commonTrading.updatePurchaseStatus_Beta(final_price, final_price - pnl, contract_status);
 	    };
 	
-	    var socketSend = function socketSend(req) {
-	        if (!req.hasOwnProperty('passthrough')) {
-	            req.passthrough = {};
-	        }
-	        req.passthrough.dispatch_to = 'ViewTickDisplay';
-	        BinarySocket.send(req);
-	    };
-	
 	    var dispatch = function dispatch(data) {
 	        var tick_chart = document.getElementById('tick_chart');
 	
@@ -49094,7 +49030,6 @@
 	        }
 	
 	        if (window.subscribe && data.tick && document.getElementById('sell_content_wrapper')) {
-	            if (data.echo_req.hasOwnProperty('passthrough') && data.echo_req.passthrough.dispatch_to === 'ViewChart') return;
 	            window.responseID = data.tick.id;
 	            ViewPopupUI.storeSubscriptionID(window.responseID);
 	        }
@@ -49218,7 +49153,7 @@
 	            } else {
 	                request.end = contract.date_expiry;
 	            }
-	            socketSend(request);
+	            BinarySocket.send(request, { callback: dispatch });
 	        } else {
 	            dispatch(data);
 	        }
@@ -49533,7 +49468,6 @@
 	var Tick = __webpack_require__(445);
 	var AssetIndexUI = __webpack_require__(478);
 	var TradingTimesUI = __webpack_require__(481);
-	var PortfolioInit = __webpack_require__(448);
 	var GTM = __webpack_require__(473);
 	var State = __webpack_require__(421).State;
 	
@@ -49580,14 +49514,6 @@
 	                TradingTimesUI.setTradingTimes(response);
 	            } else if (type === 'error') {
 	                $('.error-msg').text(response.error.message);
-	            } else if (type === 'portfolio') {
-	                PortfolioInit.updatePortfolio(response);
-	            } else if (type === 'proposal_open_contract') {
-	                PortfolioInit.updateIndicative(response);
-	            } else if (type === 'transaction') {
-	                PortfolioInit.transactionResponseHandler(response);
-	            } else if (type === 'oauth_apps') {
-	                PortfolioInit.updateOAuthApps(response);
 	            }
 	        } else {
 	            console.log('some error occured');
@@ -66788,7 +66714,6 @@
 	var Process = __webpack_require__(462);
 	var Purchase = __webpack_require__(469);
 	var Tick = __webpack_require__(445);
-	var PortfolioInit = __webpack_require__(448);
 	var GTM = __webpack_require__(473);
 	var State = __webpack_require__(421).State;
 	
@@ -66830,12 +66755,6 @@
 	                Process.processTradingTimes(response);
 	            } else if (type === 'error') {
 	                $('.error-msg').text(response.error.message);
-	            } else if (type === 'portfolio') {
-	                PortfolioInit.updatePortfolio(response);
-	            } else if (type === 'proposal_open_contract') {
-	                PortfolioInit.updateIndicative(response);
-	            } else if (type === 'transaction') {
-	                PortfolioInit.transactionResponseHandler(response);
 	            }
 	        } else {
 	            console.log('some error occured');
@@ -73540,11 +73459,11 @@
 	            $btn.click(function (e) {
 	                e.preventDefault();
 	                e.stopPropagation();
-	                BinarySocket.send({ tnc_approval: '1' }, true).then(function (response) {
+	                BinarySocket.send({ tnc_approval: '1' }, { forced: true }).then(function (response) {
 	                    if (response.error) {
 	                        $('#err_message').html(response.error.message).removeClass(hidden_class);
 	                    } else {
-	                        BinarySocket.send({ get_settings: 1 }, true).then(function () {
+	                        BinarySocket.send({ get_settings: 1 }, { forced: true }).then(function () {
 	                            Header.displayAccountStatus();
 	                        });
 	                        redirectBack(redirect_anyway);
@@ -74995,7 +74914,7 @@
 	            showFormMessage(response.error.message, false);
 	            return;
 	        }
-	        showFormMessage('New token created', true);
+	        showFormMessage('New token created.', true);
 	        $('#txt_name').val('');
 	
 	        populateTokensList(response);
@@ -76423,12 +76342,12 @@
 	        var is_error = response.set_settings !== 1;
 	        if (!is_error) {
 	            // to update tax information message for financial clients
-	            BinarySocket.send({ get_account_status: 1 }, true).then(function () {
+	            BinarySocket.send({ get_account_status: 1 }, { forced: true }).then(function () {
 	                showHideTaxMessage();
 	                Header.displayAccountStatus();
 	            });
 	            // to update the State with latest get_settings data
-	            BinarySocket.send({ get_settings: 1 }, true).then(function (data) {
+	            BinarySocket.send({ get_settings: 1 }, { forced: true }).then(function (data) {
 	                getDetailsResponse(data.get_settings);
 	            });
 	        }
@@ -83563,7 +83482,7 @@
 	
 	    var onLoad = function onLoad() {
 	        // need to send get_settings because client status needs to be checked against latest available data
-	        BinarySocket.send({ get_settings: 1 }, true).then(function (response) {
+	        BinarySocket.send({ get_settings: 1 }, { forced: true }).then(function (response) {
 	            var jp_status = response.get_settings.jp_account_status;
 	
 	            if (!jp_status) {
@@ -83662,7 +83581,7 @@
 	            if (!response.error) {
 	                showResult(result_score, response.jp_knowledge_test.test_taken_epoch * 1000);
 	                $('html, body').animate({ scrollTop: 0 }, 'slow');
-	                BinarySocket.send({ get_settings: 1 }, true).then(function () {
+	                BinarySocket.send({ get_settings: 1 }, { forced: true }).then(function () {
 	                    Header.upgradeMessageVisibility();
 	                });
 	            } else if (response.error.code === 'TestUnavailableNow') {
