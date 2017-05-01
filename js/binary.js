@@ -34398,7 +34398,6 @@
 
 	'use strict';
 	
-	var _arguments = arguments;
 	var isEmptyObject = __webpack_require__(416).isEmptyObject;
 	
 	/*
@@ -34438,14 +34437,18 @@
 	    };
 	
 	    var removeDefault = function removeDefault() {
+	        for (var _len = arguments.length, keys = Array(_len), _key = 0; _key < _len; _key++) {
+	            keys[_key] = arguments[_key];
+	        }
+	
 	        loadParams();
 	        var is_updated = false;
-	        for (var i = 0; i < _arguments.length; i++) {
-	            if (params.hasOwnProperty(_arguments[i])) {
-	                delete params[_arguments[i]];
+	        keys.forEach(function (key) {
+	            if (key in params) {
+	                delete params[key];
 	                is_updated = true;
 	            }
-	        }
+	        });
 	        if (is_updated) {
 	            saveParams();
 	        }
@@ -37550,7 +37553,6 @@
 
 	'use strict';
 	
-	var _arguments = arguments;
 	var Url = __webpack_require__(426);
 	var isEmptyObject = __webpack_require__(416).isEmptyObject;
 	var isVisible = __webpack_require__(430).isVisible;
@@ -37597,15 +37599,19 @@
 	    };
 	
 	    var removeDefault = function removeDefault() {
+	        for (var _len = arguments.length, keys = Array(_len), _key = 0; _key < _len; _key++) {
+	            keys[_key] = arguments[_key];
+	        }
+	
 	        if (isEmptyObject(params)) params = Url.paramsHash();
 	        var is_updated = false;
-	        for (var i = 0; i < _arguments.length; i++) {
-	            if (params.hasOwnProperty(_arguments[i])) {
-	                sessionStorage.removeItem(_arguments[i]);
-	                delete params[_arguments[i]];
+	        keys.forEach(function (key) {
+	            if (key in params) {
+	                sessionStorage.removeItem(key);
+	                delete params[key];
 	                is_updated = true;
 	            }
-	        }
+	        });
 	        if (is_updated) {
 	            updateURL();
 	        }
@@ -82298,6 +82304,7 @@
 	            var client_state = response.get_settings.address_state;
 	
 	            if (states_list && states_list.length > 0) {
+	                $address_state.append($('<option/>', { value: '', text: localize('Please select') }));
 	                states_list.forEach(function (state) {
 	                    $address_state.append($('<option/>', { value: state.value, text: state.text }));
 	                });
@@ -82345,7 +82352,7 @@
 	            id = void 0;
 	        $(form_id).find('select, input[type=checkbox]').each(function () {
 	            id = $(this).attr('id');
-	            if (id !== 'tnc') {
+	            if (!/^(tnc|address_state)$/.test(id)) {
 	                validation = { selector: '#' + id, validations: ['req'] };
 	                if (id === 'not_pep') {
 	                    validation.exclude_request = 1;
