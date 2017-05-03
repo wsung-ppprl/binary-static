@@ -613,7 +613,6 @@ body #topbar #select_language {
   padding-left: 5px;
 }
 #footer #footer-regulatory #ratelimit-error-message {
-  display: none;
   position: fixed;
   top: 0;
   width: 100%;
@@ -750,6 +749,26 @@ html.mm-right.mm-opening body .mm-page, html.mm-right.mm-opening body #mm-blocke
 }
 .ui-datepicker.ui-corner-all, .ui-datepicker .ui-corner-all, .ui-timepicker-table.ui-corner-all, .ui-timepicker-table .ui-corner-all {
   border-radius: 0;
+}
+
+.clearable {
+  background: #fff url("data:image/gif;base64,R0lGODlhBwAHAIAAAP///5KSkiH5BAAAAAAALAAAAAAHAAcAAAIMTICmsGrIXnLxuDMLADs=") no-repeat right -10px center;
+  padding: 3px 18px 3px 4px;
+  /* Use the same right padding (18px) in jQ */
+  border-radius: 3px;
+  transition: background 0.4s;
+}
+.clearable.clear {
+  background-position: right 5px center;
+}
+.clearable.onClear {
+  cursor: pointer;
+}
+
+.clearable::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* pages */
@@ -1340,10 +1359,6 @@ a.close:hover {
 
 .invisible {
   display: none !important;
-}
-
-.hidden {
-  display: none;
   visibility: hidden;
 }
 
@@ -5216,9 +5231,6 @@ button:disabled {
 body .calls_recording {
   display: none;
 }
-body .all-hide {
-  display: none !important;
-}
 body ul.checked > li {
   background-position: left top;
   padding-left: 35px;
@@ -5242,22 +5254,6 @@ body.EN .google-play-badge {
 
 body.JA .ja-hide {
   display: none !important;
-}
-body.JA .ja-show {
-  display: inline !important;
-  visibility: visible !important;
-}
-body.JA .ja-show-block {
-  display: block !important;
-  visibility: visible !important;
-}
-body.JA .ja-show-inline-block {
-  display: inline-block !important;
-  visibility: visible !important;
-}
-body.JA .ja-no-padding {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
 }
 body.JA .regulatory-logo {
   display: none !important;
