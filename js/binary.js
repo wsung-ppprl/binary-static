@@ -18389,6 +18389,7 @@
 	        buffered_sends = [],
 	        events = {},
 	        authorized = false,
+	        is_available = true,
 	        req_number = 0,
 	        req_id = 0,
 	        wrong_app_id = 0;
@@ -18515,7 +18516,7 @@
 	            subscribe: !!data.subscribe
 	        };
 	
-	        if (isReady()) {
+	        if (isReady() && is_available) {
 	            if (!data.hasOwnProperty('passthrough') && !data.hasOwnProperty('verify_email')) {
 	                data.passthrough = {};
 	            }
@@ -18590,7 +18591,7 @@
 	            if (isReady()) {
 	                if (!Login.isLoginPages()) {
 	                    Client.validateLoginid();
-	                    binary_socket.send(JSON.stringify({ website_status: 1 }));
+	                    binary_socket.send(JSON.stringify({ website_status: 1, subscribe: 1 }));
 	                }
 	                Clock.startClock();
 	            }
@@ -18611,7 +18612,7 @@
 	                var type = response.msg_type;
 	
 	                // store in State
-	                if (!getPropertyValue(response, ['echo_req', 'subscribe']) || type === 'balance') {
+	                if (!getPropertyValue(response, ['echo_req', 'subscribe']) || /(balance|website_status)/.test(type)) {
 	                    State.set(['response', type], $.extend({}, response));
 	                }
 	                // resolve the send promise
@@ -18627,7 +18628,12 @@
 	                waiting_list.resolve(response);
 	
 	                var error_code = getPropertyValue(response, ['error', 'code']);
-	                if (type === 'authorize') {
+	                if (type === 'website_status') {
+	                    var is_available_now = /^up$/i.test(response.website_status.site_status);
+	                    if (!is_available && is_available_now) window.location.reload();
+	                    is_available = is_available_now;
+	                    $('#site-status-message').setVisibility(!is_available).find('.message').html(response.website_status.message);
+	                } else if (type === 'authorize') {
 	                    if (response.error) {
 	                        var is_active_tab = sessionStorage.getItem('active_tab') === '1';
 	                        if (error_code === 'SelfExclusion' && is_active_tab) {
@@ -64930,8 +64936,8 @@
 	        /*
 	         * attach event to close icon for purchase container
 	         */
-	        $('#close_confirmation_container, #contract_purchase_new_trade').on('click dblclick', function (e) {
-	            if (e.target) {
+	        $('#close_confirmation_container').on('click dblclick', function (e) {
+	            if (e.target && isVisible(document.getElementById('confirmation_message_container'))) {
 	                e.preventDefault();
 	                commonTrading.hideOverlayContainer();
 	                Price.processPriceRequest();

@@ -612,7 +612,7 @@ body #topbar #select_language {
   height: 30px;
   padding-left: 5px;
 }
-#footer #footer-regulatory #ratelimit-error-message {
+#footer #footer-regulatory #ratelimit-error-message, #footer #footer-regulatory #site-status-message {
   position: fixed;
   top: 0;
   width: 100%;
@@ -620,14 +620,15 @@ body #topbar #select_language {
   z-index: 999;
   text-align: center;
 }
-#footer #footer-regulatory #ratelimit-error-message .message {
+#footer #footer-regulatory #ratelimit-error-message .message, #footer #footer-regulatory #site-status-message .message {
   margin: 12px;
-  font-style: italic;
-  color: #c03;
 }
-#footer #footer-regulatory #ratelimit-error-message .message a {
+#footer #footer-regulatory #ratelimit-error-message .message a, #footer #footer-regulatory #site-status-message .message a {
   color: #2e8836;
   font-size: inherit;
+}
+#footer #footer-regulatory #site-status-message {
+  z-index: 9999;
 }
 #footer #footer-last a {
   text-decoration: underline;
