@@ -37528,14 +37528,18 @@
 	        if (!stream_ids && !underlying) {
 	            stream_ids = [];
 	        }
-	        if (!chart_stream_ids && underlying) {
+	        if (!chart_stream_ids) {
 	            chart_stream_ids = [];
+	        }
+	        if (underlying) {
 	            chart_underlying = underlying;
 	        }
-	        if (!underlying && id && id.length > 0 && $.inArray(id, stream_ids) < 0) {
-	            stream_ids.push(id);
-	        } else if (underlying && id && id.length > 0 && $.inArray(id, chart_stream_ids) < 0) {
-	            chart_stream_ids.push(id);
+	        if (id && id.length > 0) {
+	            if (!underlying && $.inArray(id, stream_ids) < 0) {
+	                stream_ids.push(id);
+	            } else if (underlying && $.inArray(id, chart_stream_ids) < 0) {
+	                chart_stream_ids.push(id);
+	            }
 	        }
 	    };
 	
@@ -37671,7 +37675,8 @@
 	        contract = void 0,
 	        request = void 0,
 	        min_point = void 0,
-	        max_point = void 0;
+	        max_point = void 0,
+	        lines_drawn = void 0;
 	
 	    var start_time = void 0,
 	        purchase_time = void 0,
@@ -37697,6 +37702,7 @@
 	
 	    var initOnce = function initOnce() {
 	        chart = options = response_id = contract = request = min_point = max_point = '';
+	        lines_drawn = [];
 	
 	        is_initialized = is_chart_delayed = is_chart_subscribed = stop_streaming = is_contracts_for_send = is_history_send = is_entry_tick_barrier_selected = false;
 	    };
@@ -37835,12 +37841,18 @@
 	                    chart = initChart(options);
 	                    if (!chart) return;
 	
-	                    if (purchase_time !== start_time) drawLineX(purchase_time, localize('Purchase Time'), '', '', '#7cb5ec');
+	                    if (purchase_time !== start_time) {
+	                        drawLineX({
+	                            value: purchase_time,
+	                            label: localize('Purchase Time'),
+	                            color: '#7cb5ec'
+	                        });
+	                    }
 	
 	                    // second condition is used to make sure contracts that have purchase time
 	                    // but are sold before the start time don't show start time
 	                    if (!is_sold || is_sold && sell_time && sell_time > start_time) {
-	                        drawLineX(start_time);
+	                        drawLineX({ value: start_time });
 	                    }
 	                }
 	            } else if ((tick || ohlc) && !stop_streaming) {
@@ -38022,7 +38034,7 @@
 	    // calculate where to display the maximum value of the x-axis of the chart for line chart
 	    var getMaxHistory = function getMaxHistory(history_times) {
 	        var end = end_time;
-	        if (sell_spot_time && sell_time < end_time) {
+	        if (sell_spot_time && (sell_time || sell_spot_time) < end_time) {
 	            end = sell_spot_time;
 	        } else if (exit_tick_time) {
 	            end = exit_tick_time;
@@ -38094,22 +38106,27 @@
 	        if (!max_point) max_point = end_time;
 	    };
 	
-	    var drawLineX = function drawLineX(value_time, label_name, text_left, dash, color) {
-	        if (chart) {
+	    var drawLineX = function drawLineX(properties) {
+	        if (chart && properties.value && !new RegExp(properties.value).test(lines_drawn)) {
 	            addPlotLine({
-	                value: value_time * 1000,
-	                label: label_name || '',
-	                textLeft: text_left === 'textLeft',
-	                dashStyle: dash || '',
-	                color: color || ''
+	                value: properties.value * 1000,
+	                label: properties.label || '',
+	                textLeft: properties.text_left === 'textLeft',
+	                dashStyle: properties.dash_style || '',
+	                color: properties.color || ''
 	            }, 'x');
+	            lines_drawn.push(properties.value);
 	        }
 	    };
 	
 	    // draw the last line, mark the exit tick, and forget the streams
 	    var endContract = function endContract() {
-	        if (chart) {
-	            drawLineX(userSold() ? sell_time : end_time, '', 'textLeft', 'Dash');
+	        if (chart && !stop_streaming) {
+	            drawLineX({
+	                value: userSold() ? sell_time : end_time,
+	                text_left: 'textLeft',
+	                dash_style: 'Dash'
+	            });
 	            if (exit_tick_time) {
 	                selectTick(exit_tick_time, 'exit');
 	            }
@@ -38120,8 +38137,6 @@
 	            } else {
 	                $('#waiting_exit_tick').remove();
 	            }
-	        }
-	        if (!stop_streaming) {
 	            setStopStreaming();
 	        }
 	    };
@@ -38130,12 +38145,17 @@
 	        if (chart && (is_sold || is_settleable) && chart.series && chart.series[0].options.data.length > 0) {
 	            var data = chart.series[0].options.data;
 	            var last_data = data[data.length - 1];
+	            var i = 2;
+	            while (last_data.y === null) {
+	                last_data = data[data.length - i];
+	                i++;
+	            }
 	            var last = parseInt(last_data.x || last_data[0]);
-	            if (last > end_time * 1000 || last > sell_time * 1000) {
+	            if (last > end_time * 1000 || last > (sell_time || sell_spot_time) * 1000) {
 	                stop_streaming = true;
 	            } else {
 	                // add a null point if the last tick is before end time to bring end time line into view
-	                var time = userSold() ? sell_time : end_time;
+	                var time = userSold() ? sell_time || sell_spot_time : end_time;
 	                chart.series[0].addPoint({ x: ((time || window.time.unix()) + margin) * 1000, y: null });
 	            }
 	        }
@@ -38194,7 +38214,7 @@
 	    };
 	
 	    var userSold = function userSold() {
-	        return sell_time && sell_time < end_time;
+	        return sell_time && sell_time < end_time || !sell_time && sell_spot_time && sell_spot_time < end_time;
 	    };
 	
 	    return {
@@ -38919,8 +38939,10 @@
 	        if (underlying && req && _callback && (underlying !== req.ticks_history || !req.subscribe)) {
 	            BinarySocket.send(req, { callback: _callback });
 	        } else {
-	            BinarySocket.send({ forget_all: 'ticks' });
-	            BinarySocket.send({ forget_all: 'candles' });
+	            if (!req || req.subscribe) {
+	                BinarySocket.send({ forget_all: 'ticks' });
+	                BinarySocket.send({ forget_all: 'candles' });
+	            }
 	            BinarySocket.send(req || {
 	                ticks_history: symbol,
 	                style: 'ticks',
