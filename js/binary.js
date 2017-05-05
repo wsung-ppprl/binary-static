@@ -18371,6 +18371,7 @@
 	var State = __webpack_require__(424).State;
 	var getPropertyValue = __webpack_require__(416).getPropertyValue;
 	var getLoginToken = __webpack_require__(430).getLoginToken;
+	var jpResidence = __webpack_require__(428).jpResidence;
 	var SessionDurationLimit = __webpack_require__(511);
 	var getAppId = __webpack_require__(468).getAppId;
 	var getSocketURL = __webpack_require__(468).getSocketURL;
@@ -18652,7 +18653,7 @@
 	                            send({ get_account_status: 1 });
 	                            send({ payout_currencies: 1 });
 	                            setResidence(response.authorize.country || Cookies.get('residence'));
-	                            if (!Client.get('is_virtual')) {
+	                            if (!Client.get('is_virtual') && !jpResidence()) {
 	                                send({ get_self_exclusion: 1 });
 	                                // TODO: remove this when back-end adds it as a status to get_account_status
 	                                send({ get_financial_assessment: 1 });
@@ -36875,8 +36876,6 @@
 	        is_sell_clicked = void 0,
 	        chart_started = void 0,
 	        chart_init = void 0,
-	        corporate_action_event = void 0,
-	        corporate_action_sent = void 0,
 	        chart_updated = void 0;
 	    var $container = void 0,
 	        $loading = void 0,
@@ -36895,8 +36894,6 @@
 	        chart_started = false;
 	        chart_init = false;
 	        chart_updated = false;
-	        corporate_action_event = false;
-	        corporate_action_sent = false;
 	        $container = '';
 	
 	        if (btn_view) {
@@ -36926,12 +36923,6 @@
 	        if (contract && document.getElementById(wrapper_id)) {
 	            update();
 	            return;
-	        }
-	
-	        // ----- Corporate Action -----
-	        if (contract.has_corporate_actions && !corporate_action_sent) {
-	            corporate_action_sent = true;
-	            getCorporateActions();
 	        }
 	
 	        showContract();
@@ -37010,7 +37001,7 @@
 	            if (contract.entry_spot > 0) {
 	                containerSetText('trade_details_entry_spot', contract.entry_spot);
 	            }
-	            containerSetText('trade_details_message', contract.validation_error ? contract.validation_error : corporate_action_event ? '* ' + localize('This contract was affected by a Corporate Action event.') : '&nbsp;');
+	            containerSetText('trade_details_message', contract.validation_error ? contract.validation_error : '&nbsp;');
 	        }
 	
 	        if (!chart_started && !contract.tick_count) {
@@ -37094,60 +37085,6 @@
 	        // showWinLossStatus(is_win);
 	    };
 	
-	    var addColorAndClass = function addColorAndClass($tab_to_show, $tab_to_hide, $content_to_show, $content_to_hide) {
-	        $tab_to_show.attr('style', 'background: #f2f2f2;');
-	        $tab_to_hide.attr('style', 'background: #c2c2c2;');
-	        $content_to_hide.setVisibility(0);
-	        $content_to_show.setVisibility(1);
-	    };
-	
-	    var showCorporateAction = function showCorporateAction() {
-	        var $contract_information_tab = $('#contract_information_tab');
-	        var $contract_information_content = $('#contract_information_content');
-	
-	        $contract_information_tab.removeAttr('colspan');
-	        $('#contract_tabs').append('<th id="corporate_action_tab">' + localize('Corporate Action') + '</th>');
-	
-	        var $corporate_action_tab = $('#corporate_action_tab');
-	        var $corporate_action_content = $('#corporate_action_content');
-	        var $barrier_change = $('#barrier_change');
-	        var $barrier_change_content = $('#barrier_change_content');
-	
-	        $corporate_action_tab.attr('style', 'background: #c2c2c2;');
-	        $('#sell_details_table').draggable({ disabled: true });
-	
-	        $corporate_action_tab.on('click', function () {
-	            addColorAndClass($corporate_action_tab, $contract_information_tab, $corporate_action_content, $contract_information_content);
-	            $barrier_change.setVisibility(1);
-	            $barrier_change_content.setVisibility(1);
-	        });
-	        $contract_information_tab.on('click', function () {
-	            $barrier_change.setVisibility(0);
-	            $barrier_change_content.setVisibility(0);
-	            addColorAndClass($contract_information_tab, $corporate_action_tab, $contract_information_content, $corporate_action_content);
-	        });
-	    };
-	
-	    var populateCorporateAction = function populateCorporateAction(corporate_action) {
-	        for (var i = 0; i < corporate_action.get_corporate_actions.actions.length; i++) {
-	            $('#corporate_action_content').append(createRow(corporate_action.get_corporate_actions.actions[i].display_date, '', '', '', corporate_action.get_corporate_actions.actions[i].type + ' (' + corporate_action.get_corporate_actions.actions[i].value + '-' + localize('for') + '-1)'));
-	        }
-	        var original_barriers = void 0,
-	            adjusted_barriers = void 0;
-	
-	        if (contract.original_barrier) {
-	            original_barriers = createRow(localize('Original Barrier'), '', '', '', contract.original_barrier);
-	        } else if (contract.original_high_barrier) {
-	            original_barriers = createRow(localize('Original High Barrier'), '', '', '', contract.original_high_barrier) + createRow(localize('Original Low Barrier'), '', '', '', contract.original_low_barrier);
-	        }
-	        if (contract.barrier) {
-	            adjusted_barriers = createRow(localize('Adjusted Barrier'), '', '', '', contract.barrier);
-	        } else if (contract.high_barrier) {
-	            adjusted_barriers = createRow(localize('Adjusted High Barrier'), '', '', '', contract.high_barrier) + createRow(localize('Adjusted Low Barrier'), '', '', '', contract.low_barrier);
-	        }
-	        $('#barrier_change_content').append(original_barriers + adjusted_barriers);
-	    };
-	
 	    var makeTemplate = function makeTemplate() {
 	        $container = $('<div/>').append($('<div/>', { id: wrapper_id }));
 	
@@ -37156,7 +37093,7 @@
 	        $container.prepend($('<div/>', { id: 'sell_bet_desc', class: 'popup_bet_desc drag-handle', text: longcode }));
 	        var $sections = $('<div/>').append($('<div class="gr-row container"><div id="sell_details_chart_wrapper" class="gr-8 gr-12-m"></div><div id="sell_details_table" class="gr-4 gr-12-m"></div></div>'));
 	
-	        $sections.find('#sell_details_table').append($('<table>\n            <tr id="contract_tabs"><th colspan="2" id="contract_information_tab">' + localize('Contract Information') + '</th></tr><tbody id="contract_information_content">\n            ' + createRow('Contract ID', '', 'trade_details_contract_id') + '\n            ' + createRow('Reference ID', '', 'trade_details_ref_id') + '\n            ' + createRow('Start Time', '', 'trade_details_start_date') + '\n            ' + (!contract.tick_count ? createRow('End Time', '', 'trade_details_end_date') + createRow('Remaining Time', '', 'trade_details_live_remaining') : '') + '\n            ' + createRow('Entry Spot', '', 'trade_details_entry_spot') + '\n            ' + createRow(contract.barrier_count > 1 ? 'High Barrier' : /^DIGIT(MATCH|DIFF)$/.test(contract.contract_type) ? 'Target' : 'Barrier', '', 'trade_details_barrier', true) + '\n            ' + (contract.barrier_count > 1 ? createRow('Low Barrier', '', 'trade_details_barrier_low', true) : '') + '\n            ' + createRow('Potential Payout', '', 'trade_details_payout') + '\n            ' + createRow('Purchase Price', '', 'trade_details_purchase_price') + '\n            </tbody><tbody id="corporate_action_content" class="invisible"></tbody>\n            <th colspan="2" id="barrier_change" class="invisible">' + localize('Barrier Change') + '</th>\n            <tbody id="barrier_change_content" class="invisible"></tbody>\n            <tr><th colspan="2" id="trade_details_current_title">' + localize('Current') + '</th></tr>\n            ' + createRow('Spot', 'trade_details_spot_label', 'trade_details_current_spot') + '\n            ' + createRow('Spot Time', 'trade_details_spottime_label', 'trade_details_current_date') + '\n            ' + createRow('Current Time', '', 'trade_details_live_date') + '\n            ' + createRow('Indicative', 'trade_details_indicative_label', 'trade_details_indicative_price') + '\n            ' + createRow('Profit/Loss', '', 'trade_details_profit_loss') + '\n            <tr><td colspan="2" class="last_cell" id="trade_details_message">&nbsp;</td></tr>\n            </table>\n            <div id="errMsg" class="notice-msg ' + hidden_class + '"></div>\n            <div id="trade_details_bottom"><div id="contract_sell_wrapper" class="' + hidden_class + '"></div><div id="contract_sell_message"></div><div id="contract_win_status" class="' + hidden_class + '"></div></div>'));
+	        $sections.find('#sell_details_table').append($('<table>\n            <tr id="contract_tabs"><th colspan="2" id="contract_information_tab">' + localize('Contract Information') + '</th></tr><tbody id="contract_information_content">\n            ' + createRow('Contract ID', '', 'trade_details_contract_id') + '\n            ' + createRow('Reference ID', '', 'trade_details_ref_id') + '\n            ' + createRow('Start Time', '', 'trade_details_start_date') + '\n            ' + (!contract.tick_count ? createRow('End Time', '', 'trade_details_end_date') + createRow('Remaining Time', '', 'trade_details_live_remaining') : '') + '\n            ' + createRow('Entry Spot', '', 'trade_details_entry_spot') + '\n            ' + createRow(contract.barrier_count > 1 ? 'High Barrier' : /^DIGIT(MATCH|DIFF)$/.test(contract.contract_type) ? 'Target' : 'Barrier', '', 'trade_details_barrier', true) + '\n            ' + (contract.barrier_count > 1 ? createRow('Low Barrier', '', 'trade_details_barrier_low', true) : '') + '\n            ' + createRow('Potential Payout', '', 'trade_details_payout') + '\n            ' + createRow('Purchase Price', '', 'trade_details_purchase_price') + '\n            </tbody>\n            <th colspan="2" id="barrier_change" class="invisible">' + localize('Barrier Change') + '</th>\n            <tbody id="barrier_change_content" class="invisible"></tbody>\n            <tr><th colspan="2" id="trade_details_current_title">' + localize('Current') + '</th></tr>\n            ' + createRow('Spot', 'trade_details_spot_label', 'trade_details_current_spot') + '\n            ' + createRow('Spot Time', 'trade_details_spottime_label', 'trade_details_current_date') + '\n            ' + createRow('Current Time', '', 'trade_details_live_date') + '\n            ' + createRow('Indicative', 'trade_details_indicative_label', 'trade_details_indicative_price') + '\n            ' + createRow('Profit/Loss', '', 'trade_details_profit_loss') + '\n            <tr><td colspan="2" class="last_cell" id="trade_details_message">&nbsp;</td></tr>\n            </table>\n            <div id="errMsg" class="notice-msg ' + hidden_class + '"></div>\n            <div id="trade_details_bottom"><div id="contract_sell_wrapper" class="' + hidden_class + '"></div><div id="contract_sell_message"></div><div id="contract_win_status" class="' + hidden_class + '"></div></div>'));
 	
 	        $sections.find('#sell_details_chart_wrapper').html($('<div/>', { id: contract.tick_count ? 'tick_chart' : 'analysis_live_chart', class: 'live_chart_wrapper' }));
 	
@@ -37255,29 +37192,6 @@
 	            };
 	            if (option === 'no-subscribe') delete req.subscribe;
 	            BinarySocket.send(req, { callback: responseProposal });
-	        }
-	    };
-	
-	    // ----- Corporate Action -----
-	    var getCorporateActions = function getCorporateActions() {
-	        var epoch = window.time.unix();
-	        var end_time = epoch < contract.date_expiry ? epoch.toFixed(0) : contract.date_expiry;
-	        BinarySocket.send({
-	            get_corporate_actions: '1',
-	            symbol: contract.underlying,
-	            start: contract.date_start,
-	            end: end_time
-	        }).then(function (response) {
-	            responseCorporateActions(response);
-	        });
-	    };
-	
-	    var responseCorporateActions = function responseCorporateActions(response) {
-	        if (!isEmptyObject(response.get_corporate_actions)) {
-	            corporate_action_event = true;
-	            containerSetText('trade_details_message', contract.validation_error ? contract.validation_error : corporate_action_event ? '* ' + localize('This contract was affected by a Corporate Action event.') : '&nbsp;');
-	            populateCorporateAction(response);
-	            showCorporateAction();
 	        }
 	    };
 	
@@ -47778,12 +47692,13 @@
 	'use strict';
 	
 	var onlyNumericOnKeypress = function onlyNumericOnKeypress(ev, optional_value) {
-	    var char = String.fromCharCode(ev.which);
+	    var key = ev.which;
+	    var char = String.fromCharCode(key);
 	    var array_of_char = [8, 37, 39, 46]; // delete, backspace, arrow keys
 	    if (optional_value && optional_value.length > 0) {
 	        array_of_char = array_of_char.concat(optional_value);
 	    }
-	    if (char === '.' && ev.target.value.indexOf(char) >= 0 || !/[0-9\.]/.test(char) && array_of_char.indexOf(ev.keyCode) < 0 || /['%]/.test(char)) {
+	    if (char === '.' && ev.target.value.indexOf(char) >= 0 || !/[0-9\.]/.test(char) && array_of_char.indexOf(key) < 0 || /['%]/.test(char)) {
 	        // similarity to arrows key code in some browsers
 	        ev.returnValue = false;
 	        ev.preventDefault();
@@ -64991,6 +64906,9 @@
 	                Price.processPriceRequest();
 	                commonTrading.submitForm(document.getElementById('websocket_form'));
 	            }));
+	            low_barrier_element.addEventListener('keypress', function (ev) {
+	                onlyNumericOnKeypress(ev, [43, 45, 46]);
+	            });
 	        }
 	
 	        /*
@@ -65003,6 +64921,9 @@
 	                Price.processPriceRequest();
 	                commonTrading.submitForm(document.getElementById('websocket_form'));
 	            }));
+	            high_barrier_element.addEventListener('keypress', function (ev) {
+	                onlyNumericOnKeypress(ev, [43, 45, 46]);
+	            });
 	        }
 	
 	        /*
