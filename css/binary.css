@@ -3097,7 +3097,7 @@ fieldset .error-msg {
   display: block;
   position: absolute;
   height: 100%;
-  margin-top: -8px;
+  top: 0;
 }
 #trading_socket_container #contract_container input[type=number]::-webkit-inner-spin-button, #trading_socket_container #contract_container input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -4255,7 +4255,7 @@ fieldset .error-msg {
   display: block;
   position: absolute;
   height: 100%;
-  margin-top: -8px;
+  top: 0;
 }
 #trading_socket_container_beta #contract_container input[type=number]::-webkit-inner-spin-button, #trading_socket_container_beta #contract_container input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;

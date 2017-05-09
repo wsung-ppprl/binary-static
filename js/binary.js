@@ -40409,26 +40409,50 @@
 	        var barrier_element = document.getElementById('barrier');
 	        var high_barrier_element = document.getElementById('barrier_high');
 	        var low_barrier_element = document.getElementById('barrier_low');
+	        var tooltip = document.getElementById('barrier_tooltip');
+	        var span = document.getElementById('barrier_span');
+	        var high_tooltip = document.getElementById('barrier_high_tooltip');
+	        var high_span = document.getElementById('barrier_high_span');
+	        var low_tooltip = document.getElementById('barrier_low_tooltip');
+	        var low_span = document.getElementById('barrier_low_span');
 	        var value = void 0;
 	
 	        var end_time = document.getElementById('expiry_date');
 	        if (unit && (!isVisible(unit) || unit.value !== 'd') && current_tick && !isNaN(current_tick) && end_time && (!isVisible(end_time) || moment(end_time.getAttribute('data-value')).isBefore(moment().add(1, 'day'), 'day'))) {
 	            var decimal_places = countDecimalPlaces(current_tick);
-	            if (indicative_barrier_tooltip && isVisible(indicative_barrier_tooltip)) {
+	            if (indicative_barrier_tooltip && isVisible(indicative_barrier_tooltip) && String(barrier_element.value).match(/^[+-]/)) {
 	                var barrier_value = isNaN(parseFloat(barrier_element.value)) ? 0 : parseFloat(barrier_element.value);
 	                indicative_barrier_tooltip.textContent = (parseFloat(current_tick) + barrier_value).toFixed(decimal_places);
+	                tooltip.style.display = 'inherit';
+	                span.style.display = 'none';
+	            } else {
+	                elementTextContent(indicative_barrier_tooltip, '');
+	                tooltip.style.display = 'none';
+	                span.style.display = 'inherit';
 	            }
 	
-	            if (indicative_high_barrier_tooltip && isVisible(indicative_high_barrier_tooltip)) {
+	            if (indicative_high_barrier_tooltip && isVisible(indicative_high_barrier_tooltip) && String(high_barrier_element.value).match(/^[+-]/)) {
 	                value = parseFloat(high_barrier_element.value);
 	                value = isNaN(value) ? 0 : value;
 	                indicative_high_barrier_tooltip.textContent = (parseFloat(current_tick) + value).toFixed(decimal_places);
+	                high_tooltip.style.display = 'inherit';
+	                high_span.style.display = 'none';
+	            } else {
+	                elementTextContent(indicative_high_barrier_tooltip, '');
+	                high_tooltip.style.display = 'none';
+	                high_span.style.display = 'inherit';
 	            }
 	
-	            if (indicative_low_barrier_tooltip && isVisible(indicative_low_barrier_tooltip)) {
+	            if (indicative_low_barrier_tooltip && isVisible(indicative_low_barrier_tooltip) && String(low_barrier_element.value).match(/^[+-]/)) {
 	                value = parseFloat(low_barrier_element.value);
 	                value = isNaN(value) ? 0 : value;
 	                indicative_low_barrier_tooltip.textContent = (parseFloat(current_tick) + value).toFixed(decimal_places);
+	                low_tooltip.style.display = 'inherit';
+	                low_span.style.display = 'none';
+	            } else {
+	                elementTextContent(indicative_low_barrier_tooltip, '');
+	                low_tooltip.style.display = 'none';
+	                low_span.style.display = 'inherit';
 	            }
 	        } else {
 	            elementTextContent(indicative_barrier_tooltip, '');
@@ -75204,7 +75228,6 @@
 	var LimitsUI = __webpack_require__(566);
 	var Client = __webpack_require__(423);
 	var localize = __webpack_require__(303).localize;
-	var elementInnerHtml = __webpack_require__(430).elementInnerHtml;
 	var elementTextContent = __webpack_require__(430).elementTextContent;
 	var addComma = __webpack_require__(433).addComma;
 	
@@ -75255,19 +75278,10 @@
 	    var limitsError = function limitsError(error) {
 	        document.getElementById('withdrawal-title').setAttribute('style', 'display:none');
 	        document.getElementById('limits-title').setAttribute('style', 'display:none');
-	        var error_element = document.getElementsByClassName('notice-msg')[0];
-	        if (error && error.message) {
-	            elementInnerHtml(error_element, error.message);
-	        } else {
-	            elementInnerHtml(error_element, localize('An error occured') + '.');
-	        }
-	        document.getElementById('client_message').setAttribute('style', 'display:block');
+	        $('#limits_error').append($('<p/>', { class: 'center-text notice-msg', text: error && error.message ? error.message : localize('Sorry, an error occurred while processing your request.') }));
 	    };
 	
 	    var initTable = function initTable() {
-	        var client_message = document.getElementById('client_message');
-	        if (!client_message) return;
-	        client_message.setAttribute('style', 'display:none');
 	        LimitsUI.clearTableContent();
 	    };
 	
