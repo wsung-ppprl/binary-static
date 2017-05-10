@@ -223,8 +223,11 @@ label {
 }
 
 /* global styles */
-.required_asterisk {
-  color: #e98024;
+.required_field_asterisk {
+  position: absolute;
+  margin: -3px 3px;
+  font-size: 0.86957rem;
+  color: #c03;
 }
 
 .inpage_popup_container {
@@ -735,6 +738,10 @@ html.mm-right.mm-opening body .mm-page, html.mm-right.mm-opening body #mm-blocke
 #reality_check_nav span:nth-child(2), #balances-nav span:nth-child(2) {
   display: inline-block;
   width: 10em;
+}
+
+input#num_reality_duration {
+  margin-left: 10px;
 }
 
 #accordion .ui-accordion-content {
