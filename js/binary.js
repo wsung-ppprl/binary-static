@@ -66847,7 +66847,7 @@
 	            message = void 0;
 	
 	        field.validations.some(function (valid) {
-	            if (!valid) return true;
+	            if (!valid) return false; // check next validation
 	            var type = void 0,
 	                options = {};
 	
@@ -66877,9 +66877,9 @@
 	                    message = localize(message, [localize(options.name1), localize(options.name2)]);
 	                }
 	                all_is_ok = false;
-	                return true;
+	                return true; // break on the first error found
 	            }
-	            return false;
+	            return false; // check next validation
 	        });
 	
 	        if (!all_is_ok) {
