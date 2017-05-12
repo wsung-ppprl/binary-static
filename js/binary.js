@@ -35963,7 +35963,8 @@
 	
 	var formatMoney = function formatMoney(currency_value, amount, exclude_currency) {
 	    var is_bitcoin = /xbt/i.test(currency_value);
-	    var decimal_places = is_bitcoin ? 6 : 2;
+	    var is_jp = jpClient();
+	    var decimal_places = is_bitcoin ? 6 : is_jp ? 0 : 2;
 	    var money = void 0;
 	    if (amount) amount = String(amount).replace(/,/g, '');
 	    if (typeof Intl !== 'undefined' && currency_value && !is_bitcoin && amount) {
@@ -35973,7 +35974,7 @@
 	    } else {
 	        var updated_amount = void 0,
 	            sign = '';
-	        if (jpClient()) {
+	        if (is_jp) {
 	            updated_amount = parseInt(amount);
 	            if (Number(updated_amount) < 0) {
 	                sign = '-';
