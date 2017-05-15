@@ -36946,7 +36946,7 @@
 	
 	        var JPClient = jpClient();
 	        HighchartUI.setLabels(is_chart_delayed);
-	        HighchartUI.setCartOptions({
+	        HighchartUI.setChartOptions({
 	            height: el.parentElement.offsetHeight,
 	            title: localize(init_options.title),
 	            JPClient: JPClient,
@@ -36957,7 +36957,7 @@
 	            exit_time: exit_time ? exit_time * 1000 : null,
 	            user_sold: userSold()
 	        });
-	        Highcharts.setOptions(HighchartUI.getChartOptions(JPClient));
+	        Highcharts.setOptions(HighchartUI.getHighchartOptions(JPClient));
 	
 	        if (!el) return null;
 	        var new_chart = Highcharts.StockChart(el, HighchartUI.getChartOptions());
@@ -37936,13 +37936,15 @@
 	        txt = (chart_delayed ? getLabels('delay') : '') + getLabels('start_time') + (history ? getLabels('entry_spot') + getLabels('exit_spot') : '') + getLabels('end_time');
 	    };
 	
-	    var setCartOptions = function setCartOptions(params) {
+	    var setChartOptions = function setChartOptions(params) {
 	        chart_options = {
 	            chart: {
 	                backgroundColor: null, /* make background transparent */
 	                height: Math.max(params.height, 450),
 	                renderTo: params.el,
-	                animation: false
+	                animation: false,
+	                marginLeft: 30,
+	                marginRight: 30
 	            },
 	            title: {
 	                text: params.title,
@@ -37961,6 +37963,7 @@
 	                labels: { overflow: 'justify', format: '{value:%H:%M:%S}' }
 	            },
 	            yAxis: {
+	                opposite: false,
 	                labels: { align: 'left' }
 	            },
 	            series: [{
@@ -38059,7 +38062,7 @@
 	    return {
 	        setLabels: setLabels,
 	        getLabels: getLabels,
-	        setCartOptions: setCartOptions,
+	        setChartOptions: setChartOptions,
 	        getChartOptions: function getChartOptions() {
 	            return chart_options;
 	        },
@@ -39287,25 +39290,6 @@
 	
 	    // ============= Functions used in /trading_beta =============
 	
-	    /*
-	     * toggle active class of menu
-	     */
-	    var toggleActiveNavMenuElement_Beta = function toggleActiveNavMenuElement_Beta(nav, event_element) {
-	        var li_elements = nav.getElementsByTagName('li');
-	        var classes = event_element.classList;
-	
-	        if (!classes.contains('active')) {
-	            for (var i = 0, len = li_elements.length; i < len; i++) {
-	                li_elements[i].classList.remove('active');
-	            }
-	            classes.add('active');
-	            var parent = event_element.parentElement.parentElement;
-	            if (parent.tagName === 'LI' && !parent.classList.contains('active')) {
-	                parent.classList.add('active');
-	            }
-	        }
-	    };
-	
 	    var updatePurchaseStatus_Beta = function updatePurchaseStatus_Beta(final_price, pnl, contract_status) {
 	        final_price = String(final_price).replace(/,/g, '') * 1;
 	        pnl = String(pnl).replace(/,/g, '') * 1;
@@ -39426,7 +39410,6 @@
 	        reloadPage: reloadPage,
 	        displayContractForms: displayContractForms,
 	        displayMarkets: displayMarkets,
-	        toggleActiveNavMenuElement_Beta: toggleActiveNavMenuElement_Beta,
 	        updatePurchaseStatus_Beta: updatePurchaseStatus_Beta,
 	        displayTooltip_Beta: displayTooltip_Beta,
 	        labelValue: labelValue,
@@ -48097,7 +48080,7 @@
 	        if (!error) {
 	            BinaryPjax.load('new_account/virtualws');
 	        } else {
-	            $('#signup_error').removeClass('invisible').text(error.message);
+	            $('#signup_error').setVisibility(1).text(error.message);
 	        }
 	    };
 	
@@ -51519,12 +51502,13 @@
 	'use strict';
 	
 	var showHighchart = __webpack_require__(509).showHighchart;
+	var Defaults = __webpack_require__(437);
 	var getActiveTab = __webpack_require__(458).getActiveTab;
 	var GetTicks = __webpack_require__(441);
+	var MBDefaults = __webpack_require__(416);
 	var getLanguage = __webpack_require__(424).get;
 	var State = __webpack_require__(421).State;
 	var Url = __webpack_require__(423);
-	var elementInnerHtml = __webpack_require__(430).elementInnerHtml;
 	var JapanPortfolio = __webpack_require__(510);
 	
 	/*
@@ -51543,21 +51527,18 @@
 	    'use strict';
 	
 	    var hidden_class = 'invisible';
+	    var form_name = void 0;
 	
 	    var requestTradeAnalysis = function requestTradeAnalysis() {
-	        var form_name = State.get('is_mb_trading') ? $('#category').val() : $('#contract_form_name_nav').find('.a-active').attr('id');
-	        if (form_name === 'matchdiff') {
-	            form_name = 'digits';
-	        }
-	        if (form_name === 'callput') {
-	            form_name = 'higherlower';
-	        }
-	        $('#tab_explanation').find('a').attr('href', Url.urlFor('trade/bet_explanation', 'underlying_symbol=' + $('#underlying').val() + '&form_name=' + form_name));
-	        if (form_name === 'digits' || form_name === 'overunder' || form_name === 'evenodd') {
-	            $('#tab_last_digit').setVisibility(1);
-	        } else {
-	            $('#tab_last_digit').setVisibility(0);
-	        }
+	        form_name = (State.get('is_mb_trading') ? MBDefaults.get('category') : Defaults.get('formname')) || 'risefall';
+	
+	        var map_obj = { matchdiff: 'digits', callput: 'higherlower' };
+	        var regex = new RegExp(Object.keys(map_obj).join('|'), 'gi');
+	        form_name = form_name.replace(regex, function (matched) {
+	            return map_obj[matched];
+	        });
+	
+	        $('#tab_last_digit').setVisibility(/(digits|overunder|evenodd)/.test(form_name));
 	        sessionStorage.setItem('currentAnalysisTab', getActiveTab());
 	        loadAnalysisTab();
 	    };
@@ -51567,37 +51548,25 @@
 	     * navigation
 	     */
 	    var bindAnalysisTabEvent = function bindAnalysisTabEvent() {
-	        var analysis_nav_element = document.querySelector('#trading_bottom_content #betsBottomPage');
-	        if (analysis_nav_element) {
-	            analysis_nav_element.addEventListener('click', function (e) {
-	                if (e.target && e.target.nodeName === 'A') {
-	                    e.preventDefault();
-	
-	                    var clicked_link = e.target;
-	                    var clicked_element = clicked_link.parentElement;
-	                    var is_tab_active = clicked_element.classList.contains('active');
-	
-	                    sessionStorage.setItem('currentAnalysisTab', clicked_element.id);
-	
-	                    if (!is_tab_active) {
-	                        loadAnalysisTab();
-	                    }
-	                }
-	            });
-	        }
+	        $('#betsBottomPage').find('li a').on('click', function (e) {
+	            e.preventDefault();
+	            var li = e.target.parentElement;
+	            sessionStorage.setItem('currentAnalysisTab', li.id);
+	            if (!li.classList.contains('active')) {
+	                loadAnalysisTab(li.id);
+	            }
+	        });
 	    };
 	
 	    /*
 	     * This function handles all the functionality on how to load
 	     * tab according to current paramerted
 	     */
-	    var loadAnalysisTab = function loadAnalysisTab() {
-	        var current_tab = getActiveTab();
-	        var current_link = document.querySelector('#' + current_tab + ' a');
-	        var content_id = document.getElementById(current_tab + '-content');
+	    var loadAnalysisTab = function loadAnalysisTab(tab) {
+	        var current_tab = tab || getActiveTab();
 	
-	        var analysis_nav_element = document.querySelector('#trading_bottom_content #betsBottomPage');
-	        toggleActiveNavMenuElement(analysis_nav_element, current_link.parentElement);
+	        $('#betsBottomPage').find('li').removeClass('active');
+	        $('#' + current_tab).addClass('active');
 	        toggleActiveAnalysisTabs();
 	
 	        JapanPortfolio.init();
@@ -51615,16 +51584,8 @@
 	                    count: tick.toString(),
 	                    end: 'latest'
 	                });
-	            } else {
-	                $.ajax({
-	                    method: 'GET',
-	                    url: current_link.getAttribute('href')
-	                }).done(function (data) {
-	                    elementInnerHtml(content_id, data);
-	                    if (current_tab === 'tab_explanation') {
-	                        showExplanation(current_link.href);
-	                    }
-	                });
+	            } else if (current_tab === 'tab_explanation') {
+	                showExplanation();
 	            }
 	        }
 	    };
@@ -51654,21 +51615,11 @@
 	    /*
 	     * handle the display of proper explanation based on parameters
 	     */
-	    var showExplanation = function showExplanation(href) {
-	        var options = Url.paramsHash(href);
-	        var form_name = options.form_name || 'risefall';
-	        var show_image = options.show_image ? options.show_image > 0 : true;
-	        var show_winning = options.show_winning ? options.show_winning > 0 : true;
-	        var show_explain = true;
+	    var showExplanation = function showExplanation() {
 	        var $container = $('#tab_explanation-content');
 	
-	        if (show_winning) {
-	            $container.find('#explanation_winning, #winning_' + form_name).setVisibility(1);
-	        }
-	
-	        if (show_explain) {
-	            $container.find('#explanation_explain, #explain_' + form_name).setVisibility(1);
-	        }
+	        $container.find('#explanation_winning > div, #explanation_explain > div, #explanation_image').setVisibility(0);
+	        $container.find('#explanation_winning, #winning_' + form_name + ', #explanation_explain, #explain_' + form_name).setVisibility(1);
 	
 	        var images = {
 	            risefall: {
@@ -51705,7 +51656,7 @@
 	            }
 	        };
 	
-	        if (show_image && images.hasOwnProperty(form_name)) {
+	        if (images[form_name]) {
 	            var image_path = Url.urlForStatic('images/pages/trade-explanation/' + (getLanguage() === 'JA' ? 'ja/' : ''));
 	            $container.find('#explanation_image_1').attr('src', image_path + images[form_name].image1);
 	            $container.find('#explanation_image_2').attr('src', image_path + images[form_name].image2);
@@ -51713,24 +51664,8 @@
 	        }
 	    };
 	
-	    /*
-	     * toggle active class of menu
-	     */
-	    var toggleActiveNavMenuElement = function toggleActiveNavMenuElement(nav, event_element) {
-	        var li_elements = nav.getElementsByTagName('li');
-	        var classes = event_element.classList;
-	
-	        if (!classes.contains('active')) {
-	            for (var i = 0, len = li_elements.length; i < len; i++) {
-	                li_elements[i].classList.remove('active');
-	            }
-	            classes.add('active');
-	        }
-	    };
-	
 	    return {
 	        request: requestTradeAnalysis,
-	        getActiveTab: getActiveTab,
 	        bindAnalysisTabEvent: bindAnalysisTabEvent
 	    };
 	}();
@@ -53182,10 +53117,11 @@
 
 	'use strict';
 	
-	var commonTrading = __webpack_require__(445);
+	var Defaults = __webpack_require__(437);
 	var showHighchart = __webpack_require__(509).showHighchart;
 	var getActiveTab = __webpack_require__(458).getActiveTab_Beta;
 	var GetTicks = __webpack_require__(441);
+	var MBDefaults = __webpack_require__(416);
 	var AssetIndexUI = __webpack_require__(514);
 	var TradingTimesUI = __webpack_require__(517);
 	var PortfolioInit = __webpack_require__(511);
@@ -53193,8 +53129,6 @@
 	var getLanguage = __webpack_require__(424).get;
 	var State = __webpack_require__(421).State;
 	var Url = __webpack_require__(423);
-	var elementInnerHtml = __webpack_require__(430).elementInnerHtml;
-	var jpClient = __webpack_require__(425).jpClient;
 	
 	/*
 	 * This file contains the code related to loading of trading page bottom analysis
@@ -53212,18 +53146,12 @@
 	    'use strict';
 	
 	    var hidden_class = 'invisible';
+	    var form_name = void 0;
 	
 	    var requestTradeAnalysis = function requestTradeAnalysis() {
-	        var form_name = State.get('is_mb_trading') ? $('#category').val() : $('#contract_form_name_nav').find('.a-active').attr('id');
-	        if (form_name === 'matchdiff') {
-	            form_name = 'digits';
-	        }
-	        $('#tab_explanation').find('a').attr('href', Url.urlFor('trade/bet_explanation_beta', 'underlying_symbol=' + $('#underlying').val() + '&form_name=' + form_name));
-	        if (/(digits|overunder|evenodd)/.test(form_name)) {
-	            $('#tab_last_digit').setVisibility(1);
-	        } else {
-	            $('#tab_last_digit').setVisibility(0);
-	        }
+	        form_name = ((State.get('is_mb_trading') ? MBDefaults.get('category') : Defaults.get('formname')) || 'risefall').replace('matchdiff', 'digits');
+	
+	        $('#tab_last_digit').setVisibility(/(digits|overunder|evenodd)/.test(form_name));
 	        sessionStorage.setItem('currentAnalysisTab_Beta', getActiveTab());
 	        loadAnalysisTab();
 	    };
@@ -53236,35 +53164,28 @@
 	        if (Client.isLoggedIn()) {
 	            $('#tab_portfolio').setVisibility(1);
 	        }
-	        if (!jpClient()) {
-	            $('#tab_asset_index').setVisibility(1);
-	            $('#tab_trading_times').setVisibility(1);
-	        }
+	        $('#tab_asset_index').setVisibility(1);
+	        $('#tab_trading_times').setVisibility(1);
 	
-	        var $analysis_tabs = $('#trading_analysis_content').find('#analysis_tabs');
-	        if ($analysis_tabs.length) {
-	            $analysis_tabs.find('li a').click(function (e) {
-	                e.preventDefault();
-	                var $li = $(this).parent();
-	                sessionStorage.setItem('currentAnalysisTab_Beta', $li.attr('id'));
-	                if (!$li.hasClass('active')) {
-	                    loadAnalysisTab();
-	                }
-	            });
-	        }
+	        $('#analysis_tabs').find('li a').on('click', function (e) {
+	            e.preventDefault();
+	            var li = e.target.parentElement;
+	            sessionStorage.setItem('currentAnalysisTab_Beta', li.id);
+	            if (!li.classList.contains('active')) {
+	                loadAnalysisTab(li.id);
+	            }
+	        });
 	    };
 	
 	    /*
 	     * This function handles all the functionality on how to load
 	     * tab according to current paramerted
 	     */
-	    var loadAnalysisTab = function loadAnalysisTab() {
-	        var current_tab = getActiveTab();
-	        var current_link = document.querySelector('#' + current_tab + ' a');
-	        var content_id = document.getElementById(current_tab + '-content');
+	    var loadAnalysisTab = function loadAnalysisTab(tab) {
+	        var current_tab = tab || getActiveTab();
 	
-	        var analysis_nav_element = document.querySelector('#trading_analysis_content #analysis_tabs');
-	        commonTrading.toggleActiveNavMenuElement_Beta(analysis_nav_element, current_link.parentElement);
+	        $('#analysis_tabs').find('li').removeClass('active');
+	        $('#' + current_tab).addClass('active');
 	        toggleActiveAnalysisTabs();
 	
 	        switch (current_tab) {
@@ -53295,16 +53216,7 @@
 	                break;
 	            default:
 	                {
-	                    var url = current_link.getAttribute('href');
-	                    $.ajax({
-	                        method: 'GET',
-	                        url: url
-	                    }).done(function (data) {
-	                        elementInnerHtml(content_id, data);
-	                        if (current_tab === 'tab_explanation') {
-	                            showExplanation(current_link.href);
-	                        }
-	                    });
+	                    showExplanation();
 	                    break;
 	                }
 	        }
@@ -53335,21 +53247,11 @@
 	    /*
 	     * handle the display of proper explanation based on parameters
 	     */
-	    var showExplanation = function showExplanation(href) {
-	        var options = Url.paramsHash(href);
-	        var form_name = options.form_name || 'risefall';
-	        var show_image = options.show_image ? options.show_image > 0 : true;
-	        var show_winning = options.show_winning ? options.show_winning > 0 : true;
-	        var show_explain = true;
+	    var showExplanation = function showExplanation() {
 	        var $container = $('#tab_explanation-content');
 	
-	        if (show_winning) {
-	            $container.find('#explanation_winning, #winning_' + form_name).setVisibility(1);
-	        }
-	
-	        if (show_explain) {
-	            $container.find('#explanation_explain, #explain_' + form_name).setVisibility(1);
-	        }
+	        $container.find('#explanation_winning > div, #explanation_explain > div, #explanation_image').setVisibility(0);
+	        $container.find('#explanation_winning, #winning_' + form_name + ', #explanation_explain, #explain_' + form_name).setVisibility(1);
 	
 	        var images = {
 	            risefall: {
@@ -53386,7 +53288,7 @@
 	            }
 	        };
 	
-	        if (show_image && images.hasOwnProperty(form_name)) {
+	        if (images[form_name]) {
 	            var language = getLanguage().toLowerCase();
 	            var image_path = Url.urlForStatic('images/pages/trade-explanation/' + (language === 'ja' ? language + '/' : ''));
 	            $container.find('#explanation_image_1').attr('src', image_path + images[form_name].image1);
@@ -82150,7 +82052,7 @@
 	                    $address_state.text(client_state);
 	                }
 	            }
-	            $address_state.parent().parent().removeClass('invisible');
+	            $address_state.parent().parent().setVisibility(1);
 	
 	            if (form_id && typeof getValidations === 'function') {
 	                FormManager.init(form_id, getValidations());
@@ -83172,8 +83074,8 @@
 	            vs: { i: 11, f: -4, o: -4, s: 9, c: -4 },
 	            api: 4,
 	            l: Language.get().toLowerCase(),
-	            url: 'https://whatbrowser.org/'
-	        };
+	            url: 'https://whatbrowser.org/',
+	            noclose: true };
 	        $(document).ready(function () {
 	            $('body').append($('<script/>', { src: src }));
 	        });
