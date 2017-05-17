@@ -36107,7 +36107,7 @@
 	var moment = __webpack_require__(304);
 	var ViewPopupUI = __webpack_require__(436);
 	var BinarySocket = __webpack_require__(427);
-	var Highchart = __webpack_require__(438);
+	var Highchart = __webpack_require__(437);
 	var TickDisplay = __webpack_require__(460);
 	var showLocalTimeOnHover = __webpack_require__(463).showLocalTimeOnHover;
 	var toJapanTimeIfNeeded = __webpack_require__(463).toJapanTimeIfNeeded;
@@ -36505,10 +36505,7 @@
 
 	'use strict';
 	
-	var MBDefaults = __webpack_require__(416);
-	var Defaults = __webpack_require__(437);
 	var BinarySocket = __webpack_require__(427);
-	var State = __webpack_require__(421).State;
 	var getHighestZIndex = __webpack_require__(417).getHighestZIndex;
 	
 	var ViewPopupUI = function () {
@@ -36517,7 +36514,7 @@
 	    var $container = void 0,
 	        stream_ids = void 0,
 	        chart_stream_ids = void 0,
-	        chart_underlying = void 0;
+	        getPageTickStream = void 0;
 	
 	    var init = function init() {
 	        $container = null;
@@ -36556,6 +36553,7 @@
 	        clearTimer();
 	        closeContainer();
 	        init();
+	        if (typeof getPageTickStream === 'function') getPageTickStream();
 	        $(window).off('resize', function () {
 	            repositionConfirmation();
 	        });
@@ -36571,12 +36569,6 @@
 	    };
 	
 	    var forgetChartStreams = function forgetChartStreams() {
-	        if (State.get('is_trading') || State.get('is_mb_trading') || State.get('is_beta_trading')) {
-	            var underlying = State.get('is_mb_trading') ? MBDefaults.get('underlying') : Defaults.get('underlying');
-	            if (underlying === chart_underlying) {
-	                return;
-	            }
-	        }
 	        while (chart_stream_ids && chart_stream_ids.length > 0) {
 	            var id = chart_stream_ids.pop();
 	            if (id && id.length > 0) {
@@ -36688,20 +36680,17 @@
 	    };
 	
 	    // ===== Dispatch =====
-	    var storeSubscriptionID = function storeSubscriptionID(id, underlying) {
-	        if (!stream_ids && !underlying) {
+	    var storeSubscriptionID = function storeSubscriptionID(id, is_chart) {
+	        if (!stream_ids && !is_chart) {
 	            stream_ids = [];
 	        }
 	        if (!chart_stream_ids) {
 	            chart_stream_ids = [];
 	        }
-	        if (underlying) {
-	            chart_underlying = underlying;
-	        }
 	        if (id && id.length > 0) {
-	            if (!underlying && $.inArray(id, stream_ids) < 0) {
+	            if (!is_chart && $.inArray(id, stream_ids) < 0) {
 	                stream_ids.push(id);
-	            } else if (underlying && $.inArray(id, chart_stream_ids) < 0) {
+	            } else if (is_chart && $.inArray(id, chart_stream_ids) < 0) {
 	                chart_stream_ids.push(id);
 	            }
 	        }
@@ -36714,7 +36703,10 @@
 	        enableButton: enableButton,
 	        showInpagePopup: showInpagePopup,
 	        repositionConfirmation: repositionConfirmation,
-	        storeSubscriptionID: storeSubscriptionID
+	        storeSubscriptionID: storeSubscriptionID,
+	        setStreamFunction: function setStreamFunction(streamFnc) {
+	            getPageTickStream = streamFnc;
+	        }
 	    };
 	}();
 	
@@ -36726,105 +36718,11 @@
 
 	'use strict';
 	
-	var Url = __webpack_require__(423);
-	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var isVisible = __webpack_require__(430).isVisible;
-	var State = __webpack_require__(421).State;
-	
-	/*
-	 * Handles trading page default values
-	 *
-	 * Priorities:
-	 * 1. Client's input: on each change to form, it will reflect to both query string & session storage
-	 * 2. Query string parameters: will change session storage values
-	 * 3. Session storage values: if none of the above, it will be the source
-	 *
-	 */
-	
-	var Defaults = function () {
-	    'use strict';
-	
-	    var params = {};
-	    var getDefault = function getDefault(key) {
-	        var p_value = params[key] || Url.param(key);
-	        var s_value = sessionStorage.getItem(key);
-	        if (p_value && (!s_value || p_value !== s_value)) {
-	            sessionStorage.setItem(key, p_value);
-	        }
-	        if (!p_value && s_value) {
-	            setDefault(key, s_value);
-	        }
-	        return p_value || s_value;
-	    };
-	
-	    var setDefault = function setDefault(key, value) {
-	        if (!key) return;
-	        value = value || '';
-	        if (isEmptyObject(params)) params = Url.paramsHash();
-	        if (params[key] !== value) {
-	            params[key] = value;
-	            // to increase speed, do not set values when form is still loading
-	            if (!isVisible(document.getElementById('trading_init_progress'))) {
-	                sessionStorage.setItem(key, value);
-	                updateURL();
-	            }
-	        }
-	    };
-	
-	    var removeDefault = function removeDefault() {
-	        for (var _len = arguments.length, keys = Array(_len), _key = 0; _key < _len; _key++) {
-	            keys[_key] = arguments[_key];
-	        }
-	
-	        if (isEmptyObject(params)) params = Url.paramsHash();
-	        var is_updated = false;
-	        keys.forEach(function (key) {
-	            if (key in params) {
-	                sessionStorage.removeItem(key);
-	                delete params[key];
-	                is_updated = true;
-	            }
-	        });
-	        if (is_updated) {
-	            updateURL();
-	        }
-	    };
-	
-	    var updateAll = function updateAll() {
-	        Object.keys(params).forEach(function (key) {
-	            sessionStorage.setItem(key, params[key]);
-	        });
-	        updateURL();
-	    };
-	
-	    var updateURL = function updateURL() {
-	        if (!State.get('is_trading') && !State.get('is_beta_trading')) return;
-	        var updated_url = '' + window.location.origin + window.location.pathname + '?' + Url.paramsHashToString(params);
-	        window.history.replaceState({ url: updated_url }, null, updated_url);
-	    };
-	
-	    return {
-	        get: getDefault,
-	        set: setDefault,
-	        update: updateAll,
-	        remove: removeDefault,
-	        clear: function clear() {
-	            params = {};
-	        }
-	    };
-	}();
-	
-	module.exports = Defaults;
-
-/***/ },
-/* 438 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var Highcharts = __webpack_require__(439);
-	var HighchartUI = __webpack_require__(440);
+	var Highcharts = __webpack_require__(438);
+	var HighchartUI = __webpack_require__(439);
 	var MBContract = __webpack_require__(303);
+	var MBDefaults = __webpack_require__(416);
+	var Defaults = __webpack_require__(440);
 	var GetTicks = __webpack_require__(441);
 	var BinarySocket = __webpack_require__(427);
 	var ViewPopupUI = __webpack_require__(436);
@@ -36863,13 +36761,14 @@
 	        stop_streaming = void 0,
 	        is_contracts_for_send = void 0,
 	        is_history_send = void 0,
-	        is_entry_tick_barrier_selected = void 0;
+	        is_entry_tick_barrier_selected = void 0,
+	        is_response_id_set = void 0;
 	
 	    var initOnce = function initOnce() {
 	        chart = options = response_id = contract = request = min_point = max_point = '';
 	        lines_drawn = [];
 	
-	        is_initialized = is_chart_delayed = is_chart_subscribed = stop_streaming = is_contracts_for_send = is_history_send = is_entry_tick_barrier_selected = false;
+	        is_initialized = is_chart_delayed = is_chart_subscribed = stop_streaming = is_response_id_set = is_contracts_for_send = is_history_send = is_entry_tick_barrier_selected = false;
 	    };
 	
 	    var initializeValues = function initializeValues() {
@@ -36978,15 +36877,28 @@
 	        var type = response.msg_type;
 	        var error = response.error;
 	        if (/(history|candles|tick|ohlc)/.test(type) && !error) {
-	            response_id = response[type].id;
-	            // send view popup the response ID so view popup can forget the calls if it's closed before contract ends
-	            if (response_id) ViewPopupUI.storeSubscriptionID(response_id, underlying);
 	            options = { title: contract.display_name };
 	            options[type] = response[type];
 	            var history = response.history;
 	            var candles = response.candles;
 	            var tick = response.tick;
 	            var ohlc = response.ohlc;
+	            response_id = response[type].id;
+	            // send view popup the response ID so view popup can forget the calls if it's closed before contract ends
+	            if (response_id && !is_response_id_set) {
+	                if (State.get('is_trading') || State.get('is_mb_trading') || State.get('is_beta_trading')) {
+	                    var page_underlying = State.get('is_mb_trading') ? MBDefaults.get('underlying') : Defaults.get('underlying');
+	                    if (page_underlying !== (tick || ohlc).symbol) {
+	                        ViewPopupUI.storeSubscriptionID(response_id, true);
+	                        ViewPopupUI.setStreamFunction();
+	                    } else {
+	                        ViewPopupUI.setStreamFunction(GetTicks.request);
+	                    }
+	                } else {
+	                    ViewPopupUI.storeSubscriptionID(response_id, true);
+	                }
+	                is_response_id_set = true;
+	            }
 	            if (history || candles) {
 	                var length = (history ? history.times : candles).length;
 	                if (length === 0) {
@@ -37390,7 +37302,7 @@
 	module.exports = Highchart;
 
 /***/ },
-/* 439 */
+/* 438 */
 /***/ function(module, exports) {
 
 	/*
@@ -37893,7 +37805,7 @@
 
 
 /***/ },
-/* 440 */
+/* 439 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38077,6 +37989,102 @@
 	module.exports = HighchartUI;
 
 /***/ },
+/* 440 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Url = __webpack_require__(423);
+	var isEmptyObject = __webpack_require__(417).isEmptyObject;
+	var isVisible = __webpack_require__(430).isVisible;
+	var State = __webpack_require__(421).State;
+	
+	/*
+	 * Handles trading page default values
+	 *
+	 * Priorities:
+	 * 1. Client's input: on each change to form, it will reflect to both query string & session storage
+	 * 2. Query string parameters: will change session storage values
+	 * 3. Session storage values: if none of the above, it will be the source
+	 *
+	 */
+	
+	var Defaults = function () {
+	    'use strict';
+	
+	    var params = {};
+	    var getDefault = function getDefault(key) {
+	        var p_value = params[key] || Url.param(key);
+	        var s_value = sessionStorage.getItem(key);
+	        if (p_value && (!s_value || p_value !== s_value)) {
+	            sessionStorage.setItem(key, p_value);
+	        }
+	        if (!p_value && s_value) {
+	            setDefault(key, s_value);
+	        }
+	        return p_value || s_value;
+	    };
+	
+	    var setDefault = function setDefault(key, value) {
+	        if (!key) return;
+	        value = value || '';
+	        if (isEmptyObject(params)) params = Url.paramsHash();
+	        if (params[key] !== value) {
+	            params[key] = value;
+	            // to increase speed, do not set values when form is still loading
+	            if (!isVisible(document.getElementById('trading_init_progress'))) {
+	                sessionStorage.setItem(key, value);
+	                updateURL();
+	            }
+	        }
+	    };
+	
+	    var removeDefault = function removeDefault() {
+	        for (var _len = arguments.length, keys = Array(_len), _key = 0; _key < _len; _key++) {
+	            keys[_key] = arguments[_key];
+	        }
+	
+	        if (isEmptyObject(params)) params = Url.paramsHash();
+	        var is_updated = false;
+	        keys.forEach(function (key) {
+	            if (key in params) {
+	                sessionStorage.removeItem(key);
+	                delete params[key];
+	                is_updated = true;
+	            }
+	        });
+	        if (is_updated) {
+	            updateURL();
+	        }
+	    };
+	
+	    var updateAll = function updateAll() {
+	        Object.keys(params).forEach(function (key) {
+	            sessionStorage.setItem(key, params[key]);
+	        });
+	        updateURL();
+	    };
+	
+	    var updateURL = function updateURL() {
+	        if (!State.get('is_trading') && !State.get('is_beta_trading')) return;
+	        var updated_url = '' + window.location.origin + window.location.pathname + '?' + Url.paramsHashToString(params);
+	        window.history.replaceState({ url: updated_url }, null, updated_url);
+	    };
+	
+	    return {
+	        get: getDefault,
+	        set: setDefault,
+	        update: updateAll,
+	        remove: removeDefault,
+	        clear: function clear() {
+	            params = {};
+	        }
+	    };
+	}();
+	
+	module.exports = Defaults;
+
+/***/ },
 /* 441 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -38089,7 +38097,7 @@
 	var TickDisplay_Beta = __webpack_require__(456);
 	var updateWarmChart = __webpack_require__(445).updateWarmChart;
 	var DigitInfo = __webpack_require__(457);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var getActiveTab = __webpack_require__(458).getActiveTab;
 	var getActiveTab_Beta = __webpack_require__(458).getActiveTab_Beta;
 	var Purchase = __webpack_require__(459);
@@ -38113,7 +38121,7 @@
 	                BinarySocket.send({ forget_all: 'candles' });
 	            }
 	            BinarySocket.send(req || {
-	                ticks_history: symbol,
+	                ticks_history: symbol || underlying,
 	                style: 'ticks',
 	                end: 'latest',
 	                count: 20,
@@ -38218,7 +38226,7 @@
 	var moment = __webpack_require__(304);
 	var countDecimalPlaces = __webpack_require__(443).countDecimalPlaces;
 	var Contract = __webpack_require__(444);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Tick = __webpack_require__(448);
 	var elementTextContent = __webpack_require__(430).elementTextContent;
 	var isVisible = __webpack_require__(430).isVisible;
@@ -38703,7 +38711,7 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var Moment = __webpack_require__(304);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Notifications = __webpack_require__(446);
 	var Symbols = __webpack_require__(447);
 	var Tick = __webpack_require__(448);
@@ -39793,7 +39801,7 @@
 	var moment = __webpack_require__(304);
 	var Contract_Beta = __webpack_require__(451);
 	var countDecimalPlaces = __webpack_require__(443).countDecimalPlaces;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Tick = __webpack_require__(448);
 	var elementTextContent = __webpack_require__(430).elementTextContent;
 	var isVisible = __webpack_require__(430).isVisible;
@@ -51502,7 +51510,7 @@
 	'use strict';
 	
 	var showHighchart = __webpack_require__(509).showHighchart;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var getActiveTab = __webpack_require__(458).getActiveTab;
 	var GetTicks = __webpack_require__(441);
 	var MBDefaults = __webpack_require__(416);
@@ -52919,7 +52927,7 @@
 	var commonTrading = __webpack_require__(445);
 	var chartFrameCleanup = __webpack_require__(509).chartFrameCleanup;
 	var displayCurrencies = __webpack_require__(529);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var BinarySocket = __webpack_require__(427);
 	var PortfolioInit = __webpack_require__(511);
 	var ViewPopup = __webpack_require__(435);
@@ -53117,7 +53125,7 @@
 
 	'use strict';
 	
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var showHighchart = __webpack_require__(509).showHighchart;
 	var getActiveTab = __webpack_require__(458).getActiveTab_Beta;
 	var GetTicks = __webpack_require__(441);
@@ -53320,7 +53328,7 @@
 	var Process_Beta = __webpack_require__(525);
 	var Purchase_Beta = __webpack_require__(455);
 	var chartFrameSource = __webpack_require__(509).chartFrameSource;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var GetTicks = __webpack_require__(441);
 	var Tick = __webpack_require__(448);
 	var commonTrading = __webpack_require__(445);
@@ -53758,7 +53766,7 @@
 	var Price_Beta = __webpack_require__(524);
 	var commonTrading = __webpack_require__(445);
 	var processTradingTimesAnswer = __webpack_require__(443).processTradingTimesAnswer;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var BinarySocket = __webpack_require__(427);
 	var localize = __webpack_require__(428).localize;
 	var State = __webpack_require__(421).State;
@@ -54203,7 +54211,7 @@
 	var displayPriceMovement = __webpack_require__(443).displayPriceMovement;
 	var getStartDateNode = __webpack_require__(443).getStartDateNode;
 	var getTradingTimes = __webpack_require__(443).getTradingTimes;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var BinarySocket = __webpack_require__(427);
 	var localize = __webpack_require__(428).localize;
 	var elementTextContent = __webpack_require__(430).elementTextContent;
@@ -54526,7 +54534,7 @@
 	var Price_Beta = __webpack_require__(524);
 	var StartDates_Beta = __webpack_require__(526);
 	var commonTrading = __webpack_require__(445);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var GetTicks = __webpack_require__(441);
 	var Notifications = __webpack_require__(446);
 	var Symbols = __webpack_require__(447);
@@ -54807,7 +54815,7 @@
 	var Contract_Beta = __webpack_require__(451);
 	var Durations_Beta = __webpack_require__(523);
 	var getStartDateNode = __webpack_require__(443).getStartDateNode;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var localize = __webpack_require__(428).localize;
 	var State = __webpack_require__(421).State;
 	
@@ -55095,7 +55103,7 @@
 
 	'use strict';
 	
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Client = __webpack_require__(420);
 	var formatCurrency = __webpack_require__(433).formatCurrency;
 	
@@ -71675,7 +71683,7 @@
 	var commonTrading = __webpack_require__(445);
 	var chartFrameCleanup = __webpack_require__(509).chartFrameCleanup;
 	var displayCurrencies = __webpack_require__(529);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var TradingEvents = __webpack_require__(537);
 	var Price = __webpack_require__(539);
 	var Process = __webpack_require__(540);
@@ -71771,7 +71779,7 @@
 	var Barriers = __webpack_require__(442);
 	var commonTrading = __webpack_require__(445);
 	var chartFrameSource = __webpack_require__(509).chartFrameSource;
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Durations = __webpack_require__(538);
 	var GetTicks = __webpack_require__(441);
 	var Notifications = __webpack_require__(446);
@@ -72217,7 +72225,7 @@
 	var commonTrading = __webpack_require__(445);
 	var commonIndependent = __webpack_require__(443);
 	var Contract = __webpack_require__(444);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Price = __webpack_require__(539);
 	var BinarySocket = __webpack_require__(427);
 	var localize = __webpack_require__(428).localize;
@@ -72661,7 +72669,7 @@
 	var displayPriceMovement = __webpack_require__(443).displayPriceMovement;
 	var getTradingTimes = __webpack_require__(443).getTradingTimes;
 	var Contract = __webpack_require__(444);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var BinarySocket = __webpack_require__(427);
 	var localize = __webpack_require__(428).localize;
 	var elementTextContent = __webpack_require__(430).elementTextContent;
@@ -72979,7 +72987,7 @@
 	var commonTrading = __webpack_require__(445);
 	var processTradingTimesAnswer = __webpack_require__(443).processTradingTimesAnswer;
 	var Contract = __webpack_require__(444);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Durations = __webpack_require__(538);
 	var GetTicks = __webpack_require__(441);
 	var Notifications = __webpack_require__(446);
@@ -73265,7 +73273,7 @@
 	var moment = __webpack_require__(304);
 	var getStartDateNode = __webpack_require__(443).getStartDateNode;
 	var Contract = __webpack_require__(444);
-	var Defaults = __webpack_require__(437);
+	var Defaults = __webpack_require__(440);
 	var Durations = __webpack_require__(538);
 	var localize = __webpack_require__(428).localize;
 	var State = __webpack_require__(421).State;

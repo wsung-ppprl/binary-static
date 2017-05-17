@@ -830,7 +830,10 @@ table td {
   }
 }
 @media (max-width: 600px) {
-  .table-container #profit-table tr > th.contract, .table-container > td.contract, .table-container #statement-table tr > th.desc, .table-container > td.desc {
+  .table-container #profit-table tr > th.contract, .table-container #profit-table tr > td.contract {
+    display: none !important;
+  }
+  .table-container #statement-table tr > th.desc, .table-container #statement-table tr > td.desc {
     display: none !important;
   }
 }
@@ -4188,6 +4191,9 @@ body.JA #mb_trading .payout-input .hint, body.JA #mb_trading .payout-input label
 }
 
 /*Vietnamese Language */
+body.VI {
+  font-kerning: none;
+}
 body.VI #legal-tab li.tm-li-2 {
   margin-right: 0 !important;
   padding: 0 8px !important;
