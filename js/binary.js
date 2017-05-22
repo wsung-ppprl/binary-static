@@ -72,6 +72,12 @@
 	var BinaryLoader = __webpack_require__(474);
 	
 	$(window).on('load', BinaryLoader.init);
+	$(window).on('pageshow', function (e) {
+	    // Safari doesn't fire load event when using back button
+	    if (e.originalEvent.persisted) {
+	        BinaryLoader.init();
+	    }
+	});
 
 /***/ },
 /* 1 */
@@ -35528,11 +35534,11 @@
 	                            break;
 	                        }
 	                    case 'RateLimit':
-	                        config.notify(localize('You have reached the rate limit of requests per second. Please try later.'), true);
+	                        config.notify(localize('You have reached the rate limit of requests per second. Please try later.'), true, 'RATE_LIMIT');
 	                        break;
 	                    case 'InvalidAppID':
 	                        wrong_app_id = getAppId();
-	                        config.notify(response.error.message, true);
+	                        config.notify(response.error.message, true, 'INVALID_APP_ID');
 	                        break;
 	                    // no default
 	                }
@@ -35548,7 +35554,9 @@
 	            clearTimeouts();
 	
 	            if (wrong_app_id !== getAppId()) {
-	                config.notify(localize('Connection error: Please check your internet connection.'), true);
+	                if (isClose()) {
+	                    config.notify(localize('Connection error: Please check your internet connection.'), true, 'CONNECTION_ERROR');
+	                }
 	                if (typeof config.onDisconnect === 'function' && !is_disconnect_called) {
 	                    config.onDisconnect();
 	                    is_disconnect_called = true;
@@ -40234,7 +40242,7 @@
 	            formatter: function formatter() {
 	                var total = $('#tick_count').val();
 	                var percentage = this.y / total * 100;
-	                return '<b>' + localize('Digit') + ':</b> ' + this.x + '<br/><b>' + localize('Percentage') + ':</b> ' + percentage.toFixed(1) + '%';
+	                return '<strong>' + localize('Digit') + ':</strong> ' + this.x + '<br/><strong>' + localize('Percentage') + ':</strong> ' + percentage.toFixed(1) + '%';
 	            }
 	        },
 	        plotOptions: {
@@ -41746,7 +41754,7 @@
 	            formatter: function formatter() {
 	                var total = $('#tick_count').val();
 	                var percentage = this.y / total * 100;
-	                return '<b>' + localize('Digit') + ':</b> ' + this.x + '<br/><b>' + localize('Percentage') + ':</b> ' + percentage.toFixed(1) + '%';
+	                return '<strong>' + localize('Digit') + ':</strong> ' + this.x + '<br/><strong>' + localize('Percentage') + ':</strong> ' + percentage.toFixed(1) + '%';
 	            }
 	        },
 	        plotOptions: {
@@ -42189,7 +42197,7 @@
 	
 	        var last_digit = void 0;
 	        var replace = function replace(d) {
-	            last_digit = d;return '<b>' + d + '</b>';
+	            last_digit = d;return '<strong>' + d + '</strong>';
 	        };
 	        for (var s = 0; s < epoches.length; s++) {
 	            var tick_d = {
@@ -49365,17 +49373,20 @@
 	    };
 	
 	    var displayNotification = function displayNotification(message, is_error) {
+	        var msg_code = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+	
 	        var $msg_notification = $('#msg_notification');
-	        $msg_notification.html(message).attr('data-message', message);
+	        $msg_notification.html(message).attr({ 'data-message': message, 'data-code': msg_code });
 	        if ($msg_notification.is(':hidden')) $msg_notification.removeClass('error').slideDown(500, function () {
 	            if (is_error) $msg_notification.addClass('error');
 	        });
 	    };
 	
-	    var hideNotification = function hideNotification() {
+	    var hideNotification = function hideNotification(msg_code) {
 	        var $msg_notification = $('#msg_notification');
+	        if (msg_code && $msg_notification.attr('data-code') !== msg_code) return;
 	        if ($msg_notification.is(':visible')) $msg_notification.removeClass('error').slideUp(500, function () {
-	            $msg_notification.html('').removeAttr('data-message');
+	            $msg_notification.html('').removeAttr('data-message data-code');
 	        });
 	    };
 	
@@ -73945,7 +73956,7 @@
 	
 	    var createProfitTableRow = function createProfitTableRow(transaction) {
 	        var profit_table_data = ProfitTable.getProfitTabletData(transaction);
-	        var pl_type = transaction.pl >= 0 ? 'profit' : 'loss';
+	        var pl_type = Number(transaction.sell_price - transaction.buy_price) >= 0 ? 'profit' : 'loss';
 	
 	        var jp_client = jpClient();
 	
@@ -74536,13 +74547,13 @@
 	        var $form_error = $('#form_error');
 	        var $form_message = $('#form_message');
 	        $form_message.text('');
-	        $form_error.text('');
+	        $form_error.setVisibility(0);
 	        if (response.error) {
 	            var message = response.error.message;
 	            if (response.error.code === 'InputValidationFailed') {
 	                message = 'Sorry, you have entered an incorrect cashier password';
 	            }
-	            $form_error.text(localize(message));
+	            $form_error.text(localize(message)).setVisibility(1);
 	            return;
 	        }
 	        redirect_url = sessionStorage.getItem('cashier_lock_redirect') || '';
@@ -85482,6 +85493,7 @@
 	    };
 	
 	    var onMessage = function onMessage(response) {
+	        Header.hideNotification('CONNECTION_ERROR');
 	        var is_available = void 0;
 	        switch (response.msg_type) {
 	            case 'website_status':
