@@ -73895,7 +73895,6 @@
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(428).localize;
 	var toJapanTimeIfNeeded = __webpack_require__(463).toJapanTimeIfNeeded;
-	var elementTextContent = __webpack_require__(430).elementTextContent;
 	var jpClient = __webpack_require__(425).jpClient;
 	var formatMoney = __webpack_require__(433).formatMoney;
 	var showTooltip = __webpack_require__(513).showTooltip;
@@ -73905,7 +73904,8 @@
 	    'use strict';
 	
 	    var oauth_apps = {},
-	        currency = void 0;
+	        currency = void 0,
+	        total_profit = 0;
 	
 	    var profit_table_id = 'profit-table';
 	    var cols = ['buy-date', 'ref', 'payout', 'contract', 'buy-price', 'sell-date', 'sell-price', 'pl', 'details'];
@@ -73933,24 +73933,17 @@
 	    };
 	
 	    var updateFooter = function updateFooter(transactions) {
-	        var acc_total = elementTextContent(document.querySelector('#pl-day-total > .pl'));
-	        acc_total = parseFloat(acc_total.replace(/,/g, ''));
-	        if (!acc_total || isNaN(acc_total)) {
-	            acc_total = 0;
-	        }
-	
-	        var current_total = transactions.reduce(function (previous, current) {
+	        total_profit += transactions.reduce(function (previous, current) {
 	            var buy_price = Number(parseFloat(current.buy_price));
 	            var sell_price = Number(parseFloat(current.sell_price));
 	            var pl = sell_price - buy_price;
 	            return previous + pl;
 	        }, 0);
 	
-	        var total = acc_total + current_total;
 	        var jp_client = jpClient();
-	        var sub_total_type = total >= 0 ? 'profit' : 'loss';
+	        var sub_total_type = total_profit >= 0 ? 'profit' : 'loss';
 	
-	        $('#pl-day-total').find(' > .pl').text(formatMoney(currency, Number(total), !jp_client)).removeClass('profit loss').addClass(sub_total_type);
+	        $('#pl-day-total').find(' > .pl').text(formatMoney(currency, Number(total_profit), !jp_client)).removeClass('profit loss').addClass(sub_total_type);
 	    };
 	
 	    var createProfitTableRow = function createProfitTableRow(transaction) {
@@ -73983,6 +73976,7 @@
 	    var clearTableContent = function clearTableContent() {
 	        Table.clearTableBody(profit_table_id);
 	        $('#' + profit_table_id).find('> tfoot').hide();
+	        total_profit = 0;
 	    };
 	
 	    var errorMessage = function errorMessage(msg) {
