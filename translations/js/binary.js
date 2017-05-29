@@ -83174,7 +83174,7 @@
 	    };
 	
 	    var inContextTranslation = function inContextTranslation() {
-	        if (/^https:\/\/www\.binary\.com\/translations\//i.test(window.location.href) && /ach/i.test(Language.get())) {
+	        if (/^https:\/\/staging\.binary\.com\/translations\//i.test(window.location.href) && /ach/i.test(Language.get())) {
 	            window._jipt = [];
 	            window._jipt.push(['project', 'binary-static']);
 	            $('body').append($('<script/>', {
