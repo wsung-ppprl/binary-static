@@ -36028,12 +36028,12 @@
 	var getLanguage = __webpack_require__(424).get;
 	
 	var formatMoney = function formatMoney(currency_value, amount, exclude_currency) {
-	    var is_bitcoin = /xbt/i.test(currency_value);
+	    var is_crypto = /xbt/i.test(currency_value);
 	    var is_jp = jpClient();
-	    var decimal_places = is_bitcoin ? 6 : is_jp ? 0 : 2;
+	    var decimal_places = getDecimalPlaces(currency_value, is_crypto, is_jp);
 	    var money = void 0;
 	    if (amount) amount = String(amount).replace(/,/g, '');
-	    if (typeof Intl !== 'undefined' && currency_value && !is_bitcoin && amount) {
+	    if (typeof Intl !== 'undefined' && currency_value && !is_crypto && amount) {
 	        var options = exclude_currency ? { minimumFractionDigits: decimal_places, maximumFractionDigits: decimal_places } : { style: 'currency', currency: currency_value };
 	        var language = getLanguage().toLowerCase();
 	        money = new Intl.NumberFormat(language.replace('_', '-'), options).format(amount);
@@ -36061,9 +36061,15 @@
 	
 	var addComma = function addComma(num, decimal_points) {
 	    var number = String(num || 0).replace(/,/g, '') * 1;
-	    return number.toFixed(decimal_points || 2).toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
+	    return parseFloat(number.toFixed(decimal_points || 2)).toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
 	        return $1 + $2.replace(/\d(?=(?:\d\d\d)+(?!\d))/g, '$&,');
 	    });
+	};
+	
+	var getDecimalPlaces = function getDecimalPlaces(currency, is_crypto, is_jp) {
+	    is_crypto = is_crypto || /xbt/i.test(currency);
+	    is_jp = is_jp || jpClient();
+	    return is_crypto ? 8 : is_jp ? 0 : 2;
 	};
 	
 	// Taken with modifications from:
@@ -36082,7 +36088,8 @@
 	    formatMoney: formatMoney,
 	    formatCurrency: function formatCurrency(currency) {
 	        return map_currency[currency];
-	    }
+	    },
+	    getDecimalPlaces: getDecimalPlaces
 	};
 
 /***/ },
@@ -71966,7 +71973,7 @@
 	var GTM = __webpack_require__(465);
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var getDecimalPlaces = __webpack_require__(434).getDecimalPlaces;
 	var onlyNumericOnKeypress = __webpack_require__(530);
 	var TimePicker = __webpack_require__(531);
 	
@@ -72176,7 +72183,7 @@
 	            amount_element.addEventListener('input', commonTrading.debounce(function (e) {
 	                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
 	                if (isStandardFloat(e.target.value)) {
-	                    e.target.value = formatMoney(Defaults.get('currency'), parseFloat(e.target.value), 1);
+	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency')));
 	                }
 	                Defaults.set('amount', e.target.value);
 	                Price.processPriceRequest();
