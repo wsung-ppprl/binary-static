@@ -36027,10 +36027,12 @@
 	var jpClient = __webpack_require__(425).jpClient;
 	var getLanguage = __webpack_require__(424).get;
 	
+	var cryptocurrencies = ['BTC'];
+	
 	var formatMoney = function formatMoney(currency_value, amount, exclude_currency) {
-	    var is_crypto = /xbt/i.test(currency_value);
+	    var is_crypto = isCryptocurrency(currency_value);
 	    var is_jp = jpClient();
-	    var decimal_places = getDecimalPlaces(currency_value, is_crypto, is_jp);
+	    var decimal_places = getDecimalPlaces(currency_value, amount);
 	    var money = void 0;
 	    if (amount) amount = String(amount).replace(/,/g, '');
 	    if (typeof Intl !== 'undefined' && currency_value && !is_crypto && amount) {
@@ -36038,15 +36040,13 @@
 	        var language = getLanguage().toLowerCase();
 	        money = new Intl.NumberFormat(language.replace('_', '-'), options).format(amount);
 	    } else {
-	        var updated_amount = void 0,
+	        var updated_amount = amount,
 	            sign = '';
 	        if (is_jp) {
 	            updated_amount = parseInt(amount);
 	            if (Number(updated_amount) < 0) {
 	                sign = '-';
 	            }
-	        } else {
-	            updated_amount = parseFloat(amount).toFixed(decimal_places);
 	        }
 	        updated_amount = addComma(updated_amount, decimal_places);
 	        if (exclude_currency) {
@@ -36059,17 +36059,27 @@
 	    return money;
 	};
 	
-	var addComma = function addComma(num, decimal_points) {
-	    var number = String(num || 0).replace(/,/g, '') * 1;
-	    return parseFloat(number.toFixed(decimal_points || 2)).toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
+	var addComma = function addComma(num, decimal_points, is_crypto) {
+	    var number = (String(num || 0).replace(/,/g, '') * 1).toFixed(decimal_points || 2);
+	    if (is_crypto) {
+	        number = parseFloat(number);
+	    }
+	
+	    return number.toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
 	        return $1 + $2.replace(/\d(?=(?:\d\d\d)+(?!\d))/g, '$&,');
 	    });
 	};
 	
-	var getDecimalPlaces = function getDecimalPlaces(currency, is_crypto, is_jp) {
-	    is_crypto = is_crypto || /xbt/i.test(currency);
-	    is_jp = is_jp || jpClient();
-	    return is_crypto ? 8 : is_jp ? 0 : 2;
+	var getDecimalPlaces = function getDecimalPlaces(currency, amount) {
+	    var is_crypto = isCryptocurrency(currency);
+	    var is_jp = jpClient();
+	    var decimal_places = 2;
+	    if (is_crypto) {
+	        decimal_places = Math.min((parseFloat(amount).toString().split('.')[1] || '').length || 0, 8);
+	    } else if (is_jp) {
+	        decimal_places = 0;
+	    }
+	    return decimal_places;
 	};
 	
 	// Taken with modifications from:
@@ -36081,7 +36091,11 @@
 	    AUD: 'A$',
 	    EUR: '€',
 	    JPY: '¥',
-	    XBT: '₿'
+	    BTC: '₿'
+	};
+	
+	var isCryptocurrency = function isCryptocurrency(currency) {
+	    return currency ? new RegExp(currency, 'i').test(cryptocurrencies) : false;
 	};
 	
 	module.exports = {
@@ -36089,6 +36103,7 @@
 	    formatCurrency: function formatCurrency(currency) {
 	        return map_currency[currency];
 	    },
+	    isCryptocurrency: isCryptocurrency,
 	    getDecimalPlaces: getDecimalPlaces
 	};
 
@@ -50418,6 +50433,7 @@
 	var urlFor = __webpack_require__(423).urlFor;
 	var jpClient = __webpack_require__(425).jpClient;
 	var jpResidence = __webpack_require__(425).jpResidence;
+	var isCryptocurrency = __webpack_require__(434).isCryptocurrency;
 	
 	var Cashier = function () {
 	    'use strict';
@@ -50454,12 +50470,14 @@
 	            BinarySocket.wait('authorize').then(function () {
 	                Header.upgradeMessageVisibility(); // To handle the upgrade buttons visibility
 	                var is_virtual = Client.get('is_virtual');
+	                var is_crypto = isCryptocurrency(Client.get('currency'));
 	                if (is_virtual) {
 	                    displayTopUpButton();
 	                }
-	                if (is_virtual || /CR/.test(Client.get('loginid'))) {
+	                if (is_virtual || /CR/.test(Client.get('loginid')) && !is_crypto) {
 	                    $('#payment-agent-section').setVisibility(1);
 	                }
+	                $(is_crypto ? '.crypto_currency' : '.normal_currency').setVisibility(1);
 	                if (Client.hasGamingFinancialEnabled()) {
 	                    $('#account-transfer-section').setVisibility(1);
 	                }
@@ -72183,7 +72201,7 @@
 	            amount_element.addEventListener('input', commonTrading.debounce(function (e) {
 	                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
 	                if (isStandardFloat(e.target.value)) {
-	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency')));
+	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency'), e.target.value));
 	                }
 	                Defaults.set('amount', e.target.value);
 	                Price.processPriceRequest();
@@ -73334,7 +73352,8 @@
 	            Durations.display();
 	        }
 	
-	        if (Defaults.get('amount')) $('#amount').val(Defaults.get('amount'));else Defaults.set('amount', document.getElementById('amount').value);
+	        var currency = Defaults.get('currency') || document.getElementById('currency').value;
+	        if (Defaults.get('amount')) $('#amount').val(Defaults.get('amount'));else Defaults.set('amount', /btc/i.test(currency) ? 0.005 : document.getElementById('amount').value);
 	        if (Defaults.get('amount_type')) commonTrading.selectOption(Defaults.get('amount_type'), document.getElementById('amount_type'));else Defaults.set('amount_type', document.getElementById('amount_type').value);
 	        if (Defaults.get('currency')) commonTrading.selectOption(Defaults.get('currency'), document.getElementById('currency'));
 	
