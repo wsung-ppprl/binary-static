@@ -52534,7 +52534,10 @@
 	
 	        $container.empty().append($tabs).append($contents.children());
 	
-	        $container.tabs('destroy').tabs();
+	        if ($container.is(':ui-tabs')) {
+	            $container.tabs('destroy');
+	        }
+	        $container.tabs();
 	
 	        if (is_framed) {
 	            $container.find('ul').hide();
@@ -52934,7 +52937,10 @@
 	
 	        $container.empty().append($ul).append($contents.children());
 	
-	        $container.tabs('destroy').tabs();
+	        if ($container.is(':ui-tabs')) {
+	            $container.tabs('destroy');
+	        }
+	        $container.tabs();
 	
 	        if (is_framed) {
 	            $container.find('ul').hide();
@@ -74701,11 +74707,14 @@
 	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
 	var localize = __webpack_require__(429).localize;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
+	var State = __webpack_require__(421).State;
 	var FlexTableUI = __webpack_require__(553);
 	var toTitleCase = __webpack_require__(450).toTitleCase;
 	
 	var ApplicationsUI = function () {
 	    'use strict';
+	
+	    var can_revoke = false;
 	
 	    var container_selector = '#applications-container';
 	    var messages = {
@@ -74719,18 +74728,24 @@
 	        var scopes = app.scopes.map(function (scope) {
 	            return localize(toTitleCase(scope));
 	        }).join(', ');
-	        return [app.name, scopes, last_used, ''];
+	        var data = [app.name, scopes, last_used];
+	        if (can_revoke) {
+	            data.push(''); // for the "Revoke App" button
+	        }
+	        return data;
 	    };
 	
 	    var createRevokeButton = function createRevokeButton(container, app) {
 	        var $button = $('<button/>', { class: 'button', text: localize(messages.revoke_access) });
 	        $button.on('click', function () {
 	            if (window.confirm(localize(messages.revoke_confirm) + ': \'' + app.name + '\'?')) {
-	                BinarySocket.send({ oauth_apps: 1, revoke_app: app.id }).then(function (response) {
+	                BinarySocket.send({ revoke_oauth_app: app.id }).then(function (response) {
 	                    if (response.error) {
 	                        displayError(response.error.message);
 	                    } else {
-	                        update(response.oauth_apps.map(ApplicationsData.parse));
+	                        BinarySocket.send({ oauth_apps: 1 }).then(function (res) {
+	                            update(res.oauth_apps.map(ApplicationsData.parse));
+	                        });
 	                    }
 	                });
 	                container.css({ opacity: 0.5 });
@@ -74743,18 +74758,23 @@
 	        if ($('#applications-table').length) {
 	            return FlexTableUI.replace(data);
 	        }
-	        var headers = ['Name', 'Permissions', 'Last Used', 'Action'];
-	        var columns = ['name', 'permissions', 'last_used', 'action'];
+	        var headers = ['Name', 'Permissions', 'Last Used'];
+	        can_revoke = /admin/.test((State.get(['response', 'authorize', 'authorize']) || {}).scopes);
+	        if (can_revoke) {
+	            headers.push('Action');
+	        }
 	        FlexTableUI.init({
 	            container: container_selector,
-	            header: headers.map(function (s) {
-	                return localize(s);
-	            }),
+	            header: headers.map(localize),
 	            id: 'applications-table',
-	            cols: columns,
+	            cols: headers.map(function (title) {
+	                return title.toLowerCase().replace(/\s/g, '-');
+	            }),
 	            data: data,
 	            style: function style($row, app) {
-	                $row.children('.action').first().append(createRevokeButton($row, app));
+	                if (can_revoke) {
+	                    $row.children('.action').first().append(createRevokeButton($row, app));
+	                }
 	            },
 	            formatter: formatApp
 	        });
