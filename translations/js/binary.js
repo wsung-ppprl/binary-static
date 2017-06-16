@@ -60,14 +60,14 @@
 	// created for handling global onclick
 	exportAllFunctions(__webpack_require__(302));
 	// used by gtm to update page after a new release
-	exportAllFunctions(__webpack_require__(469));
+	exportAllFunctions(__webpack_require__(470));
 	
-	__webpack_require__(470);
 	__webpack_require__(471);
 	__webpack_require__(472);
 	__webpack_require__(473);
+	__webpack_require__(474);
 	
-	var BinaryLoader = __webpack_require__(474);
+	var BinaryLoader = __webpack_require__(475);
 	
 	$(window).on('load', BinaryLoader.init);
 	$(window).on('pageshow', function (e) {
@@ -18536,7 +18536,7 @@
 	'use strict';
 	
 	var MBPrice = __webpack_require__(303);
-	var CashierJP = __webpack_require__(467);
+	var CashierJP = __webpack_require__(468);
 	
 	var HandleClick = function HandleClick(param) {
 	    for (var _len = arguments.length, values = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
@@ -18567,17 +18567,17 @@
 	
 	var MBContract = __webpack_require__(304);
 	var MBDefaults = __webpack_require__(416);
-	var MBNotifications = __webpack_require__(435);
+	var MBNotifications = __webpack_require__(436);
 	var BinarySocket = __webpack_require__(428);
-	var ViewPopup = __webpack_require__(436);
+	var ViewPopup = __webpack_require__(437);
 	var Client = __webpack_require__(420);
-	var GTM = __webpack_require__(465);
+	var GTM = __webpack_require__(466);
 	var localize = __webpack_require__(429).localize;
 	var getPropertyValue = __webpack_require__(417).getPropertyValue;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	/*
 	 * Price object handles all the functions we need to display prices
@@ -18840,7 +18840,7 @@
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatCurrency = __webpack_require__(434).formatCurrency;
+	var formatCurrency = __webpack_require__(435).formatCurrency;
 	
 	/*
 	 * Contract object mocks the trading form we have on our website
@@ -34522,7 +34522,7 @@
 	var getLoginToken = __webpack_require__(431).getLoginToken;
 	var jpClient = __webpack_require__(425).jpClient;
 	var BinarySocket = __webpack_require__(428);
-	var RealityCheckData = __webpack_require__(433);
+	var RealityCheckData = __webpack_require__(434);
 	var Cookies = __webpack_require__(422);
 	
 	var Client = function () {
@@ -34786,6 +34786,10 @@
 	        return isFinancial() && !/crs_tin_information/.test((State.get(['response', 'get_account_status', 'get_account_status']) || {}).status);
 	    };
 	
+	    var getMT5AccountType = function getMT5AccountType(group) {
+	        return group ? group.replace('\\', '_') : '';
+	    };
+	
 	    return {
 	        init: init,
 	        validateLoginid: validateLoginid,
@@ -34802,6 +34806,7 @@
 	        doLogout: doLogout,
 	        isFinancial: isFinancial,
 	        shouldCompleteTax: shouldCompleteTax,
+	        getMT5AccountType: getMT5AccountType,
 	
 	        canUpgradeGamingToFinancial: canUpgradeGamingToFinancial,
 	        canUpgradeVirtualToFinancial: canUpgradeVirtualToFinancial,
@@ -35146,6 +35151,7 @@
 	
 	var urlLang = __webpack_require__(424).urlLang;
 	var jpClient = __webpack_require__(425).jpClient;
+	__webpack_require__(433);
 	
 	var Url = function () {
 	    'use strict';
@@ -35167,7 +35173,7 @@
 	
 	    var params = function params(href) {
 	        var arr_params = [];
-	        var parsed = (href ? new URL(href) : location_url).search.substr(1).split('&');
+	        var parsed = ((href ? new URL(href) : location_url).search || '').substr(1).split('&');
 	        var p_l = parsed.length;
 	        while (p_l--) {
 	            var param = parsed[p_l].split('=');
@@ -35278,22 +35284,25 @@
 	        ZH_TW: '繁體中文'
 	    };
 	
-	    var setCookieLanguage = function setCookieLanguage(lang, set_anyway) {
-	        if (!Cookies.get('language') || set_anyway) {
+	    var setCookieLanguage = function setCookieLanguage(lang) {
+	        if (!Cookies.get('language') || lang) {
 	            var cookie = new CookieStorage('language');
 	            cookie.write(lang || getLanguage());
 	        }
 	    };
 	
 	    var url_lang = null;
-	    var languageFromUrl = function languageFromUrl() {
-	        if (url_lang) return url_lang;
-	        var regex = new RegExp('^(' + Object.keys(all_languages).join('|') + ')$', 'i');
-	        var url_params = window.location.href.split('/').slice(3);
-	        url_lang = url_params.find(function (lang) {
-	            return regex.test(lang);
+	    var lang_regex = new RegExp('^(' + Object.keys(all_languages).join('|') + ')$', 'i');
+	    var languageFromUrl = function languageFromUrl(custom_url) {
+	        if (url_lang && !custom_url) return url_lang;
+	        var url_params = (custom_url || window.location.href).split('/').slice(3);
+	        var language = url_params.find(function (lang) {
+	            return lang_regex.test(lang);
 	        }) || '';
-	        return url_lang;
+	        if (!custom_url) {
+	            url_lang = language;
+	        }
+	        return language;
 	    };
 	
 	    var current_lang = null;
@@ -35320,7 +35329,7 @@
 	            var lang = $this.attr('class');
 	            if (getLanguage() === lang) return;
 	            $('#display_language').find('.language').text($this.text());
-	            setCookieLanguage(lang, true);
+	            setCookieLanguage(lang);
 	            document.location = urlForLanguage(lang);
 	        });
 	    };
@@ -35882,20 +35891,20 @@
 	
 	var texts_json = {};
 	texts_json['EN'] = {};
-	texts_json['DE'] = { "details": "Angaben", "logout": "abmelden", "Sunday": "Sonntag", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Die Höchstzahl an Token ([_1]) wurde erreicht.", "There_was_a_problem_accessing_the_server_": "Es gab ein Problem beim Zugriff auf den Server.", "Your_transaction_reference_is": "Ihre Überweisungsreferenz lautet", "Contract": "Kontrakt", "hours": "Stunden", "Your_settings_have_been_updated_successfully_": "Ihre Einstellungen wurden erfolgreich aktualisiert.", "Invalid_amount,_minimum_is": "Ungültiger Betrag, das Minimum ist", "Please_enter_a_number_between_[_1]_": "Bitte geben Sie eine Zahl zwischen [_1] ein.", "Forex": "Devisenhandel", "Successful": "Erfolgreich", "Spot": "Kassakurs", "Dec": "Dez", "Please_select": "Bitte wählen Sie", "Investment_Account": "Investmentkonto", "Select_your_trade_type": "Wählen Sie Ihren Trade-Typ aus", "Higher": "Höher", "Trade": "Handel", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Es tut uns leid, die Anmeldung ist in Ihrem Land nicht vorhanden. Bitte kontaktieren Sie die <a class=\"pjaxload\" href=\"[_1]\">Kundenbetreuung</a>, um weitere Informationen zu erhalten.", "Payment_Agent": "Zahlungsagent", "Return": "Rendite", "Step": "Schritt", "Goes_Outside": "Geht Außerhalb", "Exclude_time_cannot_be_for_more_than_5_years_": "Die Ausschlusszeit darf nicht länger als 5 Jahre sein.", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "Bitte [_1]Authentifizieren Sie Ihr Konto[_2] jetzt, um von allen Abhebeoptionen Gebrauch zu machen.", "PM": "nachmittags", "Your_Application_is_Being_Processed_": "Ihr Antrag wird bearbeitet.", "Please_accept_the_terms_and_conditions_": "Bitte akzeptieren Sie die Geschäftsbedingungen.", "Minimum_of_[_1]_characters_required_": "Mindestens [_1] Zeichen sind erforderlich.", "This_field_is_required_": "Dieses Feld ist erforderlich.", "day": "Tag", "Delete": "Löschen", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Diese Funktion ist für virtuelle Geldkonten nicht relevant", "Revoke_access": "Zugang widerrufen", "Should_be_between_[_1]_and_[_2]": "Sollte zwischen [_1] und [_2] betragen", "End_time_must_be_after_start_time_": "Die Endzeit muss nach der Startzeit beginnen.", "Target": "Ziel", "Tu": "Di", "Please_select_the_checkbox_": "Bitte wählen Sie das Kontrollkästchen.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Bitte klicken Sie auf den nachfolgenden Link, um den Passwort Erneuerungsprozess zu starten. Wenn Sie weitere Unterstützung benötigen, setzen Sie sich bitte mit unserem Kundensupport in Verbindung.", "Low_Barrier": "Untere Schwelle", "There_was_a_problem_accessing_the_server_during_purchase_": "Während des Kaufs ist ein Problem beim Zugriff auf den Server aufgetreten.", "Create_Account": "Konto einrichten", "Loss": "Verlust", "Real_STP": "Echtes STP", "This_contract_lost": "Dieser Kontrakt verlor", "Your_withdrawal_limit_is_[_1]_[_2]_": "Ihr Abhebelimit beträgt  [_1] [_2].", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Bitte <a href=\"[_1]\">melden Sie sich an</a>, um diese Seite anzuzeigen.", "Real_Volatility": "Echte Volatilität", "Asset": "Kapital", "Asset_Index": "Vermögensindex", "High_Barrier": "Hohe Schwelle", "Description": "Beschreibung", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Derzeit sind Einzahlungen und Auszahlungen nicht erlaubt. Bitte setzen Sie sich mit [_1] in Verbindung, um es freizuschalten.", "Short": "Kurz", "Sale_Date": "Verkaufsdatum", "email_address": "E-Mail Adresse", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Ihr Token ist abgelaufen. Bitte klicken Sie <a href=\"[_1]\">hier</a>, um den Verfikationsprozess zu wiederholen.", "Your_changes_have_been_updated_successfully_": "Ihre Änderungen wurden erfolgreich aktualisiert.", "Select_market": "Wählen Sie den Markt", "Main_password": "Hauptpasswort", "Please_input_a_valid_date": "Bitte geben Sie ein gültiges Datum ein", "Deposit": "Einzahlung", "weeks": "Wochen", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Die angegebene E-Mail Adresse, ist bereits in Verwendung. Wenn Sie Ihr Passwort vergessen haben, versuchen Sie bitte unser <a href=\"[_1]\">Passwort-Wiederfindung Tool</a>, oder kontaktieren Sie die Kundenbetreuung.", "Potential_Payout": "Mögliche Auszahlung", "There_was_an_error": "Es ist ein Fehler aufgetreten", "Purchase_Time": "Kaufuhrzeit", "Exclude_time_cannot_be_less_than_6_months_": "Die Ausschlusszeit darf nicht kürzer als 6 Monate sein.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Das Passwort muss Klein- und Großbuchstaben sowie Zahlen enthalten.", "Tuesday": "Dienstag", "Upcoming_Events": "Bevorstehende Events", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Ihr Token ist abgelaufen. Bitte klicken Sie [_1]hier[_2], um den Verfikationsprozess zu wiederholen.", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Ihr Konto ist derzeit gesperrt. Jetzt sind nur Auszahlungen erlaubt. Setzen Sie sich bitte mit [_1] in Verbindung, um mehr Informationen zu erhalten.", "Profit": "Rendite", "Profit/Loss": "Gewinn/Verlust", "Barrier_Change": "Grenzänderung", "Resources": "Quellen", "Total_Cost": "Gesamtkosten", "Trading_Times": "Börsenzeiten", "Duration": "Laufzeit", "numbers": "Zahlen", "Purchase_Price": "Kaufpreis", "hour": "Stunde", "Date_and_Time": "Datum und Zeit", "Exit_Spot_Time": "Schlusskurszeit", "Password_is_not_strong_enough_": "Passwort ist nicht stark genug.", "Your_account_has_no_trading_activity_": "Ihr Konto hat keine Handelsaktivität.", "Contract_Information": "Kontraktinformation", "You_need_to_finish_all_20_questions_": "Sie müssen alle 20 Fragen beantworten.", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] außerhalb der niedrigen und hohen Werte der Schwelle zum Schluss auf [_4] geht.", "Remaining_time": "Verbleibende Zeit", "Closes_early_(at_21:00)": "Schließt früh (um 21:00)", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Es sind nur Buchstaben, Leerzeichen, Bindestriche, Punkte und Apostrophe erlaubt.", "Please_enter_an_integer_value": "Bitte geben Sie einen ganzzahligen Wert ein", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Die Sitzungsdauer kann nicht mehr als 6 Wochen betragen.", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Ihr Auftrag [_1] [_2] von [_3] an [_4] zu überweisen, wurde erfolgreich bearbeitet.", "Profit_Table": "Gewinntabelle", "Connection_error:_Please_check_your_internet_connection_": "Verbindungsfehler: Bitte überprüfen Sie Ihre Internetverbindung.", "Virtual_money_credit_to_account": "Virtuelles Geldguthaben zum Konto", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Es darf ein zusätzliches Passwort verwendet werden, um den Zugang zum Kassensabschnitt zu beschränken.", "Major_Pairs": "Wichtigste Paare", "Contract_Confirmation": "Vertragsbestätigung", "Time_out_cannot_be_in_the_past_": "Die Auszeit darf nicht in der Vergangenheit sein.", "Wednesday": "Mittwoch", "Not": "Nicht", "Open": "Offen", "IP_Address": "IP-Adresse", "Time_out_cannot_be_more_than_6_weeks_": "Die Auszeit kann nicht mehr als 6 Wochen betragen.", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] und [_2] können nicht gleich sein.", "Today": "Heute", "years": "Jahre", "Remaining_Time": "Verbleibende Zeit", "Now": "Jetzt", "Potential_Profit": "Möglicher Gewinn", "Ends_Between": "Schließt Zwischen", "Current": "Derzeit", "Sell": "Verkaufen", "Upgrade_to_a_Financial_Account": "In ein Finanzkonto ändern", "verification_token": "Verifikationstoken", "Opens": "Öffnet", "Only_numbers,_space,_and_hyphen_are_allowed_": "Es sind nur Zahlen, Abstände und Bindestriche erlaubt.", "Cashier": "Kasse", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Ihr Passwort wurde erfolgreich zurückgesetzt. Bitte loggen Sie mit Ihrem neuen Passwort in Ihr Konto ein.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Sie haben bereits den Gegenwert von [_1] [_2] abgehoben.", "Reference_ID": "Referenznr.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Daher ist Ihr aktuelles sofortiges Maximum für eine Abhebung (sofern Ihr Konto über ausreichend Guthaben verfügt) EUR [_1] [_2] (oder Gegenwert in einer anderen Währung).", "Up/Down": "Auf/Ab", "Congratulations!_Your_[_1]_Account_has_been_created_": "Herzlichen Glückwunsch! Ihr [_1] Konto wurde erstellt.", "March": "März", "Last_Used": "Zuletzt verwendet", "Ends_In/Out": "Endet innerhalb/außerhalb", "Low_Barrier_([_1])": "Untere Schwelle ([_1])", "Barrier_([_1])": "Schwelle ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "Dieses Zeichen ist nicht aktiv. Bitte versuchen Sie ein anderes Zeichen.", "Action": "Handlung", "Failed": "Fehlgeschlagen", "New_password": "Neues Passwort", "Thursday": "Donnerstag", "This_contract_won": "Dieser Vertrag gewann", "AM": "morgens", "Net_profit": "Nettogewinn", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Sind Sie sicher, dass Sie den Zugang endgültig widerrufen möchten", "Sorry,_this_feature_is_not_available_": "Leider ist diese Funktion nicht vorhanden.", "New_Year's_Day": "Neujahrstag", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Ihr Konto ist vollständig authentifiziert und Ihr Abhebelimit wurde angehoben.", "Waiting_for_exit_tick_": "Warten auf den Endtick.", "today": "heute", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Ihre Kasse ist auf Ihren Antrag hin gesperrt - um Sie zu entsperren, geben Sie bitte das Passwort ein.", "Explanation": "Erläuterung", "Never_Used": "Nie verwendet", "Monday": "Montag", "Market_is_closed__Please_try_again_later_": "Börse ist derzeit geschlossen. Bitte versuchen Sie es später erneut.", "Finish": "Beenden", "Fridays": "Freitage", "Exit_Spot": "Schlusskurs", "Please_log_in_": "Melden Sie sich bitte an.", "June": "Juni", "Please_select_a_valid_time_": "Bitte wählen Sie eine gültige Uhrzeit aus.", "Digit": "Ziffer", "New_token_created_": "Neuer Token generiert.", "False": "Falsch", "The_main_password_of_account_number_[_1]_has_been_changed_": "Das Hauptpasswort für die Kontonummer [_1] wurde geändert.", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] die Schwelle nicht durch das Schließen auf [_4] erreicht.", "The_two_passwords_that_you_entered_do_not_match_": "Die beiden Passwörter, die Sie eingegeben haben, stimmen nicht überein.", "Sell_at_market": "Zum Börsenkurs verkaufen", "Resale_not_offered": "Wiederverkauf wird nicht angeboten", "Month": "Monat", "October": "Oktober", "Real_Standard": "Echter Standard", "You_have_not_granted_access_to_any_applications_": "Sie haben keinen Zugriff auf Anwendungen gewährt.", "January": "Januar", "Closes": "Schließt", "We": "Mi", "Should_be_more_than_[_1]": "Sollte mehr als [_1] sein", "Chart": "Diagramm", "Day": "Tag", "Payments": "Zahlungen", "Please_check_the_above_form_for_pending_errors_": "Bitte überprüfen Sie das oben stehende Formular nach ausstehenden Fehlern.", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Nur Buchstaben, Zahlen, Abstände, Bindestriche, Punkte, und Apostrophe sind erlaubt.", "Details": "Angaben", "Adjust_trade_parameters": "Anpassen von Handelsparametern", "Select_your_market": "Wählen Sie Ihren Markt", "Price": "Kurs", "Buy_price": "Kaufpreis", "year": "Jahr", "Real_Cent": "Echter Cent", "View": "Ansehen", "Final_price": "Schlusskurs", "Time_out_must_be_after_today_": "Die Auszeit muss nach dem heutigen Tag beginnen.", "You_should_enter_[_1]_characters_": "Sie müssen [_1] Zeichen eingeben.", "Stake": "Einsatz", "Contract_Expiry": "Kontraktauslauf", "December": "Dezember", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] ausdrücklich höher als oder gleich mit (der), die Schwelle zum Schluss auf [_4] ist.", "Settles": "Begleicht", "Christmas_Day": "Weihnachtstag", "Stays_In/Goes_Out": "Bleibt in/Geht außerhalb", "February": "Februar", "Invalid_amount,_maximum_is": "Ungültiger Betrag, das Maximum ist", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Bitte legen Sie Ihre 30-Tage Umsatzgrenze in unseren [_1]Selbstausschluss Einrichtungen[_2] fest, um Einzahlungslimits zu entfernen.", "Permissions": "Berechtigungen", "minutes": "Minuten", "Long": "Lang", "Total_Profit/Loss": "Gesamter Gewinn/Verlust", "Last_Digit_Stats": "Statistiken der Letzten Stelle", "mins": "Min", "Sorry,_an_error_occurred_while_processing_your_account_": "Es tut uns leid, bei der Bearbeitung Ihres Kontos ist ein Fehler aufgetreten.", "End_Time": "Endzeit", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Das Limit Ihrer Sitzungsdauer endet in [_1] Sekunden.", "Amount": "Betrag", "Ends_Outside": "Endet Außerhalb", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Bitte befolgen Sie dieses Muster: 3 Zahlen, ein Bindestrich, gefolgt von 4 Zahlen.", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Bitte legen Sie ein [_1]Wohnsitzland[_2] fest, bevor Sie auf ein Echtgeldkonto aufrüsten.", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Bitte [_1]akzeptieren Sie die aktualisierten allgemeinen Geschäftsbedingungen[_2], um Ihre Abhebe- und Handelslimits aufzuheben.", "Change_Password": "Passwort ändern", "Indicative": "Indikativ", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Es tut uns leid, aber Ihr Konto ist für den Erwerb weiterer Kontrakte nicht berechtigt.", "Are_you_sure_that_you_want_to_permanently_delete_token": "Sind Sie sicher, dass Sie den Token endgültig löschen möchten?", "Questions": "Fragen", "Only_[_1]_are_allowed_": "Es sind nur [_1] erlaubt.", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] Tage [_2] Stunden [_3] Minuten", "Contract_Sold": "Kontrakt verkauft", "Update": "Aktualisieren", "Does_Not_Touch": "Erreicht Nicht", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Es sind nur Buchstaben, Zahlen, und Bindestriche erlaubt.", "Select_your_underlying_asset": "Wählen Sie Ihren Basiswert aus", "days": "Tage", "Payout": "Auszahlung", "Next": "Weiter", "Your_transaction_reference_number_is_[_1]": "Ihre Überweisungsnummer ist [_1]", "Account_balance:": "Kontostand:", "Touch/No_Touch": "Erreicht", "Spot_Time": "Kassa-Zeit", "High_Barrier_([_1])": "Hohe Schwelle ([_1])", "Please_select_a_valid_date_": "Bitte wählen Sie ein gültiges Datum aus.", "today,_Fridays": "heute, Freitage", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] auf, oder zwischen niedrigen und hohen Werten der Schwelle, zum Schluss auf [_4] endet.", "There_was_some_invalid_character_in_an_input_field_": "Es ist ein ungültiges Zeichen in einem Eingabefeld vorhanden.", "Entry_spot": "Startkurs", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] die Schwelle durch den Schluss auf [_4] berührt.", "Please_submit_a_valid_verification_token_": "Bitte übermitteln Sie einen gültigen Verifikationstoken.", "Lock_Cashier": "Kasse blockieren", "Your_account_has_no_Login/Logout_activity_": "Ihr Konto hat keine Anmelde- und/oder Abmeldeaktivität.", "Sorry,_an_error_occurred_while_processing_your_request_": "Es tut uns leid, bei der Bearbeitung Ihrer Anfrage ist ein Fehler aufgetreten.", "You_have_already_withdrawn_[_1]_[_2]_": "Sie haben bereits [_1] [_2] abgehoben.", "Time_is_in_the_wrong_format_": "Die Zeit ist im falschen Format.", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] außerhalb der niedrigen und hohen Werte der Schwelle zum Schluss auf [_4] endet.", "Predict_the_direction<br_/>and_purchase": "Sagen Sie die Richtung voraus<br />und kaufen Sie", "Never": "Nie", "Start_Time": "Startzeit", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Sie haben das Kurslimit für Anfragen pro Sekunde erreicht. Bitte versuchen Sie es später.", "Hour": "Stunde", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] Auszahlung von Kontonummer [_2] bis [_3] ist erledigt. Überweisungs-ID: [_4]", "Only_[_1]_decimal_points_are_allowed_": "Es sind nur [_1] Dezimalstellen erlaubt.", "Verification_code_format_incorrect_": "Format des Verifikationscodes falsch.", "Start_time": "Startzeit", "Scopes": "Geltungsbereiche", "Your_changes_have_been_updated_": "Ihre Änderungen wurden aktualisiert.", "Upgrade_to_a_Real_Account": "Erweitern Sie auf ein Echtgeldkonto", "Over/Under": "Über/Unter", "Walkthrough_Guide": "Kompletter Leitfaden", "Withdraw": "Abheben", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Ihr Konto ist eingeschränkt. Bitte [_1]kontaktieren Sie die Kundenbetreuung[_2] für Hilfe.", "July": "Juli", "Th": "Do", "Percentage": "Prozentsatz", "week": "Woche", "months": "Monate", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Ihre Kasse wurde auf Ihren Antrag hin gesperrt - um Sie wieder zu entsperren, bitte <a href=\"[_1]\">hier</a>anklicken.", "Real_Account": "Echtes Konto", "All_markets_are_closed_now__Please_try_again_later_": "Alle Börsen sind derzeit geschlossen. Bitte versuchen Sie es später erneut.", "Processing_your_request___": "Ihre Anfrage wird bearbeitet...", "All_barriers_in_this_trading_window_are_expired": "Alle Schwellen in diesem Handelsfenster sind abgelaufen", "Year": "Jahr", "Your_trading_statistics_since_[_1]_": "Ihre Trading-Statistiken seit [_1].", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Sie haben bereits den Gegenwert von [_1] [_2]  abgehoben, der sich in den letzten [_3] Tagen angesammelt hat.", "Should_be_less_than_[_1]": "Sollte kleiner als [_1] sein", "Current_password": "Aktuelles Passwort", "Touches": "Berührt", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Leider steht diese Funktion nur für virtuelle Konten zur Verfügung.", "You_did_not_change_anything_": "Sie haben nichts geändert.", "This_is_a_staging_server_-_For_testing_purposes_only": "Dies ist ein Staging-Server - Nur zu Testzwecken", "Invalid_email_address": "Falsche E-Mail Adresse", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] wurden Ihrem virtuellen Geldkonto [_3] gutgeschrieben", "Weekday": "Wochentag", "True": "Wahr", "Mar": "Mär", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Bitte [_1]vervollständigen Sie Ihr Kontoprofil[_2], um Ihre Abhebe- und Handelslimits aufzuheben.", "Waiting_for_entry_tick_": "Warten auf den Eingangstick.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Ihr [_1] Tage Abhebelimit beträgt derzeit [_2] [_3] (oder Gegenwert in einer anderen Währung).", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Auszahlungen von Ihrem Konto sind derzeit nicht erlaubt. Bitte setzen Sie sich mi [_1] in Verbindung, um es zu entsperren.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Überweisung durchgeführt von [_1] (App ID: [_2])", "Su": "So", "Credit/Debit": "Gutschrift/Lastschrift", "Only_numbers_and_spaces_are_allowed_": "Es sind nur Zahlen und Abstände erlaubt.", "Entry_Spot": "Startkurs", "Stays_Between": "Bleibt Zwischen", "Saturday": "Samstag", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Ihr Auszahlungslimit beträgt  [_1] [_2] (oder Gegenwert in anderer Währung).", "Read": "Lesen", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Es tut uns leid, aber Sie haben ein ungültiges Kassen-Passwort eingegeben", "In/Out": "Innerhalb/Außerhalb", "You_have_sold_this_contract_at_[_1]_[_2]": "Sie haben diesen Kontrakt für [_1] [_2] verkauft", "Higher/Lower": "Höher/Tiefer", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Ihr Auftrag, [_1] [_2] von Ihrem Konto [_3] auf das Konto des Zahlungsagent [_4] zu überweisen, wurde erfolgreich bearbeitet.", "second": "Sekunde", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Der Server <a href=\"[_1]\">Endpunkt</a> ist: [_2]", "Gaming_Account": "Spielkonto", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "In Ihrem Land ist derzeit kein Zahlungsagent vorhanden.", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Füllen Sie bitte das [_1]finanzielle Beurteilungsformular[_2] aus, um Ihre Abhebe- und Handelslimits aufzuheben.", "Unlock_Cashier": "Kasse entsperren", "Closed": "Geschlossen", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] ausdrücklich niedriger als die Schwelle zum Schluss auf [_4] ist.", "Please_select_a_payment_agent": "Bitte wählen Sie einen Zahlungsagent aus", "Note": "Anmerkung", "Equals": "Gleicht", "Oct": "Okt", "Sale_Price": "Verkaufskurs", "May": "Mai", "Virtual_Account": "Virtuelles Konto", "End_time": "Endzeit", "Statement": "Abrechnung", "Insufficient_balance_": "Unzureichendes Guthaben.", "Date": "Datum", "letters": "Buchstaben", "from_[_1]_to_[_2]": "von [_1] bis [_2]", "Balance": "Guthaben", "Sell_time": "Verkaufszeit", "Friday": "Freitag", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Der Kontrakt wird, sobald der Auftrag von unseren Servern empfangen wurde, zum dann geltenden Marktkurs verkauft. Dieser Kurs kann von den angegebenen Kursen abweichen.", "Please_select_a_value": "Bitte wählen Sie einen Wert aus", "month": "Monat", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Wenn Sie auf 'OK' klicken, werden Sie bis zum ausgewählten Datum vom Handel auf dieser Site ausgeschlossen.", "seconds": "Sekunden", "Previous": "Vorige", "Contract_ID": "Kontrakt ID", "Matches/Differs": "Gleich/Verschieden", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Daher beträgt Ihre derzeitige maximale Sofortabhebung (vorausgesetzt Ihr Konto hat ein ausreichendes Guthaben) [_1] [_2].", "Barrier": "Schwelle", "Exit_spot": "Schlusskurs", "Investor_password": "Investoren Passwort", "Lower": "Niedriger", "Should_be_a_valid_number": "Sollte eine gültige Zahl sein", "Even/Odd": "Gerade/ungerade", "min": "Min.", "Current_Time": "Aktuelle Zeit", "Number_of_ticks": "Anzahl der Ticks", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] Einzahlung von [_2] zu Kontonummer [_3] ist erledigt. Überweisungs-ID: [_4]", "minute": "Minute", "Please_select_at_least_one_scope": "Bitte wählen Sie zumindest einen Bereich aus", "Contract_is_not_started_yet": "Kontrakt ist noch nicht gestartet", "Charting_for_this_underlying_is_delayed": "Die grafische Darstellung für diesen Basiswert ist verzögert", "Old_password_is_wrong_": "Altes Passwort ist falsch.", "Open_a_Financial_Account": "Eröffnen Sie ein Finanzkonto", "Buy": "Kaufen", "Closes_early_(at_18:00)": "Schließt früh (um 18:00)", "space": "Bereich", "Rise/Fall": "Steigen/Fallen", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] zwischen den niedrigen und hohen Werten der Schwelle durch den Schluss auf [_4] bleibt." };
-	texts_json['ES'] = { "March": "Marzo", "Last_Used": "Último usado", "Ends_In/Out": "Finaliza Dentro/Fuera", "Action": "Acción", "Failed": "Fallado", "Shop": "Tienda", "This_contract_won": "Este contrato ganó", "New_password": "Contraseña nueva", "Thursday": "Jueves", "Net_profit": "Beneficio Neto", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Está seguro de que desea revocar permanentemente el acceso a la aplicación", "Sorry,_this_feature_is_not_available_": "Esta funcionalidad no está disponible.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Su cuenta está totalmente autenticada y su límite de retirada ha sido aumentado.", "Admin": "Administrador", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Su cajero está bloqueado según su petición - para desbloquearlo, por favor introduzca la contraseña.", "Explanation": "Explicación", "Monday": "Lunes", "Never_Used": "Nunca usado", "Finish": "Terminar", "Fridays": "Viernes", "Exit_Spot": "Punto de salida", "Please_log_in_": "Por favor inicie sesión.", "June": "Junio", "New_token_created_": "Un token nuevo ha sido creado.", "The_two_passwords_that_you_entered_do_not_match_": "Las dos contraseñas introducidas no coinciden.", "November": "Noviembre", "Sell_at_market": "Vender al precio actual", "Month": "Mes", "October": "Octubre", "You_have_not_granted_access_to_any_applications_": "Usted no ha concedido acceso a ninguna aplicación.", "January": "Enero", "Closes": "Cierra", "We": "MI", "Chart": "Gráfico", "Day": "Día", "Payments": "Pagos", "Details": "detalles", "Contract_Information": "Información del Contrato", "You_need_to_finish_all_20_questions_": "Tiene que terminar todas las 20 preguntas.", "Portfolio": "Cartera", "Please_enter_an_integer_value": "Ingrese un valor entero", "Session_duration_limit_cannot_be_more_than_6_weeks_": "El límite de la duración de la sesión no puede ser superior a 6 semanas.", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Su solicitud de transferencia [_1] [_2] de [_3] a [_4] ha sido procesada exitosamente.", "Profit_Table": "Tabla de beneficios", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Se puede utilizar una contraseña adicional para restringir el acceso al cajero.", "Major_Pairs": "Pares mayores", "Contract_Confirmation": "Confirmación del contrato", "Wednesday": "Miércoles", "Open": "Abierto", "IP_Address": "Dirección IP", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] y [_2] no pueden ser iguales.", "years": "años", "Remaining_Time": "Tiempo Restante", "Now": "Ahora", "Potential_Profit": "Beneficios potenciales", "Current": "Actual", "Sell": "Venta", "Upgrade_to_a_Financial_Account": "Actualice a la cuenta financiera", "Opens": "Abre", "verification_token": "token de verificación", "Cashier": "Cajero", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Usted ya retiró el equivalente a [_1] [_2].", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Su contraseña se ha restablecido. Por favor, inicie sesión en su cuenta utilizando su nueva contraseña.", "Reference_ID": "ID de Referencia", "Up/Down": "Arriba/Abajo", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Por lo tanto, la cantidad máxima que puede retirar de forma inmediata (sujeta a la existencia de fondos suficientes en su cuenta) es [_1] [_2] (o su equivalente en otra divisa).", "Target": "Objetivo", "Tu": "MA", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Por favor haga clic en el enlace de abajo para reiniciar el proceso de recuperación de contraseña. Si necesita más ayuda, póngase en contacto con nuestro Servicio de Atención al Cliente.", "There_was_a_problem_accessing_the_server_during_purchase_": "Hubo un problema al acceder al servidor durante la compra.", "Low_Barrier": "Barrera Inferior", "Loss": "Pérdida", "This_contract_lost": "Este contrato perdió", "Your_withdrawal_limit_is_[_1]_[_2]_": "Su límite de retirada es [_1] [_2].", "Asset": "Activo", "Asset_Index": "Índice de activos", "High_Barrier": "Barrera Superior", "Description": "Descripción", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "En este momento no puede depositar ni retirar fondos de su cuenta. Por favor, póngase en contacto con [_1] para desbloquearla.", "Short": "Cortos", "email_address": "correo electrónico", "Sale_Date": "Fecha de venta", "Select_market": "Seleccione mercado", "Please_input_a_valid_date": "Ingrese una fecha válida", "Deposit": "Depósito", "Potential_Payout": "Pago potencial", "Aug": "Ago", "There_was_an_error": "Hubo un error", "August": "Agosto", "Purchase_Time": "Hora de compra", "Exclude_time_cannot_be_less_than_6_months_": "El tiempo de exclusión no puede ser menor a 6 meses.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "La contraseña debe tener letras minúsculas y mayúsculas con números.", "Tuesday": "Martes", "Upcoming_Events": "Próximos eventos", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Su cuenta está actualmente suspendida. Solo tiene permitido retirar. Para más información, por favor póngase en contacto con 1%.", "Profit": "Beneficios", "Fr": "VI", "Profit/Loss": "Ganado/Perdido", "Barrier_Change": "Cambio de Límite", "Resources": "Recursos", "Total_Cost": "Coste total", "Trading_Times": "Horarios comerciales", "Duration": "Duración", "Purchase_Price": "Precio de compra", "hour": "hora", "numbers": "números", "Date_and_Time": "Fecha y Hora", "Exit_Spot_Time": "Tiempo de Punto de Salida", "Password_is_not_strong_enough_": "La contraseña no es lo suficientemente fuerte.", "Your_account_has_no_trading_activity_": "Su cuenta no tiene actividad comercial.", "details": "detalles", "Sunday": "Domingo", "Your_transaction_reference_is": "La referencia de su transacción es", "There_was_a_problem_accessing_the_server_": "Hubo un problema al acceder al servidor.", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "El máximo número de tokens ([_1]) ha sido alcanzado.", "April": "Abril", "hours": "horas", "Contract": "Contrato", "Invalid_amount,_minimum_is": "Monto inválido, el mínimo es", "Please_enter_a_number_between_[_1]_": "Por favor, introduzca un número entre [_1].", "Successful": "Exitoso", "Spot": "Precio actual del mercado", "Dec": "Dic", "Please_select": "Seleccione", "Investment_Account": "Cuenta de inversión", "Select_your_trade_type": "Seleccione el tipo de contrato", "Trade": "Operar", "Payment_Agent": "Agente de Pagos", "Return": "Ganancias", "Step": "Paso", "Exclude_time_cannot_be_for_more_than_5_years_": "El tiempo de exclusión no puede ser mayor a 5 años.", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Autentifique su cuenta[_2] ahora para aprovechar al máximo todas las opciones de retiro disponibles.", "Minimum_of_[_1]_characters_required_": "Mínimo de [_1] caracteres requeridos.", "This_field_is_required_": "Este campo es obligatorio.", "day": "día", "Delete": "Eliminar", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Esta característica no es relevante para cuentas de dinero virtual.", "Revoke_access": "Revocar el acceso", "Note": "Nota", "Please_select_a_payment_agent": "Seleccione un agente de pago", "Sale_Price": "Precio venta", "Virtual_Account": "Cuenta virtual", "End_time": "Hora de finalización", "Statement": "Extracto", "Date": "Fecha", "letters": "letras", "Balance": "Saldo", "Friday": "Viernes", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "El contrato se venderá al precio vigente en el mercado en el momento de la recepción de la solicitud de venta por nuestros servidores. Este precio puede ser diferente del precio indicado.", "month": "mes", "Tick": "Intervalo", "seconds": "segundos", "Previous": "Anterior", "Contract_ID": "ID del Contrato", "Matches/Differs": "Iguales/Diferentes", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Por lo tanto, la cantidad máxima que puede retirar de forma inmediata (sujeta a la existencia de fondos suficientes en su cuenta) es [_1] [_2].", "Barrier": "Límite", "Exit_spot": "Punto de salida", "Even/Odd": "Par/Impar", "Current_Time": "Hora actual", "Number_of_ticks": "Número de intervalos", "minute": "minuto", "Contract_is_not_started_yet": "El contrato no ha comenzado todavía", "Charting_for_this_underlying_is_delayed": "Gráficos para este instrumento se muestran con retraso", "Name": "Nombre", "Open_a_Financial_Account": "Abrir una cuenta financiera", "Japan": "Japón", "Old_password_is_wrong_": "Su antigua contraseña es incorrecta.", "Buy": "Comprar", "Rise/Fall": "Alza/Baja", "space": "espacio", "July": "Julio", "Th": "JU", "months": "meses", "Real_Account": "Cuenta real", "All_markets_are_closed_now__Please_try_again_later_": "Todos los mercados están cerrados ahora. Inténtelo más tarde.", "All_barriers_in_this_trading_window_are_expired": "Todos los límites en esta ventana de comercio han caducado", "Year": "Año", "Your_trading_statistics_since_[_1]_": "Las estadísticas de sus transacciones desde [_1].", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Usted ya retiró un total equivalente a [_1] [_2]  en los últimos [_3] días.", "Current_password": "Contraseña actual", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Lo sentimos, esta característica está disponible solo para cuentas virtuales.", "You_did_not_change_anything_": "No ha cambiado nada.", "Jan": "Ene", "Invalid_email_address": "Correo electrónico no válido", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] se ha acreditado en su cuenta de dinero virtual [_3]", "Weekday": "Día de la semana", "September": "Septiembre", "Waiting_for_entry_tick_": "Esperando el tick de entrada.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "No se permiten las retiradas de su cuenta en este momento. Por favor, póngase en contacto con [_1] para desbloquearla.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Su [_1] límite diario para retirar dinero es actualmente [_2] [_3] (o el equivalente en otra divisa).", "Su": "DO", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transacción realizada por [_1] (ID de la aplicación: [_2])", "Credit/Debit": "Crédito/débito", "Entry_Spot": "Punto de entrada", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Su límite de retirada es [_1] [_2] (o el equivalente en otra divisa).", "Saturday": "Sábado", "Read": "Leer", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Lo sentimos, ingresó una contraseña de cajero incorrecta", "In/Out": "Dentro/Fuera", "You_have_sold_this_contract_at_[_1]_[_2]": "Usted ha vendido este contrato en [_1] [_2]", "Higher/Lower": "Superior/Inferior", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Su solicitud de retirada de [_1] [_2] de su cuenta [_3] al agente de pagos [_4] se ha procesado correctamente.", "second": "segundo", "Gaming_Account": "Cuenta de juego", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Los agentes de pagos no están disponibles actualmente para su país.", "Closed": "Cerrado", "Unlock_Cashier": "Desbloquear cajero", "Are_you_sure_that_you_want_to_permanently_delete_token": "Está seguro de querer eliminar el token", "Questions": "Preguntas", "Only_[_1]_are_allowed_": "Se permiten solo [_1].", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] días [_2] horas [_3] minutos", "Update": "Actualizar", "Contract_Sold": "Contrato Vendido", "Select_your_underlying_asset": "Seleccione el activo subyacente", "days": "días", "Payout": "Pago", "Next": "Siguiente", "Your_transaction_reference_number_is_[_1]": "El número de referencia de su transacción es [_1]", "Touch/No_Touch": "Toque/Sin toque", "Spot_Time": "Tiempo Spot", "Female": "Mujer", "There_was_some_invalid_character_in_an_input_field_": "Había un carácter no válido en el campo de entrada.", "Entry_spot": "Punto de entrada", "Lock_Cashier": "Bloquear cajero", "Your_account_has_no_Login/Logout_activity_": "Su cuenta no tiene actividad de accesos/cierres de sesión.", "You_have_already_withdrawn_[_1]_[_2]_": "Usted ya retiró [_1] [_2].", "Sorry,_an_error_occurred_while_processing_your_request_": "Lo sentimos, ha ocurrido un error mientras se procesaba su petición.", "Predict_the_direction<br_/>and_purchase": "Prediga la dirección<br /> y compre", "Never": "Nunca", "Start_Time": "Hora de comienzo", "Verification_code_format_incorrect_": "El formato del código de verificación es incorrecto.", "Apr": "Abr", "Start_time": "Hora de comienzo", "Your_changes_have_been_updated_": "Sus cambios se han actualizado.", "Over/Under": "Encima/Debajo", "Upgrade_to_a_Real_Account": "Actualice a la cuenta de dinero real", "Walkthrough_Guide": "Guía tutorial", "Withdraw": "Retirar", "Adjust_trade_parameters": "Ajustar parámetros de comercio", "Price": "Precio", "year": "año", "Select_your_market": "Seleccione su mercado", "View": "Ver", "Mo": "LU", "Stake": "Inversión", "December": "Diciembre", "Contract_Expiry": "Vencimiento del Contrato", "Settles": "Establece", "Stays_In/Goes_Out": "Queda Dentro/Sale Fuera", "February": "Febrero", "Invalid_amount,_maximum_is": "Monto invalido. El máximo es", "Permissions": "Permisos", "minutes": "minutos", "Total_Profit/Loss": "Beneficios/perdidas totales", "Long": "Largos", "Last_Digit_Stats": "Estadísticas del último dígito", "Status": "Estado", "End_Time": "Hora de finalización", "Sorry,_an_error_occurred_while_processing_your_account_": "Lo sentimos, ha ocurrido un error mientras se procesaba su cuenta.", "Sa": "SA", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "El límite de duración de su sesión terminará en [_1] segundos.", "Amount": "Monto", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Por favor, siga el patrón de 3 números y un guión seguido de 4 números.", "Browser": "Navegador", "Male": "Hombre", "Change_Password": "Cambiar contraseña", "Indicative": "Indicativo", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Lo sentimos, su cuenta no está autorizada para continuar con la compra de contratos." };
-	texts_json['FR'] = { "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] termine hors de la zone délimitée par les valeurs inférieure et supérieure de la barrière à la fermeture le [_4].", "Time_is_in_the_wrong_format_": "Le format de l'heure est incorrect.", "Sorry,_an_error_occurred_while_processing_your_request_": "Désolé, une erreur s'est produite pendant le traitement de votre demande.", "You_have_already_withdrawn_[_1]_[_2]_": "Vous avez déjà retiré [_2] [_1].", "Feb": "fév.", "Your_account_has_no_Login/Logout_activity_": "Votre compte n'indique aucune activité de connexion/déconnexion.", "Lock_Cashier": "Caisse", "Please_submit_a_valid_verification_token_": "Veuillez saisir un jeton de vérification valide.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] touche la barrière avant la fermeture le [_4].", "Entry_spot": "Point d'entrée", "Start_Time": "Heure de début", "Never": "Jamais", "Predict_the_direction<br_/>and_purchase": "Prédire la direction<br />et acheter", "Verification_code_format_incorrect_": "Le format du code de vérification est incorrect.", "Apr": "avr.", "Only_[_1]_decimal_points_are_allowed_": "[_1] décimales seulement sont autorisées.", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Le retrait [_1] à partir du numéo de compte [_2] vers [_3] a été effectué. Identifiant de transaction : [_4]", "Hour": "Heure", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Vous avez atteint la limite de tentatives par seconde. Veuillez réessayer ultérieurement.", "Withdraw": "Retrait", "Walkthrough_Guide": "Guide interactif", "Upgrade_to_a_Real_Account": "Ouvrir un compte réel", "Over/Under": "Au dessus/En dessous", "Your_changes_have_been_updated_": "Vos modifications ont été prises en compte.", "Scopes": "Périmètre", "Start_time": "Heure de début", "Update": "Mise à jour", "Contract_Sold": "Contrat vendu", "Does_Not_Touch": "Ne touche pas", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] jours [_2] heures [_3] minutes", "Only_[_1]_are_allowed_": "Seulement [_1] autorisées.", "Are_you_sure_that_you_want_to_permanently_delete_token": "Voulez-vous vraiment supprimer ce jeton de façon permanente ?", "Payout": "Paiement", "days": "jours", "Ref_": "Réf.", "Select_your_underlying_asset": "Sélectionnez votre actif sous-jacent", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Les lettres, les chiffres et les traits d'union sont les seuls caractères autorisés.", "Touch/No_Touch": "Touche/Ne touche pas", "Account_balance:": "Solde du compte :", "Your_transaction_reference_number_is_[_1]": "Le numéro de référence de votre transaction est [_1]", "Next": "Suivant", "There_was_some_invalid_character_in_an_input_field_": "Un caractère non valide a été saisi dans un champ.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] termine sur ou entre les valeurs inférieure et supérieure de la barrière à la fermeture le [_4].", "Female": "Femme", "today,_Fridays": "aujourd'hui, vendredis", "High_Barrier_([_1])": "Barrière supérieure ([_1])", "Spot_Time": "Heure spot", "Please_select_a_valid_date_": "Veuillez sélectionner une date valide.", "Amount": "Montant", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Votre limite de durée de session sera atteinte dans [_1] secondes.", "End_Time": "Heure de fin", "Sorry,_an_error_occurred_while_processing_your_account_": "Désolé, une erreur est survenu pendant le traitement de votre compte.", "Status": "Statut", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Veuillez respecter le format suivant : 3 chiffres, 1 tiret suivi de 4 chiffres.", "Ends_Outside": "Termine hors de la zone", "Male": "Masculin", "Browser": "Navigateur", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "S'il vous plaît définissez votre [_1]pays de résidence[_2] avant de mettre à jour votre compte d'argent réel.", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Désolé, votre compte n'est autorisé pour aucun achat supplémentaire de contrat.", "Indicative": "Indicatif", "Change_Password": "Modifier le mot de passe", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "S'il vous plait [_1]acceptez les termes et conditions mises à jour[_2] pour supprimer vos limites de retrait et de trading.", "Real_Cent": "Compte réel Cent", "Price": "Prix", "year": "année", "Select_your_market": "Sélectionnez votre marché", "Buy_price": "Prix d'achat", "Adjust_trade_parameters": "Définir les paramètres de la transaction", "Stake": "Investissement", "Mo": "Lu", "You_should_enter_[_1]_characters_": "Vous devez saisir [_1] caractères.", "Time_out_must_be_after_today_": "La période d'expiration doit être ultérieure.", "Final_price": "Prix final", "View": "Affichage", "Invalid_amount,_maximum_is": "Montant non valide, le maximum est de", "February": "février", "Stays_In/Goes_Out": "Reste dans/Sort de la zone", "Christmas_Day": "Jour de Noël", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] est strictement supérieur ou égal à la barrière au moment de la fermeture le [_4].", "Settles": "Règlements", "Contract_Expiry": "Échéance du contrat", "December": "décembre", "Last_Digit_Stats": "Statistiques du dernier chiffre", "mins": "minutes", "Total_Profit/Loss": "Total des profits/pertes", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "S'il vous plaît, définissez votre limite de chiffres d'affaires sur 30 jours dans notre [_1]infrastructures d'auto exclusion[_2] pour supprimer les limites de dépôts.", "Current_Time": "Heure actuelle", "Should_be_a_valid_number": "La saisie doit être un nombre valide", "Even/Odd": "Pair/Impair", "Lower": "Inférieur", "Investor_password": "Mot de passe investisseur", "Please_select_at_least_one_scope": "Veuillez sélectionner au moins un champ d'application", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Le dépôt [_1] à partir de [_2] vers le numéro de compte [_3] est effectué. Identifiant de transaction : [_4]", "Number_of_ticks": "Nombre de ticks", "Buy": "Acheter", "Japan": "Japon", "Open_a_Financial_Account": "Ouvrir un compte financier", "Old_password_is_wrong_": "L'ancien mot de passe est erroné.", "Name": "Nom", "Charting_for_this_underlying_is_delayed": "Les graphiques sont retardés pour ce sous-jacent", "Contract_is_not_started_yet": "Le contrat n'est pas encore actif", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] reste dans la zone délimitée par les valeurs supérieure et inférieure de la barrière jusqu'à la fermeture le [_4].", "Rise/Fall": "Hausse/Baisse", "space": "espace", "Closes_early_(at_18:00)": "Ferme tôt (à 18h)", "May": "mai", "End_time": "Moment de fin", "Virtual_Account": "Compte virtuel", "Sale_Price": "Prix de vente", "Oct": "oct.", "Equals": "Égaux", "Please_select_a_payment_agent": "Veuillez sélectionner une date valide", "Note": "Remarque", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Le contrat sera vendu au prix de marché en vigueur à réception de la demande par nos serveurs. Ce prix peut différer du prix indiqué.", "Friday": "vendredi", "Sell_time": "Heure de vente", "Balance": "Solde", "from_[_1]_to_[_2]": "de [_1] à [_2]", "letters": "lettres", "Insufficient_balance_": "Solde insuffisant.", "Statement": "Relevé", "seconds": "secondes", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Lorsque vous cliquerez sur « Ok », vous serez exclu des opérations de trading du site jusqu'à la date sélectionnée.", "month": "mois", "Please_select_a_value": "Veuillez sélectionner une valeur", "Exit_spot": "Point de sortie", "Barrier": "Barrière", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Par conséquent, votre montant maximal de retrait immédiat (sous réserve de fonds suffisants disponibles sur votre compte) est de [_2] [_1].", "Matches/Differs": "Égal/Différent", "Contract_ID": "Identifiant du contrat", "Previous": "Précédent", "Entry_Spot": "Point d'entrée", "Only_numbers_and_spaces_are_allowed_": "Les chiffres et les espaces sont les seuls caractères autorisés.", "Stays_Between": "Reste dans la zone", "Credit/Debit": "Crédit/débit", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transaction effectuée par [_1] (identifiant d'application : [_2])", "Su": "Di", "Waiting_for_entry_tick_": "En attente du tick d'entrée.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Les retraits sur votre compte ne sont pas autorisés actuellement. Veuillez contacter [_1] pour déverrouiller cette fontion.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Votre limite de retrait sur [_1] jours est actuellement de [_3] [_2] (ou équivalent dans une autre devise).", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "S'il vous plait [_1]complétez le profile de votre compte[_2] pour supprimer vos limites de retrait et de trading.", "September": "septembre", "Mar": "mars", "True": "Vrai", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_2] [_1] ont été crédités sur votre compte virtuel [_3]", "Weekday": "Jour de la semaine", "You_have_sold_this_contract_at_[_1]_[_2]": "Vous avez vendu ce contrat [_2] [_1]", "In/Out": "Zone In/Out", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Désolé, vous avez entré un mot de passe de caisse incorrect", "Read": "Lire", "Saturday": "samedi", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Votre limite de retrait est de [_2] [_1] (ou équivalent dans une autre devise).", "Gaming_Account": "Compte de jeu", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Le <a href=\"[_1]\"> 1terminal</a> 2 du serveur est : [_2]", "second": "seconde", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Votre demande de retirer [_1] [_2] de votre compte [_3] pour le compte de l'Agent de Paiement [_4] a été traitée avec succès.", "Higher/Lower": "Supérieur/Inférieur", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] est strictement inférieur ou égal à la barrière au moment de la fermeture le [_4].", "Unlock_Cashier": "Déverrouiller la caisse", "Closed": "Fermé", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Veuillez remplir le [_1]formulaire d'évaluation financière[_2] pour lever vos limites de retrait et de trading.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "L'option des Agents de Paiement n'est pas disponible pour le moment dans votre pays.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Votre caisse est verrouillée conformément à votre demande - si vous souhaitez la déverrouiller, veuillez cliquer <a href=\"[_1]\">ici</a>.", "week": "semaine", "months": "mois", "Percentage": "Pourcentage", "Th": "Je", "July": "juillet", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Votre compte est restreint. Veuillez [_1]contacter le Service Clientèle[_2] pour obtenir de l'aide.", "Processing_your_request___": "Traitement de votre demande en cours...", "All_barriers_in_this_trading_window_are_expired": "Toutes les barrières de cette fenêtre de trading sont expirées", "All_markets_are_closed_now__Please_try_again_later_": "Tous les marchés sont actuellement fermés. Veuillez réessayer ultérieurement.", "Real_Account": "Compte réel", "Touches": "Touche", "Current_password": "Mot de passe actuel", "Should_be_less_than_[_1]": "La saisie doit être inférieure à [_1]", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Vous avez déjà retiré l'équivalent de [_2] [_1] au total au cours des [_3] derniers jours.", "Year": "Année", "Your_trading_statistics_since_[_1]_": "Vos statistiques de trading depuis [_1].", "Invalid_email_address": "Adresse email non valide", "Jan": "jan.", "This_is_a_staging_server_-_For_testing_purposes_only": "Il s'agit d'un serveur intermédiaire, utilisé uniquement à des fins de test", "You_did_not_change_anything_": "Vous n'avez effectué aucune modification.", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Désolé, cette fonctionnalité est disponible uniquement pour les comptes virtuels.", "Tuesday": "mardi", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Le mot de passe doit se composer de majuscules, de minuscules et de chiffres.", "Exclude_time_cannot_be_less_than_6_months_": "Le temps d'exclusion ne peut pas être inférieur à 6 mois.", "Purchase_Time": "Heure d'achat", "August": "août", "There_was_an_error": "Une erreur s'est produite", "Aug": "août", "Fr": "ven.", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Votre compte est actuellement suspendu. Désormais, seuls les retraits sont autorisés. Pour obtenir des informations supplémentaires, veuillez contacter [_1].", "Profit": "Profits", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Votre jeton a expiré. Veuillez cliquer [_1]ici[_2] pour relancer le processus de vérification.", "Upcoming_Events": "Évènements à venir", "Duration": "Durée", "Trading_Times": "Horaires de trading", "Total_Cost": "Coût total", "Sep": "sep.", "Resources": "Ressources", "Barrier_Change": "Modification de barrière", "Profit/Loss": "Profits/pertes", "Your_account_has_no_trading_activity_": "Votre compte n'indique aucune activité de trading.", "Password_is_not_strong_enough_": "Le mot de passe n'est pas assez fiable.", "Exit_Spot_Time": "Prix de sortie actuel", "Demo": "Demonstration", "Date_and_Time": "Date et heure", "Purchase_Price": "Prix d'achat", "hour": "heure", "numbers": "chiffres", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Veuillez cliquer sur le lien ci-dessous pour relancer le processus de récupération de mot de passe. Pour obtenir de l'aide, veuillez contacter notre Service Clientèle.", "Please_select_the_checkbox_": "Veuillez cocher la case.", "Target": "Cible", "Tu": "mar.", "Real_Volatility": "Volatilité réelle", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Veuillez <a href=\"[_1]\">vous connecter</a> pour afficher cette page.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Votre limite de retrait est de [_2] [_1].", "Create_Account": "Créer un compte", "Real_STP": "Réel STP", "This_contract_lost": "Ce contrat a été perdu", "Loss": "Pertes", "Low_Barrier": "Barrière inférieure", "There_was_a_problem_accessing_the_server_during_purchase_": "Il y a eu un problème d'accès au serveur durant l'achat.", "Short": "Court", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Les dépôts et retraits ne sont actuellement pas autorisés sur votre compte. Veuillez contacter [_1] pour accéder à ces fonctions.", "High_Barrier": "Barrière supérieure", "Asset_Index": "Indice des actifs", "Asset": "Actif", "weeks": "semaines", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "L'adresse e-mail que vous avez saisie est déjà utilisée. Si vous avez oublié votre mot de passe, veuillez essayer notre <a href=\"[_1]\">outil de récupération de mot de passe</a> ou contacter le service clientèle.", "Potential_Payout": "Paiement potentiel", "Deposit": "Dépôt", "Main_password": "Mot de passe principal", "Please_input_a_valid_date": "Veuillez saisir une date valide", "Select_market": "Sélectionnez un marché", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Votre jeton a expiré. Veuillez cliquer <a href=\"[_1]\">ici</a> pour relancer le processus de vérification.", "Your_changes_have_been_updated_successfully_": "Vos modifications ont bien été prises en compte.", "Sale_Date": "Date de vente", "email_address": "Adresse e-mail", "Payment_Agent": "Agent de paiement", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Nous sommes désolés, l'inscription pour un compte n'est pas disponible dans votre pays. Veuillez contacter le <a href=\"[_1]\">service clientèle</a> pour obtenir des informations.", "Please_accept_the_terms_and_conditions_": "Veuillez accepter les conditions générales.", "Jul": "juill.", "Your_Application_is_Being_Processed_": "Votre demande est en cours de traitement.", "PM": "Après midi", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Authentifiez votre compte[_2] maintenant profiter pleinement de toutes les possibilités de retrait disponibles.", "Exclude_time_cannot_be_for_more_than_5_years_": "Le temps d'exclusion ne peut pas être supérieur à 5 ans.", "Goes_Outside": "Sort de la zone", "Step": "Étape", "Return": "Retours sur investissement", "day": "jour", "This_field_is_required_": "Ce champ est requis.", "Minimum_of_[_1]_characters_required_": "Un minimum de [_1] caractères est requis.", "End_time_must_be_after_start_time_": "L'heure de fin doit être ultérieure à l'heure de début.", "Should_be_between_[_1]_and_[_2]": "La saisie doit se situer entre [_1] et [_2]", "Revoke_access": "Révoquer l'accès", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Cette fonction ne s'applique pas aux comptes virtuels.", "Delete": "Supprimer", "April": "avril", "There_was_a_problem_accessing_the_server_": "Il y a eu un problème d'accès au serveur.", "Your_transaction_reference_is": "Votre référence de transaction est", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Le nombre maximum de jetons d'authentification ([_1]) est atteint.", "Sunday": "dimanche", "logout": "déconnexion", "details": "informations", "Invalid_amount,_minimum_is": "Montant non valide, le minimum est de", "hours": "heures", "Contract": "Contrat", "Your_settings_have_been_updated_successfully_": "Vos paramètres ont été actualisés avec succès.", "Dec": "déc.", "Please_select": "Sélection", "Successful": "Réussite", "Please_enter_a_number_between_[_1]_": "Veuillez saisir un chiffre entre [_1].", "Trade": "Trading", "Higher": "Supérieur", "Select_your_trade_type": "Sélectionnez votre type de transaction", "Investment_Account": "Compte d'investissement", "The_main_password_of_account_number_[_1]_has_been_changed_": "Le mot de passe principal du compte numéro [_1] a été modifié.", "False": "Faux", "Resale_not_offered": "La revente n'est pas proposée", "Sell_at_market": "Vendre au prix du marché", "November": "novembre", "The_two_passwords_that_you_entered_do_not_match_": "Les deux mots de passe que vous avez entrés ne correspondent pas.", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] ne touche pas la barrière jusqu'à la fermeture de l'option le [_4].", "Closes": "Fermetures", "Nov": "nov.", "January": "janvier", "You_have_not_granted_access_to_any_applications_": "Vous n'avez acheté aucun contrat.", "Real_Standard": "Réel Standard", "October": "octobre", "Month": "Mois", "Details": "Informations", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Seuls les lettres, chiffres, espace, trait d'union et apostrophe sont permis.", "Please_check_the_above_form_for_pending_errors_": "Veuillez vérifier que les informations ci-dessus ne contiennent pas d'erreurs.", "Payments": "Paiements", "Day": "Jour", "Chart": "Graphique", "Should_be_more_than_[_1]": "Devrait être plus de [_1]", "We": "Me", "This_symbol_is_not_active__Please_try_another_symbol_": "Ce symbole n'est pas actif. Veuillez sélectionner un autre symbole.", "Barrier_([_1])": "Barrière ([_1])", "Low_Barrier_([_1])": "Barrière inférieure ([_1])", "Jun": "juin", "Ends_In/Out": "Termine dans/hors de la zone", "Last_Used": "Dernière utilisation", "March": "mars", "New_Year's_Day": "Jour de l'An", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Voulez-vous vraiment révoquer l'accès à cette application de façon permanente ?", "Sorry,_this_feature_is_not_available_": "Désolé, cette option n'est pas disponible.", "Net_profit": "Bénéfice net", "AM": " ", "New_password": "Nouveau mot de passe", "This_contract_won": "Ce contrat a été gagné", "Thursday": "jeudi", "Shop": "Boutique", "Failed": "Échec", "Fridays": "Vendredis", "Finish": "Finnois", "Market_is_closed__Please_try_again_later_": "Le marché est fermé. Veuillez réessayer ultérieurement.", "Monday": "lundi", "Never_Used": "Jamais utilisé", "Explanation": "Explication", "today": "aujourd'hui", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Votre caisse est verrouillée conformément à votre demande - si vous souhaitez la déverrouiller, veuillez saisir le mot de passe.", "Admin": "Administration", "Waiting_for_exit_tick_": "En attente du tick de sortie.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Votre compte est entièrement authentifié et vos limites de retrait ont été levées.", "New_token_created_": "Nouveau jeton d'authentification créé.", "Digit": "Chiffre", "Please_select_a_valid_time_": "Veuillez sélectionner un horaire valide.", "June": "juin", "Please_log_in_": "Veuillez vous connecter.", "Exit_Spot": "Point de sortie", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "{seulement pour le JAPON}Votre requête a été traité. Connectez vous s'il vous plaît pour accéder à votre Compte d'Argent Réel.", "Potential_Profit": "Profits potentiels", "Now": "Maintenant", "Remaining_Time": "Temps restant", "years": "années", "Today": "Aujourd'hui", "Opens": "Ouvre", "verification_token": "jeton de vérification", "Upgrade_to_a_Financial_Account": "Ouvrir un compte financier", "Sell": "Vente", "Current": "Valeur actuelle", "Ends_Between": "Termine dans la zone", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Vous avez déjà retiré l'équivalent de [_2] [_1].", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Votre mot de passe a été réinitialisé avec succès. Veuillez vous connecter à votre compte en utilisant votre nouveau mot de passe.", "Cashier": "Caisse", "Only_numbers,_space,_and_hyphen_are_allowed_": "Les chiffres, les espaces et les traits d'union sont les seuls caractères autorisés.", "Congratulations!_Your_[_1]_Account_has_been_created_": "Félicitations ! Votre compte [_1] a été créé.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Par conséquent, votre montant maximal de retrait immédiat (sous réserve de fonds suffisants disponibles sur votre compte) est de [_2] [_1] (ou équivalent dans une autre devise).", "Up/Down": "Hausse/Baisse", "Reference_ID": "Identifiant de référence", "You_need_to_finish_all_20_questions_": "Vous devez répondre aux 20 questions.", "Contract_Information": "Informations du contrat", "Virtual_money_credit_to_account": "Crédit de fonds virtuels sur le compte", "Connection_error:_Please_check_your_internet_connection_": "Erreur de connexion : veuillez vérifier votre connexion à Internet.", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Votre demande de transférer [_1] [_2] de [_3] à [_4] a été traitée avec succès.", "Profit_Table": "Tableau des profits", "Session_duration_limit_cannot_be_more_than_6_weeks_": "La limite de durée de session ne peut excéder 6 semaines.", "Portfolio": "Portefeuille", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Les lettres, les espaces, les traits d'union, la virgule et le point sont les seuls caractères autorisés.", "Please_enter_an_integer_value": "Veuillez saisir un nombre entier", "Remaining_time": "Temps restant", "Closes_early_(at_21:00)": "Ferme tôt (à 21h)", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] sort de la zone délimitée par les valeurs inférieure et supérieure de la barrière avant la fermeture le [_4].", "Open": "Ouvrir", "Wednesday": "mercredi", "Not": "Pas", "Time_out_cannot_be_in_the_past_": "La période d'expiration ne peut être antérieure.", "Contract_Confirmation": "Confirmation de contrat", "Major_Pairs": "Paires majeures", "Token": "Jeton", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Un mot de passe supplémentaire peut être utilisé afin de restreindre l'accès à la caisse.", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] et [_2] ne peuvent être identiques.", "Time_out_cannot_be_more_than_6_weeks_": "La période d'expiration ne peut excéder 6 semaines.", "IP_Address": "Adresse IP" };
-	texts_json['ID'] = { "Real_Cent": "Riil Cent", "Price": "Harga", "Select_your_market": "Pilih market anda", "year": "tahun", "Buy_price": "Harga beli", "Adjust_trade_parameters": "Menyesuaikan parameter trading", "h": "j", "Stake": "Modal", "Final_price": "Harga akhir", "View": "Lihat", "You_should_enter_[_1]_characters_": "Anda harus memasukkan [_1] karakter.", "Mo": "Sen", "Time_out_must_be_after_today_": "Time out harus setelah hari ini.", "Invalid_amount,_maximum_is": "Jumlah tidak berlaku, maksimal", "February": "Pebruari", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] pasti lebih tinggi dari atau sama dengan Batasan pada penutupan [_4].", "Settles": "Diselesaikan", "Contract_Expiry": "Kontrak berakhir", "December": "Desember", "Christmas_Day": "Hari Natal", "Total_Profit/Loss": "Total Untung/Rugi", "Long": "Panjang", "minutes": "menit", "Last_Digit_Stats": "Statistik Digit Terakhir", "mins": "menit", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Tentukan batasan total pembelian kontrak 30-hari pada [_1]fasilitas pengecualian diri[_2] untuk menghapus batasan deposit Anda.", "Permissions": "Izin", "Amount": "Jumlah", "Sa": "Sab", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Batas durasi sesi Anda akan berakhir dalam [_1] detik.", "Sorry,_an_error_occurred_while_processing_your_account_": "Maaf, error terjadi ketika memproses rekening Anda.", "End_Time": "Waktu berakhir", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Silahkan ikuti pola 3 angka, garis, diikuti oleh 4 angka.", "Male": "Pria", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Silahkan pilih %negara domisili[_2] sebelum mengupgrade ke dalam akun riil.", "Indicative": "Indikatif", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Maaf, akun Anda tidak dapat membeli kontrak selanjutnya.", "Change_Password": "Perubahan Kata Sandi", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan [_1]setujui Syarat dan Ketentuan terbaru[_2] untuk meningkatkan batasan penarikan dan trading Anda.", "Only_[_1]_are_allowed_": "Hanya [_1] dibenarkan.", "Update": "Memperbarui", "Contract_Sold": "Kontrak Terjual", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] hari [_2] jam [_3] menit", "Are_you_sure_that_you_want_to_permanently_delete_token": "Apakah Anda yakin untuk menghapus token secara permanen", "Questions": "Pertanyaan", "days": "hari", "Payout": "Hasil", "Select_your_underlying_asset": "Pilih aset dasar Anda", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Hanya huruf, angka, dan tanda hubung diperbolehkan.", "Next": "Lanjutkan", "Account_balance:": "Saldo akun:", "Your_transaction_reference_number_is_[_1]": "Nomor referensi transaksi Anda adalah [_1]", "today,_Fridays": "hari ini, Jumat", "Female": "Wanita", "There_was_some_invalid_character_in_an_input_field_": "Terdapat beberapa karakter yang tidak berlaku pada kolom input.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir pada atau antara Batasan rendah dan tinggi pada penutupan [_4].", "Score": "Skor", "Spot_Time": "Waktu Spot", "High_Barrier_([_1])": "Batasan Tinggi ([_1])", "Please_select_a_valid_date_": "Pilih tanggal yang berlaku.", "Feb": "Peb", "Your_account_has_no_Login/Logout_activity_": "Akun Anda tidak memiliki aktifitas Login/Logout.", "Time_is_in_the_wrong_format_": "Waktu dalam format salah.", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir diluar Batasan rendah dan tinggi pada penutupan [_4].", "Sorry,_an_error_occurred_while_processing_your_request_": "Maaf, error terjadi ketika memproses permohonan Anda.", "You_have_already_withdrawn_[_1]_[_2]_": "Anda telah menarik dana sebesar [_1] [_2].", "Please_submit_a_valid_verification_token_": "Kirimkan token verifikasi yang berlaku.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] menyentuh Batasan hingga penutupan [_4].", "Entry_spot": "Spot masuk", "Lock_Cashier": "Kunci Kasir", "Never": "Tidak pernah", "Start_Time": "Waktu Mulai", "Predict_the_direction<br_/>and_purchase": "Analisa arah<br />dan beli", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Anda telah mencapai batas tingkat permintaan per detik. Silakan coba lagi nanti.", "Verification_code_format_incorrect_": "Format kode verifikasi salah.", "Hour": "Jam", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] penarikan dari akun [_2] ke [_3] telah berhasil. ID Transaksi: [_4]", "Only_[_1]_decimal_points_are_allowed_": "Hanya [_1] poin desimal diperbolehkan.", "Minute": "Menitan", "Walkthrough_Guide": "Panduan Langsung", "Withdraw": "Pencairan", "Scopes": "Cakupan", "Start_time": "Waktu mulai", "Upgrade_to_a_Real_Account": "Upgrade ke Akun Riil", "Your_changes_have_been_updated_": "Perubahan Anda telah diperbarui.", "Percentage": "Persentase", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Bagian kasir akun Anda telah di batalkan - untuk membukanya, silahkan klik <a href=\"[_1]\">disini</a>.", "months": "bulan", "week": "minggu", "Th": "Kam", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Akun Anda memiliki akses terbatas. Silahkan [_1]hubungi customer support[_2] untuk bantuan.", "July": "Juli", "Processing_your_request___": "Memproses permintaan Anda...", "All_barriers_in_this_trading_window_are_expired": "Semua batasan pada tampilan trading ini telah berakhir", "All_markets_are_closed_now__Please_try_again_later_": "Semua pasar ditutup saat ini. Coba kembali nanti.", "Real_Account": "Akun Riil", "Should_be_less_than_[_1]": "Harus kurang dari [_1]", "Current_password": "Kata sandi saat ini", "Year": "Tahun", "Your_trading_statistics_since_[_1]_": "Statistik trading Anda sejak [_1].", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Anda telah menarik dana sebesar [_1] [_2] dalam tempo [_3] hari terakhir.", "Invalid_email_address": "Invalid alamat email", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Maaf, fasilitas ini hanya tersedia untuk rekening virtual saja.", "You_did_not_change_anything_": "Anda tidak melakukan perubahan.", "This_is_a_staging_server_-_For_testing_purposes_only": "Ini adalah staging server - Untuk tujuan pengujian saja", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Penarikan untuk akun Anda tidak dapat dilanjutkan untuk saat ini. Silahkan hubungi [_1] untuk pengaktifan.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Batas penarikan [_1] hari Anda saat ini adalah [_2] [_3] (atau setara dengan mata uang lainnya).", "Waiting_for_entry_tick_": "Menunggu tik masuk...", "Only_numbers_and_spaces_are_allowed_": "Hanya nomor dan spasi diperbolehkan.", "Entry_Spot": "Spot Masuk", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transaksi dilakukan oleh [_1] (App ID: [_2])", "Su": "Mgg", "Credit/Debit": "Kredit/Debit", "True": "Benar", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] telah dikreditkan kedalam akun uang virtual Anda [_3]", "Weekday": "Hari Kerja", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan [_1]lengkapi profil akun Anda[_2] untuk meningkatkan batasan penarikan dan trading.", "You_have_sold_this_contract_at_[_1]_[_2]": "Anda telah menjual kontrak pada [_1] [_2]", "Read": "Baca", "Saturday": "Sabtu", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Batas penarikan Anda adalah [_1] [_2] (atau setara dengan mata uang lain).", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Maaf, kata sandi yang Anda masukkan salah", "second": "detik", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Titik akhir <a href=\"[_1]\">server</a> adalah: [_2]", "Gaming_Account": "Akun Trading", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Permohonan penarikan Anda [_1] [_2] dari account [_3] ke Agen Pembayaran [_4] telah diproses.", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] pasti lebih rendah dari Batasan pada penutupan [_4].", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan lengkapi [_1]formulir penilaian finansial[_2] untuk meningkatkan batasan penarikan dan trading Anda.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Fasilitas Agen Pembayaran tidak tersedia pada negara anda.", "Unlock_Cashier": "Buka Kasir", "Closed": "Tutup", "Oct": "Oktober", "End_time": "Waktu end", "Virtual_Account": "Akun Virtual", "May": "Mei", "Sale_Price": "Harga Jual", "Equals": "Sama", "Please_select_a_payment_agent": "Silahkan pilih agen pembayaran", "Note": "Catatan", "Balance": "Saldo", "from_[_1]_to_[_2]": "dari [_1] ke [_2]", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Kontrak akan dijual pada harga pasar terkini ketika permintaan diterima oleh server kami. Harga ini mungkin berbeda dari harga yang diindikasikan.", "Friday": "Jum'at", "Sell_time": "Waktu jual", "Statement": "Pernyataan", "Insufficient_balance_": "Saldo tidak mencukupi.", "letters": "huruf", "Date": "Tanggal", "seconds": "detik", "Tick": "Tik", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Setelah mengklik \"OK\" Anda akan dikecualikan dari trading hingga tanggal yang dipilih.", "Please_select_a_value": "Silahkan pilih nilai", "month": "bulan", "Barrier": "Batasan", "Exit_spot": "Spot akhir", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Oleh karena itu jumlah maksimal yang dapat Anda cairkan langsung (jika saldo mencukupi) adalah [_1] [_2].", "Contract_ID": "ID Kontrak", "Previous": "Sebelumnya", "Should_be_a_valid_number": "Harus angka yang berlaku", "Current_Time": "Waktu Terkini", "Investor_password": "Kata sandi investor", "Please_select_at_least_one_scope": "Silakan pilih minimal satu scope", "minute": "menit", "Number_of_ticks": "Jumlah tik", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] deposit dari [_2] ke dalam akun [_3] telah berhasil. ID Transaksi: [_4]", "Buy": "Beli", "Japan": "Jepang", "Open_a_Financial_Account": "Daftar Akun Finansial", "Old_password_is_wrong_": "Kata sandi lama salah.", "Contract_is_not_started_yet": "Kontrak belum dimulai", "Name": "Nama", "Charting_for_this_underlying_is_delayed": "Grafik untuk dasar pasar mengalami penundaan", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] tetap berada pada Batasan rendah dan tinggi hingga penutupan [_4].", "Closes_early_(at_18:00)": "Ditutup awal (pada 18:00)", "space": "ruang", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Jumlah maksimum token ([_1]) telah tercapai.", "There_was_a_problem_accessing_the_server_": "Terjadi masalah pada saat mengakses server.", "Your_transaction_reference_is": "Referensi transaksi Anda adalah", "details": "perincian", "Sunday": "Minggu", "logout": "keluar", "Invalid_amount,_minimum_is": "Jumlah tidak berlaku, minimal", "Your_settings_have_been_updated_successfully_": "Bagian pengaturan Anda telah berhasil diperbarui.", "Contract": "Kontrak", "hours": "jam", "Please_select": "Tolong pilih", "Dec": "Des", "Please_enter_a_number_between_[_1]_": "Silakan masukkan nomor antara [_1].", "Spot": "Posisi", "Successful": "Berhasil", "Select_your_trade_type": "Pilih jenis kontrak Anda", "Investment_Account": "Akun Investasi", "Payment_Agent": "Agen Pembayaran", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Maaf, pendaftaran akun tidak tersedia untuk negara domisili Anda. Silahkan hubungi <a href=\"[_1]\">customer support</a> untuk info lebih lanjut.", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Otentikasi akun Anda[_2] untuk manfaat maksimal dari pilihan penarikan yang tersedia.", "Please_accept_the_terms_and_conditions_": "Silahkan terima syarat dan ketentuan.", "Your_Application_is_Being_Processed_": "Permohonan Anda Sudah Terproses.", "Exclude_time_cannot_be_for_more_than_5_years_": "Waktu pengecualian tidak dapat melebihi 5 tahun.", "Step": "Langkah", "Return": "Laba", "This_field_is_required_": "Bagian ini diperlukan.", "Minimum_of_[_1]_characters_required_": "Minimal [_1] karakter diperlukan.", "day": "hari", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Fasilitas ini tidak tersedia untuk akun uang virtual.", "Revoke_access": "Mencabut akses", "End_time_must_be_after_start_time_": "Waktu berakhir harus setelah waktu mulai.", "Should_be_between_[_1]_and_[_2]": "Harus antara [_1] dan [_2]", "Delete": "Hapus", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Silahkan klik link di bawah ini untuk memulai kembali proses pemulihan kata sandi. Jika Anda membutuhkan bantuan lebih lanjut, silakan hubungi Customer Support kami.", "Tu": "Kam", "Target": "Sasaran", "Please_select_the_checkbox_": "Silakan pilih kotak centang.", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Silahkan <a href=\"[_1]\">masuk</a> untuk melihat halaman ini.", "Real_Volatility": "Volatilitas Nyata", "This_contract_lost": "Kontrak ini rugi", "Create_Account": "Daftar Akun", "Real_STP": "STP Riil", "Loss": "Rugi", "Low_Barrier": "Batasan Rendah", "There_was_a_problem_accessing_the_server_during_purchase_": "Terjadi masalah mengakses server saat pembelian berlangsung.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Batas penarikan Anda adalah [_1] [_2].", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Bagian deposit dan penarikan akun Anda tidak tersedia untuk sementara. Silahkan hubungi [_1] untuk pengaktifan.", "Short": "Pendek", "Asset": "Aset", "High_Barrier": "Batasan Tinggi", "Description": "Deskripsi", "Asset_Index": "Indeks Aset", "Main_password": "Kata sandi utama", "Please_input_a_valid_date": "Masukkan tanggal yang benar", "Select_market": "Pilih pasar", "weeks": "minggu", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Alamat email yang Anda sediakan sudah pernah di daftarkan. Jika Anda lupa kata sandi, silahkan coba <a href=\"[_1]\">alat pemulihan kata sandi</a> atau hubungi customer service kami.", "Potential_Payout": "Potensi Hasil", "Your_changes_have_been_updated_successfully_": "Perubahan Anda telah berhasil diperbarui.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Token Anda telah berakhir. Silahkan klik <a href=\"[_1]\">disini</a> untuk memulai kembali proses verifikasi.", "email_address": "alamat email", "Sale_Date": "Tanggal Jual", "Purchase_Time": "Waktu Beli", "Tuesday": "Selasa", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Kata sandi harus memiliki huruf kecil dan besar beserta angka.", "Exclude_time_cannot_be_less_than_6_months_": "Waktu pengecualian tidak boleh kurang dari 6 bulan.", "Aug": "Agustus", "August": "Agustus", "There_was_an_error": "Terdapat error", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Token Anda telah berakhir. Silahkan klik [_1]disini[_2] untuk memulai proses verifikasi.", "Fr": "Jum", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Saat ini akun Anda ditangguhkan. Hanya penarikan yang dapat Anda lakukan. Untuk informasi lanjut, silahkan hubungi [_1].", "Profit": "Keuntungan", "Upcoming_Events": "Acara Mendatang", "Total_Cost": "Total Biaya", "Resources": "Sumber", "Duration": "Durasi", "Trading_Times": "Waktu Trading", "Barrier_Change": "Perubahan Batasan", "Profit/Loss": "Untung/Rugi", "Password_is_not_strong_enough_": "Kata sandi tidak cukup kuat.", "Exit_Spot_Time": "Waktu Exit Spot", "Date_and_Time": "Tanggal dan Waktu", "Your_account_has_no_trading_activity_": "Akun Anda tidak memiliki aktifitas trading.", "hour": "jam", "Purchase_Price": "Harga Beli", "numbers": "nomor", "You_need_to_finish_all_20_questions_": "Anda perlu menjawab semua 20 pertanyaan.", "Contract_Information": "Informasi Kontrak", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Batas durasi sesi tidak dapat lebih dari 6 minggu.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Hanya huruf, spasi, tanda hubung, periode, dan apostrof diperbolehkan.", "Please_enter_an_integer_value": "Silahkan masukan nilai penuh", "Portfolio": "Portopolio", "Virtual_money_credit_to_account": "Mengkreditkan dana virtual kedalam akun", "Connection_error:_Please_check_your_internet_connection_": "Koneksi error: Silakan periksa koneksi internet Anda.", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Permintaan Anda untuk mentransfer [_1] [_2] dari [_3] ke [_4] berhasil diproses.", "Profit_Table": "Tabel Laba Rugi", "Remaining_time": "Waktu yang tersisa", "Closes_early_(at_21:00)": "Ditutup awal (pada 21:00)", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir keluar Batasan rendah dan tinggi hingga penutupan [_4].", "Not": "Bukan", "Wednesday": "Rabu", "Time_out_cannot_be_in_the_past_": "Time out tidak bisa di masa lalu.", "Open": "Awal", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Kata sandi tambahan dapat digunakan untuk membatasi akses ke kasir.", "Contract_Confirmation": "Konfirmasi Kontrak", "Major_Pairs": "Pasangan Utama", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] dan [_2] tidak bisa sama.", "Time_out_cannot_be_more_than_6_weeks_": "Time out tidak bisa lebih dari 6 minggu.", "IP_Address": "Alamat IP", "Potential_Profit": "Potensi Hasil", "years": "tahun", "Today": "Hari ini", "Now": "Sekarang", "Remaining_Time": "Waktu Yang Tersisa", "Upgrade_to_a_Financial_Account": "Upgrade ke Akun Finansial", "Sell": "Jual", "verification_token": "token verifikasi", "Opens": "Dibuka", "Current": "Saat ini", "Cashier": "Kasir", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Kata sandi Anda sudah berhasil dibuat ulang. Silahkan akes akun Anda menggunakan kata sandi baru.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Anda telah melakukan penarikan setara dengan [_1] [_2].", "Only_numbers,_space,_and_hyphen_are_allowed_": "Hanya angka, ruang dan tanda hubung diperbolehkan.", "Reference_ID": "ID referensi", "Congratulations!_Your_[_1]_Account_has_been_created_": "Selamat! Akun [_1] Anda telah berhasil didaftarkan.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Maka dengan itu jumlah maksimal yang dapat Anda tarik (tergantung pada saldo tunai yang tersedia) adalah [_1] [_2] (atau setara dengan mata uang lainnya).", "Jun": "Juni", "This_symbol_is_not_active__Please_try_another_symbol_": "Simbol ini tidak aktif. Silakan coba simbol lain.", "Barrier_([_1])": "Batasan ([_1])", "Low_Barrier_([_1])": "Batasan Rendah ([_1])", "March": "Maret", "Last_Used": "Terakhir digunakan", "Net_profit": "Laba bersih", "New_Year's_Day": "Tahun Baru", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Apakah Anda yakin bahwa Anda ingin secara permanen mencabut akses ke aplikasi", "Sorry,_this_feature_is_not_available_": "Maaf, fasilitas ini tidak tersedia.", "Failed": "Gagal", "Action": "Aksi", "This_contract_won": "Kontrak ini untung", "New_password": "Kata sandi baru", "Thursday": "Kamis", "Shop": "Toko", "Market_is_closed__Please_try_again_later_": "Pasar ditutup. Silakan coba kembali nanti.", "Monday": "Senin", "Never_Used": "Tidak pernah dipakai", "Fridays": "Jum'at", "Finish": "Selesai", "Waiting_for_exit_tick_": "Menunggu tik akhir.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Akun Anda telah terbukti dan batasan penarikan Anda telah dihapuskan.", "Explanation": "Penjelasan", "today": "hari ini", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Kasir Anda terkunci sesuai permintaan Anda - untuk membuka kunci, masukkan kata sandi.", "Please_select_a_valid_time_": "Silahkan pilih waktu yang berlaku.", "New_token_created_": "Token baru dibuat.", "Please_log_in_": "Silahkan log in.", "Exit_Spot": "Spot akhir", "June": "Juni", "False": "Salah", "The_main_password_of_account_number_[_1]_has_been_changed_": "Kata sandi utama untuk akun [_1] telah dirubah.", "Sell_at_market": "Jual pada pasar", "Resale_not_offered": "Penjualan ulang tidak ditawarkan", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] tidak menyentuh Batasan hingga penutupan [_4].", "November": "Nopember", "The_two_passwords_that_you_entered_do_not_match_": "Kedua-dua kata sandi yang Anda masukkan tidak cocok.", "January": "Januari", "You_have_not_granted_access_to_any_applications_": "Anda belum diberikan akses ke dalam aplikasi apapun.", "Nov": "Nop", "Closes": "Ditutup", "October": "Oktober", "Month": "Bulan", "Real_Standard": "Standar Riil", "Day": "Hari", "Payments": "Pembayaran", "Please_check_the_above_form_for_pending_errors_": "Silahkan periksa formulir diatas untuk error yang masih tertunda.", "Details": "Rincian", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Hanya huruf, angka, ruang, tanda hubung, periode, dan apostrof diperbolehkan.", "We": "Kami", "Should_be_more_than_[_1]": "Harus lebih dari [_1]", "Chart": "Grafik" };
-	texts_json['IT'] = { "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Segui il modello con 3 numeri, un trattino e 4 numeri.", "Ends_Outside": "Termina fuori", "End_Time": "Orario di fine", "Sorry,_an_error_occurred_while_processing_your_account_": "Siamo spiacenti, si è verificato un errore durante l'elaborazione del tuo account.", "Status": "Stato", "Amount": "Importo", "Sa": "Sab", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Il limite di durata della tua sessione terminerà tra [_1] secondi.", "Change_Password": "Modifica Password", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Siamo spiacenti, il tuo account non è autorizzato per qualsiasi altro acquisto di contratti.", "Indicative": "Indicativo", "You_should_enter_[_1]_characters_": "Dovresti inserire [_1] caratteri.", "Mo": "Lun", "Final_price": "Prezzo finale", "View": "Mostra", "Stake": "Puntata", "Adjust_trade_parameters": "Regola i parametri di trading", "Select_your_market": "Seleziona il tuo mercato", "Price": "Prezzo", "Buy_price": "Prezzo d'acquisto", "year": "anno", "Permissions": "Autorizzazioni", "Last_Digit_Stats": "Statistiche sull'ultima cifra", "Long": "A lungo", "Total_Profit/Loss": "Profitto/Perdita totale", "minutes": "minuti", "Christmas_Day": "Giorno di Natale", "Settles": "Liquida", "December": "Dicembre", "Contract_Expiry": "Scadenza del contratto", "Invalid_amount,_maximum_is": "Importo non valido, il massimo è", "February": "Febbraio", "Stays_In/Goes_Out": "Stays In (Rimane in) / Goes Out (Esce fuori)", "Predict_the_direction<br_/>and_purchase": "Prevedi la direzione<br />e acquista", "Start_Time": "Orario di inizio", "Never": "Mai", "Lock_Cashier": "Blocca la Cassa", "Please_submit_a_valid_verification_token_": "Invia un token di verifica valido.", "Entry_spot": "Punto d'ingresso", "Time_is_in_the_wrong_format_": "L'orario è in un formato errato.", "You_have_already_withdrawn_[_1]_[_2]_": "Hai già prelevato [_1] [_2].", "Sorry,_an_error_occurred_while_processing_your_request_": "Siamo spiacenti, si è verificato un errore durante l'elaborazione della tua richiesta.", "Your_account_has_no_Login/Logout_activity_": "Sul tuo account non c'è alcuna attività di Login/Logout.", "Upgrade_to_a_Real_Account": "Passa a un account reale", "Over/Under": "Sopra/Sotto", "Your_changes_have_been_updated_": "Le tue modifiche sono state aggiornate.", "Start_time": "Orario d'inizio", "Withdraw": "Preleva", "Minute": "Minuto", "Walkthrough_Guide": "Guida dettagliata", "Verification_code_format_incorrect_": "Formato del codice di verifica non corretto.", "Hour": "Ora", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Il prelievo di [_1] dall'account numero [_2] su [_3] è stato eseguito. ID della transazione: [_4]", "Only_[_1]_decimal_points_are_allowed_": "Sono consentite solo [_1] cifre decimali.", "Ref_": "Rif.", "Select_your_underlying_asset": "Scegli il tuo asset sottostante", "days": "giorni", "Questions": "Domande", "Are_you_sure_that_you_want_to_permanently_delete_token": "Sei sicuro di voler eliminare definitivamente il token", "Does_Not_Touch": "Non tocca", "Contract_Sold": "Contratto venduto", "Update": "Aggiorna", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] giorni [_2] ore [_3] minuti", "Only_[_1]_are_allowed_": "Sono consentiti solo [_1].", "Score": "Punteggio", "Please_select_a_valid_date_": "Seleziona una data valida.", "Spot_Time": "Orario dello spot", "High_Barrier_([_1])": "Barriera superiore ([_1])", "There_was_some_invalid_character_in_an_input_field_": "Un campo di immissione testo conteneva uno o più caratteri non validi.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Il payout di [_1] [_2] se [_3] termina su o tra i valori inferiori e superiori del prezzo d'esercizio vicino a [_4].", "today,_Fridays": "oggi, Venerdì", "Account_balance:": "Saldo dell'account:", "Your_transaction_reference_number_is_[_1]": "Il tuo numero di riferimento per le transazioni è [_1]", "Next": "Successivo", "Touch/No_Touch": "Touch/No touch", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Siamo spiacenti, hai inserito una password della cassa non corretta", "Read": "Leggi", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Il tuo limite di prelievo è [_2] [_1] (oppure equivalente in altra valuta).", "Saturday": "Sabato", "You_have_sold_this_contract_at_[_1]_[_2]": "Hai venduto questo contratto a [_1] [_2]", "September": "Settembre", "True": "Vero", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] sono stati accreditati sul tuo Account di moneta virtuale [_3]", "Weekday": "Giorno feriale", "Only_numbers_and_spaces_are_allowed_": "Sono consentiti solo numeri e spazi.", "Entry_Spot": "Punto d'ingresso", "Credit/Debit": "Credito/Debito", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transazione eseguita da [_1] (ID dell'app ID: [_2])", "Su": "Dom", "Waiting_for_entry_tick_": "In attesa del tick d'ingresso.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "In questo momento non è consentito prelevare dal tuo account. Per sbloccarlo, contatta [_1].", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Il tuo limite di prelievo giornaliero di [_1] è attualmente [_2] [_3] (oppure equivalente in un'altra valuta).", "Unlock_Cashier": "Sblocca Cassa", "Closed": "Chiuso", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "La funzione dell'Agente di pagamento al momento non è disponibile nel tuo paese.", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "La tua richiesta di prelevare [_1] [_2] dal tuo account [_3] all'account dell'Agente di pagamento [_4] è stata elaborata con successo.", "Higher/Lower": "High/Low", "Gaming_Account": "Account di gioco", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Il server <a href=\"[_1]\">finale</a> è: [_2]", "second": "secondo", "All_markets_are_closed_now__Please_try_again_later_": "Al momento tutti i mercati sono chiusi. Si prega di riprovare più tardi.", "Real_Account": "Account reale", "Processing_your_request___": "Elaborazione in corso della tua richiesta...", "All_barriers_in_this_trading_window_are_expired": "Tutte le barriere in questa finestra di trading sono scadute", "Th": "Gio", "July": "Luglio", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Come da tua richiesta, la cassa è bloccata. Per sbloccarla, clicca <a href=\"[_1]\">qui</a>.", "months": "mesi", "week": "settimana", "Percentage": "Percentuale", "This_is_a_staging_server_-_For_testing_purposes_only": "Questo è un server tecnico - Solo per scopo di test", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Siamo spiacenti, questa funzione è disponibile solo sugli account virtuali.", "You_did_not_change_anything_": "Non hai modificato nulla.", "Invalid_email_address": "Indirizzo email non valido", "Jan": "Gen", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Hai già prelevato l'equivalente complessivo di [_1] [_2] negli ultimi [_3] giorni.", "Year": "Anno", "Your_trading_statistics_since_[_1]_": "Le tue statistiche di trading dal [_1].", "Current_password": "Password attuale", "Touches": "Tocca", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Il deposito di [_1] da [_2] sul numero di account [_3] è stato effettuato. ID della transazione: [_4]", "Number_of_ticks": "Numero di tick", "Please_select_at_least_one_scope": "Seleziona almeno uno scopo", "minute": "minuto", "Current_Time": "Orario attuale", "Even/Odd": "Pari/Dispari", "Should_be_a_valid_number": "Deve essere un numero valido", "Lower": "Inferiore", "space": "spazio", "Rise/Fall": "Rialzo/Ribasso", "Closes_early_(at_18:00)": "Chiude in anticipo (alle 18:00)", "Name": "Nome", "Charting_for_this_underlying_is_delayed": "I grafici per questo strumento sono differiti", "Contract_is_not_started_yet": "Il contratto non è ancora iniziato", "Buy": "Acquista", "Open_a_Financial_Account": "Apri un account finanziario", "Japan": "Giappone", "Old_password_is_wrong_": "La password vecchia è errata.", "letters": "lettere", "Date": "Data", "Statement": "Estratto", "Insufficient_balance_": "Saldo non sufficiente.", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Il Contratto verrá venduto al prezzo di mercato prevalente nel momento in cui i nostri server ricevono la richiesta. Tale prezzo può differire rispetto al prezzo indicato.", "Friday": "Venerdì", "Sell_time": "Orario di vendita", "Balance": "Saldo", "Please_select_a_payment_agent": "Seleziona un agente di pagamento", "Note": "Nota", "End_time": "Orario di fine", "Virtual_Account": "Account virtuale", "May": "Mag", "Sale_Price": "Prezzo di vendita", "Oct": "Ott", "Contract_ID": "ID del contratto", "Previous": "Precedente", "Exit_spot": "Prezzo di uscita", "Barrier": "Barriera", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Pertanto il tuo attuale prelievo massimo immediato (soggetto alla disponibilità di fondi sufficienti nell'account) è pari a [_1] [_2].", "Matches/Differs": "Combacia/Differisce", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Quando clicchi su \"OK\" verrai escluso dal trading sul sito fino alla data selezionata.", "Please_select_a_value": "Seleziona un valore", "month": "mese", "seconds": "secondi", "Goes_Outside": "Esce fuori", "Exclude_time_cannot_be_for_more_than_5_years_": "Il periodo di esclusione non può essere superiore a 5 anni.", "Return": "Rendimento", "Please_accept_the_terms_and_conditions_": "Accetta i termini e le condizioni.", "Jul": "Lug", "Your_Application_is_Being_Processed_": "La tua richiesta è stata elaborata.", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Convalida il tuo account[_2] ora per approfittare di tutte le opzioni di prelievo disponibili.", "Payment_Agent": "Agente di pagamento", "Delete": "Elimina", "End_time_must_be_after_start_time_": "L'orario di fine deve essere successivo all'orario di inizio.", "Revoke_access": "Revocare l'accesso", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Questa funzione non è riferita agli account con denaro virtuale.", "day": "giorno", "This_field_is_required_": "Questo campo è obbligatorio.", "Minimum_of_[_1]_characters_required_": "Sono richiesti minimo [_1] caratteri.", "Contract": "Contratto", "Your_settings_have_been_updated_successfully_": "Le tue impostazioni sono state aggiornate con successo.", "hours": "ore", "Invalid_amount,_minimum_is": "Importo non valido, il minimo è", "Sunday": "Domenica", "details": "dettagli", "April": "Aprile", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Il numero massimo di token ([_1]) è stato raggiunto.", "There_was_a_problem_accessing_the_server_": "Si è verificato un problema d'accesso al server.", "Your_transaction_reference_is": "Il tuo riferimento per le transazioni è", "Investment_Account": "Account d'investimento", "Higher": "Superiore", "Select_your_trade_type": "Seleziona la tua tipologia di trade", "Successful": "Riuscito", "Please_enter_a_number_between_[_1]_": "Inserisci un numero compreso tra [_1].", "Dec": "Dic", "Please_select": "Seleziona", "Upcoming_Events": "Prossimi eventi", "Fr": "Ven", "Profit": "Profitto", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Al momento il tuo account è sospeso. Sono consentiti solo i prelievi. Per ulteriori informazioni, contatta [_1].", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Il tuo token è scaduto. Clicca [_1]qui[_2] per riavviare la procedura di verifica.", "August": "Agosto", "There_was_an_error": "Si è verificato un errore", "Aug": "Ago", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "La password deve contenere lettere minuscole e maiuscole con numeri.", "Tuesday": "Martedì", "Exclude_time_cannot_be_less_than_6_months_": "Il periodo di esclusione non può essere inferiore a 6 mesi.", "Purchase_Time": "Orario d'acquisto", "Purchase_Price": "Prezzo d'acquisto", "hour": "ora", "numbers": "numeri", "Your_account_has_no_trading_activity_": "Sul tuo account non c'è alcuna attività di trading.", "Password_is_not_strong_enough_": "La password non è sufficientemente forte.", "Date_and_Time": "Data e orario", "Exit_Spot_Time": "Orario del prezzo di uscita", "Barrier_Change": "Modifica della barriera", "Profit/Loss": "Profitto/Perdita", "Duration": "Durata", "Trading_Times": "Orari di trading", "Total_Cost": "Costo totale", "Sep": "Sett", "Resources": "Risorse", "Your_withdrawal_limit_is_[_1]_[_2]_": "Il tuo limite di prelievo è [_1] [_2].", "Loss": "Perdita", "Create_Account": "Crea un account", "This_contract_lost": "Questo contratto ha perso", "There_was_a_problem_accessing_the_server_during_purchase_": "Durante l'acquisto si è verificato un problema d'accesso al server.", "Low_Barrier": "Barriera inferiore", "Real_Volatility": "Volatilità reale", "Tu": "Mar", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] clicca il link sottostante per riavviare la procedura di ripristino della password. Per ulteriore assistenza, contatta la nostra Assistenza Clienti.", "Your_changes_have_been_updated_successfully_": "Le tue modifiche sono state aggiornate con successo.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Il tuo token è scaduto. Clicca <a href=\"[_1]\">qui</a> per riavviare la procedura di verifica.", "Sale_Date": "Data della vendita", "email_address": "indirizzo email", "Potential_Payout": "Payout potenziale", "weeks": "settimane", "Deposit": "Deposita", "Main_password": "Password principale", "Please_input_a_valid_date": "Inserisci una data valida", "Select_market": "Seleziona il mercato", "Description": "Descrizione", "High_Barrier": "Barriera superiore", "Asset_Index": "Indice degli asset", "Short": "Breve", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "In questo momento sul tuo account non sono consentiti i depositi e i prelievi. Per sbloccarli, contatta [_1].", "Current": "Attuale", "Ends_Between": "Finisce tra", "verification_token": "token di verifica", "Opens": "Apre", "Upgrade_to_a_Financial_Account": "Passa a un account finanziario", "Sell": "Vendi", "Now": "Adesso", "Remaining_Time": "Tempo residuo", "years": "anni", "Today": "Oggi", "Potential_Profit": "Profitto potenziale", "Congratulations!_Your_[_1]_Account_has_been_created_": "Congratulazioni! Il tuo account [_1] è stato creato.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Pertanto il tuo attuale prelievo massimo immediato (soggetto alla disponibilità di fondi sufficienti nell'account) è pari a [_1] [_2] (o equivalente in un'altra valuta).", "Reference_ID": "ID di riferimento", "Only_numbers,_space,_and_hyphen_are_allowed_": "Sono consentiti solo numeri, spazi e trattini.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Hai già prelevato l'equivalente di [_1] [_2].", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "La tua password è stata ripristinata con successo. Effettua il login sul tuo account utilizzando la tua nuova password.", "Cashier": "Cassa", "Closes_early_(at_21:00)": "Chiude in anticipo (alle 21:00)", "Remaining_time": "Tempo residuo", "Virtual_money_credit_to_account": "Credito virtuale sull'account", "Profit_Table": "Tabella dei profitti", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "La tua richiesta di trasferire [_1] [_2] da [_3] a [_4] è stata elaborata con successo.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Il limite di durata della sessione non può essere superiore a 6 settimane.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Sono consentite solo lettere, spazi, trattini, punti e apostrofi.", "Portfolio": "Portafoglio", "Please_enter_an_integer_value": "Inserisci un numero intero", "Contract_Information": "Informazioni del contratto", "You_need_to_finish_all_20_questions_": "Devi completare tutte le 20 domande.", "IP_Address": "Indirizzo IP", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] e 2% non possono essere uguali.", "Contract_Confirmation": "Conferma del contratto", "Major_Pairs": "Coppie principali", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Può essere utilizzata una password aggiuntiva per limitare l'accesso alla cassa.", "Open": "Apri", "Not": "No", "Wednesday": "Mercoledì", "The_two_passwords_that_you_entered_do_not_match_": "Le due password inserite non combaciano.", "November": "Novembre", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Il payout di [_1] [_2] se [_3] non tocca la Barriera vicino a [_4].", "Resale_not_offered": "La rivendita non è offerta", "Sell_at_market": "Vendi sul mercato", "The_main_password_of_account_number_[_1]_has_been_changed_": "La password principale del numero di account [_1] è stata modificata.", "False": "Falso", "Chart": "Grafico", "We": "Noi", "Details": "Dettagli", "Payments": "Pagamenti", "Day": "Giorno", "October": "Ottobre", "Month": "Mese", "Closes": "Chiude", "January": "Gennaio", "You_have_not_granted_access_to_any_applications_": "Non hai accesso ad alcuna applicazione.", "This_contract_won": "Questo contratto ha vinto", "New_password": "Nuova password", "Thursday": "Giovedì", "Action": "Azione", "Failed": "Non riuscito", "Sorry,_this_feature_is_not_available_": "Siamo spiacenti, questa funzione non è disponibile.", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Sei sicuro di voler revocare definitivamente l'accesso all'applicazione", "Net_profit": "Profitto netto", "Last_Used": "Ultimo utilizzato", "March": "Marzo", "Barrier_([_1])": "Barriera ([_1])", "Low_Barrier_([_1])": "Barriera inferiore ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "Questo simbolo non è attivo. Prova un altro simbolo.", "Jun": "Giu", "Ends_In/Out": "Termina In/Out", "June": "Giugno", "Please_log_in_": "Effettua il login.", "Exit_Spot": "Prezzo di uscita", "New_token_created_": "Nuovo token creato.", "Digit": "Cifra", "Please_select_a_valid_time_": "Seleziona un orario valido.", "Explanation": "Spiegazione", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Come da tua richiesta, la cassa è bloccata. Per sbloccarla, inserisci la password.", "today": "oggi", "Admin": "Amministratore", "Waiting_for_exit_tick_": "In attesa del tick d'uscita.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Il tuo account è stato completamente convalidato e sono stati rimossi i tuoi limiti di prelievo.", "Fridays": "Venerdì", "Finish": "Termina", "Market_is_closed__Please_try_again_later_": "Il mercato è chiuso. Si prega di riprovare più tardi.", "Monday": "Lunedì", "Never_Used": "Mai utilizzato" };
-	texts_json['PL'] = { "Oct": "Październik", "Sale_Price": "Cena sprzedaży", "Virtual_Account": "Konto wirtualne", "End_time": "Godzina zakończenia", "May": "Maj", "Please_select_a_payment_agent": "Proszę wybrać pośrednika płatności", "Note": "Uwaga", "Equals": "Równa się", "from_[_1]_to_[_2]": "od [_1] do [_2]", "Balance": "Saldo", "Sell_time": "Godzina sprzedaży", "Friday": "piątek", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Kontrakty będą sprzedawane po obowiązującej cenie rynkowej po dotarciu wniosku na nasze serwery. Cena może różnić się od podanej ceny.", "Statement": "Oświadczenie", "Insufficient_balance_": "Niewystarczające saldo.", "Date": "Data", "letters": "litery", "Tick": "Zmiana ceny", "seconds": "sekundy", "month": "miesiąc", "Please_select_a_value": "Proszę wybrać wartość", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Po kliknięciu przycisku „OK” handlowanie na portalu nie będzie możliwe aż do wybranej daty.", "Matches/Differs": "Zgadza się/Różni się", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Dlatego w chwili obecnej Twoja maksymalna natychmiastowa wypłata (o ile posiadasz na koncie wystarczające środki) wynosi [_2] [_1].", "Exit_spot": "Punkt wyjściowy", "Barrier": "Limit", "Previous": "Poprzedni", "Contract_ID": "Identyfikator kontraktu", "Lower": "Niższe", "Should_be_a_valid_number": "Powinien to być prawidłowy numer", "Even/Odd": "Parzysta/nieparzysta", "Current_Time": "Obecny czas", "min": "min.", "Investor_password": "Hasło inwestora", "minute": "min", "Please_select_at_least_one_scope": "Proszę wybrać przynajmniej jeden zakres", "Number_of_ticks": "Liczba najmniejszych przyrostów ceny", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Dokonano wpłaty [_1] na konto o numerze [_3]. Identyfikator transakcji: [_4]", "Japan": "Japonia", "Old_password_is_wrong_": "Stare hasło jest nieprawidłowe.", "Open_a_Financial_Account": "Otwórz konto finansowe", "Buy": "Kup", "Contract_is_not_started_yet": "Kontrakt jeszcze się nie rozpoczął", "Charting_for_this_underlying_is_delayed": "Dla tego rynku podstawowego wykresy są opóźnione", "Name": "Nazwisko", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] pozostanie w przedziale między dolną i górną wartością limitu w momencie zamknięcia [_4].", "Closes_early_(at_18:00)": "Zamykane wcześnie (o 18:00)", "Rise/Fall": "Wzrost/spadek", "space": "spacja", "Percentage": "Procent", "week": "Tydzień", "months": "miesiące", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Sekcja Kasjer została zablokowana na Twoją prośbę - jeśli chcesz ją odblokować, prosimy kliknąć <a href=\"[_1]\">tutaj</a>.", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Na Twoje konto zostały nałożone ograniczenia. [_1]Skontaktuj się z obsługą klienta[_2], aby uzyskać pomoc.", "July": "Lipiec", "Th": "Cz", "All_barriers_in_this_trading_window_are_expired": "Wszystkie limity widoczne w tym oknie handlowania wygasły", "Processing_your_request___": "Twa przetwarzanie Twojego żądania...", "Real_Account": "Prawdziwe konto", "All_markets_are_closed_now__Please_try_again_later_": "Wszystkie rynki są obecnie zamknięte. Prosimy spróbować później.", "Should_be_less_than_[_1]": "Wartość powinna być mniejsza niż [_1]", "Touches": "Osiąga", "Current_password": "Aktualne hasło", "Year": "Rok", "Your_trading_statistics_since_[_1]_": "Twoje statystyki handlowe od [_1].", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Łączny ekwiwalent [_2] [_1] został już wypłacony w ciągu ostatnich [_3] dni.", "Jan": "Styczeń", "Invalid_email_address": "Nieprawidłowy adres e-mail", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Przepraszamy, ta funkcja jest dostępna tylko dla kont wirtualnych.", "You_did_not_change_anything_": "Nic nie zostało zmienione.", "This_is_a_staging_server_-_For_testing_purposes_only": "To jest serwer testowy służący wyłącznie testowaniu", "Waiting_for_entry_tick_": "Oczekuje na pierwszą zmianę ceny.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Wypłaty środków z Twojego konta są w tym momencie niemożliwe. Skontaktuj się z [_1], aby je odblokować.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Twój [_1]-dniowy limit wypłat wynosi obecnie [_3] [_2] (lub jego równowartość w innej walucie).", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transakcja dokonana przez [_1] (App ID: [_2])", "Su": "Nd", "Credit/Debit": "Winien/Ma", "Only_numbers_and_spaces_are_allowed_": "Dozwolone są liczby i spacje.", "Entry_Spot": "Pozycja wejściowa", "Stays_Between": "Pozostaje pomiędzy", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_2] [_1] zostało odjęte z Twojego konta wirtualnego [_3]", "Weekday": "Dzień roboczy", "True": "Prawda", "Mar": "Marzec", "September": "Wrzesień", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść wysokość limitów wypłat i limitów handlowych, [_1]uzupełnij swój profil[_1].", "You_have_sold_this_contract_at_[_1]_[_2]": "Sprzedano ten kontrakt po cenie [_2] [_1]", "Saturday": "Sobota", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Twój limit wypłat to [_2] [_1] (lub jego ekwiwalent w innej walucie).", "Read": "Odczyt", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Przepraszamy, wpisano nieprawidłowe hasło do kasjera", "In/Out": "Zakłady w/poza", "second": "sekunda", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "<a href=\"[_1]\">Punkt końcowy</a> serwera to: [_2]", "Gaming_Account": "Konto gracza", "Higher/Lower": "Wyższy/niższy", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Twój wniosek o wypłatę [_2] [_1] z Twojego konta [_3] na konto pośrednika płatności [_4] został zrealizowany.", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] jest wartością niższą niż wartość limitu w momencie zamknięcia [_4].", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Usługi pośredników płatności są obecnie niedostępne w Twoim kraju.", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść swoje limity wypłat i limity handlowe, wypełnij [_1]formularz oceny sytuacji finansowej[_2].", "Closed": "Zamknięte", "Unlock_Cashier": "Odblokuj sekcję Kasjer", "Only_[_1]_are_allowed_": "Dozwolone są tylko [_1].", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] dni [_2] godz. [_3] min", "Contract_Sold": "Kontrakt został sprzedany", "Does_Not_Touch": "Nie osiąga", "Update": "Aktualizuj", "Are_you_sure_that_you_want_to_permanently_delete_token": "Czy na pewno chcesz trwale usunąć token", "Questions": "Pytania", "days": "dni", "Payout": "Wypłata", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Dozwolone są tylko litery, cyfry i myślnik.", "Select_your_underlying_asset": "Wybierz aktywa bazowe", "Touch/No_Touch": "Osiągnie", "Next": "Następny", "Your_transaction_reference_number_is_[_1]": "Numer referencyjny Twojej transakcji to [_1]", "Account_balance:": "Saldo konta:", "today,_Fridays": "dziś, piątki", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] zatrzyma się pomiędzy dolną i górną wartością limitu w momencie zamknięcia [_4].", "There_was_some_invalid_character_in_an_input_field_": "Nieprawidłowy znak w polu formularza.", "High_Barrier_([_1])": "Górny limit ([_1])", "Spot_Time": "Czas spot", "Please_select_a_valid_date_": "Proszę wybrać poprawną datę.", "Score": "Wynik", "Your_account_has_no_Login/Logout_activity_": "Na Twoim koncie nie odnotowano żadnej aktywności związanej z logowaniem/wylogowywaniem.", "Feb": "Luty", "You_have_already_withdrawn_[_1]_[_2]_": "Wypłacono już [_2] [_1].", "Sorry,_an_error_occurred_while_processing_your_request_": "Przepraszamy, podczas przetwarzania Twojego żądania wystąpił błąd.", "Time_is_in_the_wrong_format_": "Czas został podany w nieprawidłowym formacie.", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] będzie wartością w przedziale między dolną i górną wartością limitu w momencie zamknięcia [_4].", "Entry_spot": "Pozycja wejściowa", "Please_submit_a_valid_verification_token_": "Proszę podać poprawny  token weryfikujący.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] osiągnie wartość limitu do momentu zamknięcia [_4].", "Lock_Cashier": "Zablokuj sekcję Kasjer", "Never": "Nigdy", "Start_Time": "Godzina rozpoczęcia", "Predict_the_direction<br_/>and_purchase": "Oszacuj kierunek zmian<br />i kup", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Osiągnięto maksymalną liczbę żądań na sekundę. Spróbuj jeszcze raz.", "Hour": "Godzina", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Dokonano wypłaty [_1] z konta o numerze [_2] na konto [_3]. Identyfikator transakcji: [_4]", "Only_[_1]_decimal_points_are_allowed_": "Liczba dozwolonych miejsc po przecinku: [_1].", "Apr": "Kwiecień", "Verification_code_format_incorrect_": "Format kodu weryfikującego jest nieprawidłowy.", "Walkthrough_Guide": "Przewodnik ogólny", "Minute": "Minuta", "Withdraw": "Wypłata", "Start_time": "Godzina rozpoczęcia", "Scopes": "Zakresy", "Your_changes_have_been_updated_": "Twoje zmiany zostały wprowadzone.", "Over/Under": "Ponad/poniżej", "Upgrade_to_a_Real_Account": "Uaktualnij do konta z prawdziwymi pieniędzmi", "Select_your_market": "Wybierz rynek", "Price": "Cena", "year": "rok", "Buy_price": "Cena kupna", "Real_Cent": "Prawdziwy cent", "h": "godz.", "Adjust_trade_parameters": "Dostosuj parametry handlowe", "Stake": "Stawka", "View": "Widok", "Final_price": "Cena ostateczna", "You_should_enter_[_1]_characters_": "Proszę wprowadzić następującą liczbę znaków: [_1].", "Mo": "Pn", "Stays_In/Goes_Out": "Pozostanie w/przekroczy", "February": "Luty", "Invalid_amount,_maximum_is": "Nieprawidłowa kwota, maksimum wynosi", "December": "Grudzień", "Contract_Expiry": "Wygaśnięcie kontraktu", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] jest wartością wyższą niż wartość limitu lub równą tej wartości w momencie zamknięcia [_4].", "Settles": "Rozliczenie", "Christmas_Day": "Boże Narodzenie", "minutes": "min", "Total_Profit/Loss": "Całkowity zysk/ całkowita strata", "Long": "Długie", "mins": "min.", "Last_Digit_Stats": "Statystyki ostatniej cyfry", "Permissions": "Pozwolenia", "Sa": "So", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Limit czasu sesji zakończy się za [_1] s.", "Amount": "Kwota", "End_Time": "Zakończenie", "Sorry,_an_error_occurred_while_processing_your_account_": "Przepraszamy, wystąpił błąd podczas operacji na Twoim koncie.", "Ends_Outside": "Kończy się poza", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Proszę zastosować schemat: 3 cyfry, myślnik, 4 cyfry.", "Browser": "Przeglądarka", "Indicative": "Orientacyjny", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Przepraszamy, Twoje konto nie ma uprawnień do kolejnych zakupów kontraktów.", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść wysokość limitów wypłat i limitów handlowych, proszę [_1]zaakceptować zaktualizowany regulamin[_1].", "Change_Password": "Zmień hasło", "Ends_In/Out": "Zakończy się w/poza", "{JAPAN_ONLY}Knowledge_Test": "Knowledge Test", "Jun": "Czerwiec", "Low_Barrier_([_1])": "Dolny limit ([_1])", "Barrier_([_1])": "Limit ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "Ten symbol jest nieaktywny. Użyj innego symbolu.", "March": "Marzec", "Last_Used": "Ostatnio używane", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "The test is unavailable now, test can only be taken again on next business day with respect of most recent test.", "Net_profit": "Zysk netto", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Czy na pewno chcesz na stałe wyłączyć dostęp do aplikacji na stałe?", "Sorry,_this_feature_is_not_available_": "Przepraszamy, wybrana funkcja jest niedostępna.", "New_Year's_Day": "Nowy Rok", "Action": "Czynności", "Failed": "Zakończone niepowodzeniem", "Shop": "Sklep", "New_password": "Nowe hasło", "This_contract_won": "Ten kontrakt wygrał", "Thursday": "Czwartek", "Monday": "Poniedziałek", "Never_Used": "Nigdy nie użyte", "Market_is_closed__Please_try_again_later_": "Rynek jest zamknięty. Prosimy spróbować później.", "Finish": "Zakończ", "Fridays": "piątki", "Waiting_for_exit_tick_": "Oczekuje na końcową zmianę ceny.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Twoje konto jest w pełni zweryfikowane, a Twój limit wypłat został zwiększony.", "today": "dziś", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Sekcja Kasjer została zablokowana na Twoją prośbę - jeśli chcesz ją odblokować, prosimy o podanie hasła.", "Explanation": "Wyjaśnienie", "Please_select_a_valid_time_": "Proszę wybrać poprawny czas.", "Digit": "Cyfra", "New_token_created_": "Utworzono nowy token.", "Exit_Spot": "Pozycja wyjściowa", "Please_log_in_": "Proszę się zalogować.", "June": "Czerwiec", "False": "Fałsz", "The_main_password_of_account_number_[_1]_has_been_changed_": "Hasło główne do konta o numerze [_1] zostało zmienione.", "Sell_at_market": "Sprzedawaj na rynku", "Resale_not_offered": "Brak możliwości odsprzedaży", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] nie osiągnie limitu aż do zamknięcia [_4].", "November": "Listopad", "The_two_passwords_that_you_entered_do_not_match_": "Wprowadzone hasła nie są identyczne.", "You_have_not_granted_access_to_any_applications_": "Nie przyznano Ci dostępu do żadnej aplikacji.", "January": "Styczeń", "Nov": "Listopad", "Closes": "Zamknięcie", "Month": "Miesiąc", "October": "Październik", "Day": "Dzień", "Payments": "Płatności", "Please_check_the_above_form_for_pending_errors_": "Zapoznaj się z listą nierozwiązanych błędów w powyższym formularzu.", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Dozwolone są wyłącznie litery, cyfry, znak spacji, myślnik, kropka i apostrof.", "Details": "Szczegóły", "We": "Śr", "Chart": "Wykres", "You_need_to_finish_all_20_questions_": "Należy odpowiedzieć na wszystkie 20 pytań.", "Contract_Information": "Informacje o kontrakcie", "Please_enter_an_integer_value": "Wpisz liczbę całkowitą", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Dozwolone są tylko litery, spacja, myślniki, kropki i apostrof.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Limit czasu sesji nie może przekroczyć 6 tygodni.", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Twój wniosek o przelanie [_2] [_1] z [_3] na [_4] został zrealizowany.", "Profit_Table": "Tabela zysków", "Connection_error:_Please_check_your_internet_connection_": "Błąd połączenia: sprawdż połączenie internetowe", "Virtual_money_credit_to_account": "Wirtualne pieniądze zostały zaksięgowane na koncie", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] będzie wartością nie mieszczącą się w przedziale między dolną i górną wartością limitu do momentu zamknięcia [_4].", "Remaining_time": "Pozostały czas", "Closes_early_(at_21:00)": "Zamykane wcześnie (o 21:00)", "Not": "Nie", "Wednesday": "Środa", "Open": "Otwarcie", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Dodatkowe hasło może być wykorzystane do ograniczania dostępu do sekcji Kasjer.", "Major_Pairs": "Główne pary", "Contract_Confirmation": "Potwierdzenie kontraktu", "[_1]_and_[_2]_cannot_be_the_same_": "Wartości [_1] i [_2] nie mogą być takie same.", "IP_Address": "Adres IP", "Potential_Profit": "Możliwy zysk", "Today": "Dziś", "years": "lat(a)", "Remaining_Time": "Pozostały czas", "Now": "Teraz", "Sell": "Sprzedaj", "{JAPAN_ONLY}Knowledge_Test_Result": "Knowledge Test Result", "Upgrade_to_a_Financial_Account": "Zmień na konto finansowe", "verification_token": "token weryfikacyjny", "Opens": "Otwarcie", "Ends_Between": "Kończy się pomiędzy", "Current": "Obecne", "Cashier": "Kasjer", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Twoje hasło zostało zresetowane. Zaloguj się na swoje konto, używając swojego nowego hasła.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Już wypłaciłeś/aś ekwiwalent [_2] [_1].", "Only_numbers,_space,_and_hyphen_are_allowed_": "Dozwolone są tylko liczby, spacje i myślnik.", "Reference_ID": "ID referencyjne", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Dlatego w chwili obecnej Twoja maksymalna natychmiastowa wypłata (o ile posiadasz na koncie wystarczające środki) wynosi [_2] [_1] (lub równowartość tej kwoty w innej walucie).", "Up/Down": "Góra/dół", "Congratulations!_Your_[_1]_Account_has_been_created_": "Gratulacje! Twoje konto [_1] zostało utworzone.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Aby rozpocząć proces odzyskiwania hasła, kliknij na poniższy link. Jeśli potrzebujesz pomocy, skontaktuj się z naszym działem obsługi klienta.", "Target": "Cel", "Tu": "Wt", "Please_select_the_checkbox_": "Proszę zaznaczyć pole wyboru.", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "<a href=\"[_1]\">Zaloguj się</a>, aby wyświetlić tę stronę.", "Real_Volatility": "Zmienność realna", "Low_Barrier": "Dolny limit", "There_was_a_problem_accessing_the_server_during_purchase_": "Wystąpił błąd podczas uzyskiwania dostępu do serwera w trakcie zakupu.", "Real_STP": "Prawdziwe konto STP", "Create_Account": "Załóż konto", "This_contract_lost": "Ten kontrakt przegrał", "Loss": "Strata", "Your_withdrawal_limit_is_[_1]_[_2]_": "Twój limit wypłat wynosi [_2] [_1].", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Wpłaty środków na konto i ich wypłaty są w tym momencie niemożliwe. Skontaktuj się z [_1], aby je odblokować.", "Short": "Krótkie", "Asset": "Kapitał", "Asset_Index": "Indeks kapitałowy", "Description": "Opis", "High_Barrier": "Górny limit", "Select_market": "Wybierz rynek", "Please_input_a_valid_date": "Wpisz poprawną datę", "Main_password": "Hasło główne", "Deposit": "Wpłata", "Potential_Payout": "Możliwa wypłata", "weeks": "tygodnie", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Podany adres e-mail jest już w użyciu. Jeżeli nie pamiętasz hasła, skorzystaj z opcji <a href=\"[_1]\">odzyskiwania hasła</a> lub skontaktuj się z obsługą klienta.", "Sale_Date": "Data sprzedaży", "email_address": "adres e-mail", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Twój token wygasł. Kliknij <a href=\"[_1]\">tutaj</a>, aby rozpocząć proces weryfikacyjny ponownie.", "Your_changes_have_been_updated_successfully_": "Zmiany zostały wprowadzone.", "Purchase_Time": "Godzina zakupu", "Exclude_time_cannot_be_less_than_6_months_": "Czas wyłączenia nie może być krótszy niż 6 miesięcy.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Hasło powinno zawierać wielkie i małe litery oraz cyfry.", "Tuesday": "Wtorek", "Aug": "Sierpień", "There_was_an_error": "Wystąpił błąd", "August": "Sierpień", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Twój token wygasł. Kliknij [_1]tutaj[_2], aby rozpocząć proces weryfikacyjny ponownie.", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Twoje konto jest obecnie zawieszone. Dozwolone jest jedynie dokonywanie wypłat. Aby uzyskać więcej informacji, skontaktuj się z [_1].", "Profit": "Zysk", "Fr": "Pt", "{JAPAN_ONLY}Take_knowledge_test": "Take knowledge test", "Upcoming_Events": "Nadchodzące wydarzenia", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "Sorry, you have failed the test, please try again after 24 hours.", "Resources": "Środki", "Sep": "Wrzesień", "Total_Cost": "Całkowity koszt", "Trading_Times": "Godziny handlu", "Duration": "Czas trwania", "Profit/Loss": "Zysk/Strata", "Barrier_Change": "Zmiana limitu", "Exit_Spot_Time": "Czas punktu wyjściowego", "Date_and_Time": "Data i godzina transakcji", "Password_is_not_strong_enough_": "Hasło jest za słabe.", "Your_account_has_no_trading_activity_": "NA Twoim koncie nie odnotowano żadnej aktywności handlowej.", "Purchase_Price": "Cena zakupu", "hour": "godzina", "numbers": "liczby", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Maksymalna liczba tokenów ([_1]) została osiągnięta.", "There_was_a_problem_accessing_the_server_": "Wystąpił błąd podczas uzyskiwania dostępu do serwera.", "Your_transaction_reference_is": "Kod referencyjny Twojej transakcji to", "April": "Kwiecień", "details": "szczegóły", "logout": "Wyloguj", "Sunday": "Niedziela", "Invalid_amount,_minimum_is": "Nieprawidłowa kwota, minimum wynosi", "hours": "godziny", "Contract": "Kontrakt", "Your_settings_have_been_updated_successfully_": "Twoje ustawienia zostały pomyślnie zaktualizowane.", "Please_select": "Wybierz", "Dec": "Grudzień", "Please_enter_a_number_between_[_1]_": "Proszę wpisać liczbę z przedziału [_1].", "{JAPAN_ONLY}Please_complete_the_following_questions_": "Please complete the following questions.", "Successful": "Zakończono powodzeniem", "Spot": "Cena aktualna", "Select_your_trade_type": "Wybierz rodzaj zakładu", "Trade": "Handluj", "Higher": "Wyższe", "Investment_Account": "Konto inwestycyjne", "Payment_Agent": "Pośrednik płatności", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Przepraszamy, rejestracja konta nie jest dostępna w Twoim kraju. Proszę skontaktować się z <a href=\"[_1]\">>działem obsługi klienta</a>, aby uzyskać więcej informacji.", "Your_Application_is_Being_Processed_": "Twój wniosek jest przetwarzany.", "Jul": "Lipiec", "Please_accept_the_terms_and_conditions_": "Proszę zaakceptować regulamin.", "Return": "Zwrot", "Step": "Krok", "Exclude_time_cannot_be_for_more_than_5_years_": "Czas wyłączenia nie może być dłuższy niż 5 lat.", "Goes_Outside": "Przekroczy", "Minimum_of_[_1]_characters_required_": "Minimalna liczba znaków: [_1].", "This_field_is_required_": "To pole jest wymagane.", "day": "dzień", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Ta funkcja nie jest dostępna dla kont z wirtualnymi pieniędzmi.", "Revoke_access": "Zablokowanie dostępu", "Should_be_between_[_1]_and_[_2]": "Wartość powinna wynosić od [_1] do [_2]", "End_time_must_be_after_start_time_": "Czas zakończenia musi być późniejszy niż czas rozpoczęcia.", "Delete": "Usuń" };
-	texts_json['PT'] = { "Closes_early_(at_18:00)": "Fecha cedo (às 18:00)", "Rise/Fall": "Sobe/Desce", "space": "espaço", "Buy": "Comprar", "Japan": "Japão", "Old_password_is_wrong_": "A senha antiga está errada.", "Open_a_Financial_Account": "Abrir uma conta financeira", "Contract_is_not_started_yet": "O contrato ainda não foi iniciado", "Name": "Nome", "Charting_for_this_underlying_is_delayed": "Os gráficos para esta base estão com atraso", "Please_select_at_least_one_scope": "Selecione pelo menos um escopo", "minute": "minuto", "Number_of_ticks": "Número de tique-taques", "Even/Odd": "Par/Ímpar", "Current_Time": "Hora atual", "Matches/Differs": "Combina/Difere", "Barrier": "Barreira", "Exit_spot": "Preço de saída", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Portanto, a sua retirada máxima imediata atual (sujeita à existência de fundos suficientes na sua conta) é [_1] [_2].", "Contract_ID": "ID de contrato", "Previous": "Anterior", "seconds": "segundos", "Tick": "Tique-taque", "month": "mês", "Please_select_a_value": "Selecione um valor", "Balance": "Saldo", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "O contrato será vendido ao preço prevalecente do mercado no momento em que o pedido for recebido pelos nossos servidores. Esse preço pode ser diferente do preço indicado.", "Sell_time": "Hora de venda", "Friday": "Sexta-feira", "Statement": "Extrato", "Insufficient_balance_": "Saldo insuficiente.", "letters": "caracteres", "Date": "Data", "Oct": "Out", "May": "Maio", "End_time": "Hora de fim", "Virtual_Account": "Conta Virtual", "Sale_Price": "Preço de venda", "Please_select_a_payment_agent": "Selecione um agente de pagamentos", "Note": "Nota", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "A opção Agentes de Pagamentos não está atualmente disponível no seu país.", "Unlock_Cashier": "Desbloquear o Caixa", "Closed": "Fechado", "second": "segundo", "Gaming_Account": "Conta de Jogos", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "O terminal do <a href=\"[_1]\"> 1servidor</a> 2 é: [_2]", "Higher/Lower": "Superior/Inferior", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "O seu pedido para levantar [_1] [_2] da sua conta [_3] para a conta [_4] do Agente de Pagamentos foi processado com sucesso.", "You_have_sold_this_contract_at_[_1]_[_2]": "Você vendeu este contrato por [_1] [_2]", "Read": "Ler", "Saturday": "Sábado", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "O seu limite de retiradas é [_1] [_2] (ou equivalente em outra moeda).", "In/Out": "Dentro/Fora", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Lamentamos, introduziu uma senha de caixa incorreta", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Retiradas de sua conta não estão permitidas no momento. Por favor contate [_1] para desbloqueio.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "O seu limite de retiradas de [_1] dia(s) é atualmente [_2] [_3] (ou equivalente em outra moeda).", "Waiting_for_entry_tick_": "Aguardando tick de entrada.", "Entry_Spot": "Preço de entrada", "Su": "Dom", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transação executada por [_1] (App ID: [_2])", "Credit/Debit": "Crédito/Débito", "True": "Verdadeiro", "Weekday": "Dia de semana", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] foram creditados na sua conta de dinheiro Virtual [_3]", "September": "Setembro", "Invalid_email_address": "Endereço de e-mail inválido", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Lamentamos, este recurso está disponível somente para contas virtuais.", "You_did_not_change_anything_": "Você não alterou nada.", "This_is_a_staging_server_-_For_testing_purposes_only": "Este é um servidor temporário - apenas para testes", "Current_password": "Senha atual", "Your_trading_statistics_since_[_1]_": "As suas estatísticas de negociação desde [_1].", "Year": "Ano", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Você já retirou o equivalente a [_1] [_2] em agregado durante os últimos [_3] dias.", "Processing_your_request___": "Processado o seu pedido...", "All_barriers_in_this_trading_window_are_expired": "Todas as barreiras nesta janela de negociação já expiraram", "All_markets_are_closed_now__Please_try_again_later_": "Todos os mercados estão agora fechados. Tente novamente mais tarde.", "Real_Account": "Conta Real", "week": "semana", "months": "meses", "Th": "Qui", "July": "Julho", "Walkthrough_Guide": "Guia passo a passo", "Withdraw": "Retirar", "Start_time": "Hora de início", "Over/Under": "Acima/Abaixo", "Upgrade_to_a_Real_Account": "Faça a atualização para uma Conta Real", "Your_changes_have_been_updated_": "As suas alterações foram atualizadas.", "Verification_code_format_incorrect_": "Formato incorreto de código de verificação.", "Apr": "Abr", "Hour": "Hora", "Never": "Nunca", "Start_Time": "Hora de Início", "Predict_the_direction<br_/>and_purchase": "Preveja a direção<br />e compre", "Feb": "Fev", "Your_account_has_no_Login/Logout_activity_": "A sua conta não tem nenhuma atividade de login/sair.", "Sorry,_an_error_occurred_while_processing_your_request_": "Lamentamos, ocorreu um erro durante o processamento do seu pedido.", "You_have_already_withdrawn_[_1]_[_2]_": "Você já retirou [_1] [_2].", "Entry_spot": "Preço de entrada", "Lock_Cashier": "Bloquear Caixa", "Female": "Feminino", "There_was_some_invalid_character_in_an_input_field_": "Houve algum caractere inválido no campo de entradas.", "Score": "Classificação", "High_Barrier_([_1])": "Barreira Alta ([_1])", "Spot_Time": "Hora à vista", "Touch/No_Touch": "Toca", "Next": "Próximo", "Your_transaction_reference_number_is_[_1]": "O número de referência da sua transação é [_1]", "days": "dias", "Payout": "Prêmio", "Select_your_underlying_asset": "Selecione o ativo subjacente", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Apenas letras, números e o hífen são permitidos.", "Only_[_1]_are_allowed_": "Apenas [_1] são permitidos.", "Update": "Atualização", "Contract_Sold": "Contrato vendido", "Are_you_sure_that_you_want_to_permanently_delete_token": "Tem certeza que deseja excluir permanentemente o token", "Questions": "Perguntas", "Indicative": "Indicativo", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Lamentamos, a sua conta não está autorizada a mais compras de contratos.", "Change_Password": "Alterar Senha", "Browser": "Navegador", "Male": "Masculino", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Siga o padrão: 3 números, um hífen, seguidos por 4 números.", "Amount": "Quantia", "Sa": "Sáb", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "O limite de duração da sua sessão terminará em [_1] segundos.", "Status": "Estado", "Sorry,_an_error_occurred_while_processing_your_account_": "Lamentamos, ocorreu um erro durante o processamento da sua conta.", "End_Time": "Hora final", "Total_Profit/Loss": "Lucro/Perda Total", "Long": "Longo", "minutes": "minutos", "mins": "minutos", "Last_Digit_Stats": "Estatísticas do último dígito", "Permissions": "Permissões", "Stays_In/Goes_Out": "Fica dentro/Sai fora", "Invalid_amount,_maximum_is": "Valor inválido, o máximo é", "February": "Fevereiro", "Settles": "Liquida", "December": "Dezembro", "Contract_Expiry": "Validade do contrato", "Christmas_Day": "Dia de Natal", "Stake": "Aposta", "View": "Ver", "Mo": "Seg", "You_should_enter_[_1]_characters_": "Você dever inserir [_1] caracteres.", "Price": "Preço", "year": "ano", "Select_your_market": "Selecione o seu mercado", "Adjust_trade_parameters": "Ajustar parâmetros de negociação", "Payments": "Pagamentos", "Day": "Dia", "Please_check_the_above_form_for_pending_errors_": "Consulte o formulário acima para erros subsistentes.", "Details": "Dados", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Apenas letras, números, espaços, hífenes, pontos e apóstrofes são permitidos.", "We": "Qua", "Chart": "Gráfico", "January": "Janeiro", "You_have_not_granted_access_to_any_applications_": "Você não concedeu acesso a nenhum aplicativo.", "Closes": "Fecha", "October": "Outubro", "Month": "Mês", "Sell_at_market": "Venda no mercado", "Resale_not_offered": "A revenda não está disponivel", "The_two_passwords_that_you_entered_do_not_match_": "As palavras-chave que introduziu não coincidem.", "November": "Novembro", "New_token_created_": "Novo token criado.", "Please_log_in_": "Por favor, conecte-se.", "Exit_Spot": "Preço de saída", "June": "Junho", "Market_is_closed__Please_try_again_later_": "O mercado está fechado. Tente novamente mais tarde.", "Never_Used": "Nunca utilizado", "Monday": "Segunda-feira", "Fridays": "Sexta-feira", "Finish": "Terminar", "Admin": "Administração", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "A sua conta está totalmente autenticada e os seus limites de retirada de fundos foram aumentados.", "Explanation": "Explicação", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "O seu caixa está bloqueado conforme pedido - para desbloqueá-lo, digite a senha.", "today": "hoje", "Net_profit": "Lucro líquido", "New_Year's_Day": "Dia de Ano Novo", "Sorry,_this_feature_is_not_available_": "Este recurso não está disponível.", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Tem certeza que deseja revogar permanentemente o acesso ao aplicativo", "Action": "Ação", "Failed": "Falhou", "This_contract_won": "Esse contrato ganhou", "New_password": "Nova senha", "Thursday": "Quinta-feira", "Shop": "Loja", "Ends_In/Out": "Termina Dentro/Fora", "This_symbol_is_not_active__Please_try_another_symbol_": "Este símbolo não está ativo. Experimente outro símbolo.", "Barrier_([_1])": "Barreira ([_1])", "Low_Barrier_([_1])": "Barreira Baixa ([_1])", "March": "Março", "Last_Used": "Última utilização", "Reference_ID": "ID de referência", "Up/Down": "Acima/Abaixo", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Portanto, a sua retirada máxima imediata atual (sujeito à existência de fundos suficientes na sua conta) é [_1] [_2] (ou equivalente em outra moeda).", "Cashier": "Caixa", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Você já retirou o equivalente a [_1] [_2].", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "A sua senha foi redefinida com sucesso. Por favor, inicie sessão na sua conta, usando a sua nova senha.", "Upgrade_to_a_Financial_Account": "Faça a atualização para uma Conta Financeira", "Sell": "Vender", "Opens": "Abre", "verification_token": "token de verificação", "Current": "Atual", "Potential_Profit": "Lucro Potencial", "years": "anos", "Today": "Hoje", "Now": "Agora", "Remaining_Time": "Tempo restante", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] e [_2] não podem ser iguais.", "IP_Address": "Endereço IP", "Wednesday": "Quarta-feira", "Open": "Abrir", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Uma senha adicional pode ser usada para restringir acesso ao caixa.", "Contract_Confirmation": "Confirmação de Contrato", "Major_Pairs": "Pares Principais", "Session_duration_limit_cannot_be_more_than_6_weeks_": "O limite de duração de sessões não pode ser superior a 6 semanas.", "Portfolio": "Portfólio", "Please_enter_an_integer_value": "Insira um valor inteiro", "Connection_error:_Please_check_your_internet_connection_": "Erro de conexão: verifique a sua conexão com a internet.", "Virtual_money_credit_to_account": "Crédito de dinheiro virtual na conta", "Profit_Table": "Tabela de Lucros", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "O seu pedido para transferir [_1] [_2] de [_3] para [_4] foi processado com sucesso.", "Closes_early_(at_21:00)": "Fecha cedo (às 21:00)", "Remaining_time": "Tempo restante", "You_need_to_finish_all_20_questions_": "É obrigatório completar as 20 perguntas.", "Contract_Information": "Informação do contrato", "Password_is_not_strong_enough_": "A senha não é forte o suficiente.", "Exit_Spot_Time": "Hora do preço de saída", "Date_and_Time": "Data e hora", "Your_account_has_no_trading_activity_": "A sua conta não tem nenhuma atividade de negociação.", "numbers": "números", "Purchase_Price": "Preço de Compra", "hour": "hora", "Total_Cost": "Custo Total", "Sep": "Set", "Resources": "Recursos", "Duration": "Duração", "Trading_Times": "Horário de Negociação", "Barrier_Change": "Alteração de barreira", "Profit/Loss": "Lucro/Perda", "Fr": "Sex", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Sua conta está atualmente suspensa e apenas saques estão permitidos. Para mais informações, por favor contacte [_1].", "Profit": "Lucro", "Upcoming_Events": "Próximos Eventos", "Purchase_Time": "Hora da Compra", "Tuesday": "Terça-feira", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "A senha deve conter letras minúsculas, maiúsculas e números.", "Exclude_time_cannot_be_less_than_6_months_": "O tempo de exclusão não pode ser inferior a seis meses.", "Aug": "Ago", "August": "Agosto", "There_was_an_error": "Houve um erro", "Please_input_a_valid_date": "Insira uma data válida", "Select_market": "Selecione o mercado", "weeks": "semanas", "Potential_Payout": "Possível Prêmio", "Deposit": "Depositar", "email_address": "endereço de e-mail", "Sale_Date": "Data de Venda", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Depósitos e retiradas de sua conta não estão permitidos no momento. Por favor contate [_1] para o desbloqueio.", "Short": "Curto", "Asset": "Ativos", "High_Barrier": "Barreira Alta", "Description": "Descrição", "Asset_Index": "Índice de Ativos", "Loss": "Perda", "This_contract_lost": "Esse contrato perdeu", "Low_Barrier": "Barreira Baixa", "There_was_a_problem_accessing_the_server_during_purchase_": "Ocorreu um problema ao aceder ao servidor durante a aquisição.", "Your_withdrawal_limit_is_[_1]_[_2]_": "O seu limite de retiradas é [_1] [_2].", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Clique no link abaixo para reiniciar o processo de recuperação de senha. Caso você necessite de assistência adicional, contate o Apoio ao Cliente.", "Target": "Alvo", "Tu": "Qui", "Revoke_access": "Revogar acesso", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Este recurso não é relevante para as contas de dinheiro virtual.", "End_time_must_be_after_start_time_": "A hora de fim tem de ser depois da hora de início.", "Delete": "Excluir", "This_field_is_required_": "Este campo é obrigatório.", "Minimum_of_[_1]_characters_required_": "Um mínimo de [_1] caracteres é necessário.", "day": "dia", "Your_Application_is_Being_Processed_": "A sua inscrição está sendo processado.", "Exclude_time_cannot_be_for_more_than_5_years_": "O tempo de exclusão não pode ser superior a 5 anos.", "Step": "Etapa", "Return": "Prêmio", "Payment_Agent": "Agente de pagamentos", "Select_your_trade_type": "Selecione o tipo de negociação", "Trade": "Negociar", "Investment_Account": "Conta de Investimento", "Please_select": "Selecione", "Dec": "Dez", "Forex": "Forex (Mercado de Câmbio)", "Please_enter_a_number_between_[_1]_": "Digite um número entre [_1].", "Spot": "Preço atual", "Successful": "Bem-sucedido", "Invalid_amount,_minimum_is": "Valor inválido, o mínimo é", "Contract": "Contrato", "hours": "horas", "April": "Abril", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "O número máximo de tokens ([_1]) foi atingido.", "There_was_a_problem_accessing_the_server_": "Ocorreu um problema ao aceder ao servidor.", "Your_transaction_reference_is": "A referência da sua transação é", "details": "detalhes", "Sunday": "Domingo" };
-	texts_json['RU'] = { "Invalid_email_address": "Недействительный e-mail", "Jan": "Янв", "This_is_a_staging_server_-_For_testing_purposes_only": "Это вспомогательный сервер, применяемый лишь для тестирования", "You_did_not_change_anything_": "Вы не внесли никаких изменений.", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Извините, эта опция доступна только для демо-счетов.", "Touches": "Коснётся", "Current_password": "Текущий пароль", "Should_be_less_than_[_1]": "Значение должно быть меньше [_1]", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Вы уже в целом вывели сумму, эквивалентную [_1] [_2] за последние [_3] суток.", "Your_trading_statistics_since_[_1]_": "Ваша торговая статистика с [_1].", "Year": "год", "Processing_your_request___": "Обработка Вашего запроса...", "All_barriers_in_this_trading_window_are_expired": "Все барьеры в данном торговом окне истекли", "All_markets_are_closed_now__Please_try_again_later_": "В данное время все рынки закрыты. Пожалуйста, попробуйте позже.", "Real_Account": "Реальный счет", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Ваша касса закрыта по Вашему запросу - для открытия, пожалуйста, нажмите <a href=\"[_1]\">сюда</a>.", "week": "нед.", "months": "мес.", "Percentage": "Проценты", "Th": "Чт", "July": "Июль", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Ваш счёт заблокирован. Пожалуйста, свяжитесь с нашей [_1]службой поддержки[_2] для получения дальнейшей помощи.", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] будет находиться строго ниже заданного ценового барьера на момент закрытия [_4].", "Unlock_Cashier": "Открыть кассу", "Closed": "Закрыто", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Прежде, чем продолжить, пожалуйста, заполните следующую [_1]форму финансовой оценки[_2].", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Оплата через платежного агента в данный момент недоступна для Вашей страны.", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "<a href=\"[_1]\">Конечная точка</a> сервера: [_2]", "Gaming_Account": "Игровой счет", "second": "секунд(ы)", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Ваш запрос на вывод [_1] [_2] с Вашего счета [_3] на счет платежного агента [_4] был выполнен успешно.", "Higher/Lower": "Выше/Ниже", "You_have_sold_this_contract_at_[_1]_[_2]": "Вы продали данный контракт по цене [_1] [_2]", "In/Out": "Внутри/Вне", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Извините, Вы ввели неверный пароль для раздела Касса", "Read": "Читать", "Saturday": "Суббота", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Ваш лимит на вывод составляет [_1] [_2] (или эквивалентную сумму в другой валюте).", "Only_numbers_and_spaces_are_allowed_": "Разрешены только цифры и пробелы.", "Stays_Between": "Останется между", "Entry_Spot": "Входная котировка", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Транзакция проведена [_1] (App ID: [_2])", "Su": "Вс", "Credit/Debit": "Кредит/Дебет", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Вывод средств для Вашего счета в данный момент недоступен. Пожалуйста, свяжитесь с [_1] для разблокировки.", "Waiting_for_entry_tick_": "В ожидании входного тика...", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Ваш дневной [_1] лимит на вывод в настоящее время составляет [_2] [_3] (или эквивалентную сумму в другой валюте).", "September": "Сентябрь", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Пожалуйста, [_1]заполните свой профайл,[_2] чтобы снять торговые лимиты и ограничения на вывод.", "Mar": "Мар", "True": "Верно", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] было зачислено на Ваш Демо-счет [_3]", "Weekday": "День недели", "Exit_spot": "Выходная котировка", "Barrier": "Барьер", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Следовательно, Ваш максимальный лимит на вывод на данный момент составляет [_1] [_2].", "Matches/Differs": "Совпадение/Отличие", "Contract_ID": "ID контракта", "Previous": "Предыдущ.", "seconds": "секунд(ы)", "Tick": "Тики", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Когда Вы нажмёте \"ОК\", Вы будете отстранены от работы на сайте до окончания выбранной даты.", "month": "мес.", "Please_select_a_value": "Пожалуйста, выберите значение", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Контракт будет продан по цене, действующей на момент получения запроса нашими серверами. Эта цена может отличаться от указанной в настоящее время.", "Sell_time": "Время продажи", "Friday": "пятница", "Balance": "Баланс", "from_[_1]_to_[_2]": "от [_1] до [_2]", "letters": "буквы", "Date": "Дата", "Statement": "История счета", "Insufficient_balance_": "Недостаточно средств на счете.", "End_time": "Окончание", "Virtual_Account": "Демо-счет", "May": "Май", "Sale_Price": "Цена продажи", "Oct": "Окт", "Equals": "Равно", "Note": "Примечание", "Please_select_a_payment_agent": "Пожалуйста, выберите платежного агента", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] останется между заданным верхним и нижним барьером на момент закрытия [_4].", "Rise/Fall": "Повышение/Падение", "space": "пробел", "Closes_early_(at_18:00)": "Закрывается рано (в 18:00)", "Buy": "Покупка", "Open_a_Financial_Account": "Открыть финансовый счет", "Japan": "Япония", "Old_password_is_wrong_": "Старый пароль неверный.", "Name": "Имя и фамилия", "Charting_for_this_underlying_is_delayed": "Графики для этого инструмента рисуются с задержкой", "Contract_is_not_started_yet": "Контракт ещё не начался", "Please_select_at_least_one_scope": "Пожалуйста, выберите минимум один параметр", "minute": "минут(ы)", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Вы успешно перевели средства [_1] со счёта [_2] на счёт [_3]. Номер транзакции: [_4]", "Number_of_ticks": "Кол-во тиков", "Current_Time": "Текущее время", "min": "мин.", "Even/Odd": "Чётное/Нечётное", "Should_be_a_valid_number": "Введите правильное число", "Lower": "Ниже", "Investor_password": "Пароль инвестора", "mins": "мин.", "Last_Digit_Stats": "Статистика последних тиков", "Long": "Длинная позиция", "Total_Profit/Loss": "Общая прибыль/убыток", "minutes": "минут(ы)", "Permissions": "Разрешения", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Пожалуйста, укажите 30-дневный лимит на объём покупок в настройках [_1]самоисключения,[_2] чтобы снять лимит на депозит.", "Invalid_amount,_maximum_is": "Неправильная сумма. Максимум:", "February": "Февраль", "Stays_In/Goes_Out": "Останется Внутри/Выйдет за пределы", "Christmas_Day": "Рождество", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] будет находиться строго выше или на заданном барьере на момент окончания [_4].", "Settles": "Заканчивается", "Contract_Expiry": "Срок истечения контракта", "December": "Декабрь", "Stake": "Ставка", "You_should_enter_[_1]_characters_": "Вы должны ввести [_1] символов.", "Mo": "Пн", "Time_out_must_be_after_today_": "Перерыв должен быть позднее сегодняшней даты.", "Final_price": "Итоговая цена", "View": "Просмотр", "Real_Cent": "Реальный центовый", "Select_your_market": "Выбрать рынок", "Price": "Цена", "year": "год(а)/лет", "Buy_price": "Цена покупки", "h": "ч.", "Adjust_trade_parameters": "Изменить параметры контракта", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Извините, Ваш счет не авторизован для дальнейшей покупки контрактов.", "Indicative": "Ориентировочная цена", "Change_Password": "Сменить пароль", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Пожалуйста, [_1]примите Правила и условия,[_2] чтобы снять ограничения на торговые лимиты и вывод средств.", "Browser": "Браузер", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Пожалуйста, укажите [_1]страну проживания[_2] до перехода на реальный счёт.", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Пожалуйста, следуйте данной схеме: 3 цифры, тире, а затем 4 цифры.", "Ends_Outside": "закончится вне", "Amount": "Количество", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Ограничение на длительность сессии закончится через [_1] сек.", "Sa": "Сб", "Sorry,_an_error_occurred_while_processing_your_account_": "Извините, произошла ошибка.", "End_Time": "Окончание", "Status": "Статус", "There_was_some_invalid_character_in_an_input_field_": "Неразрешённый символ в поле ввода.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] завершит контракт на или между верхним или нижним барьером на момент закрытия [_4].", "today,_Fridays": "сегодня, по пятницам", "Spot_Time": "Спот-время", "High_Barrier_([_1])": "Верхний барьер ([_1])", "Please_select_a_valid_date_": "Пожалуйста, выберите правильную дату.", "Touch/No_Touch": "Касание/Нет касания", "Account_balance:": "Баланс счета:", "Your_transaction_reference_number_is_[_1]": "Номер Вашей сделки [_1]", "Next": "Далее", "Payout": "Выплата", "days": "дн.", "Ref_": "Номер", "Select_your_underlying_asset": "Выбрать базовый актив", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Разрешены только буквы, цифры и дефис.", "Does_Not_Touch": "не коснется", "Contract_Sold": "Контракт продан", "Update": "Обновить", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] дн. [_2] ч. [_3] мин.", "Only_[_1]_are_allowed_": "Разрешены только [_1] и латинские буквы.", "Questions": "Вопросы", "Are_you_sure_that_you_want_to_permanently_delete_token": "Вы уверены, что хотите навсегда удалить ключ?", "Withdraw": "Вывод", "Minute": "Мин.", "Walkthrough_Guide": "Краткий экскурс", "Upgrade_to_a_Real_Account": "Открыть реальный счет", "Over/Under": "Над/Под", "Your_changes_have_been_updated_": "Ваши изменения внесены успешно.", "Scopes": "Сфера действия", "Start_time": "Время начала", "Apr": "Апр", "Verification_code_format_incorrect_": "Неправильный формат кода проверки личности.", "Hour": "Час.", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Вывод средств [_1] со счёта [_2] на счёт [_3] завершен. Номер транзакции: [_4]", "Only_[_1]_decimal_points_are_allowed_": "Разрешенное количество десятичных: [_1].", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Вы достигли лимита курса или количества запросов в секунду. Пожалуйста, повторите попытку позже.", "Start_Time": "Время начала", "Never": "Никогда", "Predict_the_direction<br_/>and_purchase": "Предскажите направление движения<br />и купите", "Time_is_in_the_wrong_format_": "Неправильный формат времени.", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] завершит торговлю вне верхнего и нижнего барьера на момент закрытия [_4].", "Sorry,_an_error_occurred_while_processing_your_request_": "Извините, при обработке Вашего запроса произошла ошибка.", "You_have_already_withdrawn_[_1]_[_2]_": "Вы уже вывели со счета [_1] [_2].", "Feb": "Фев", "Your_account_has_no_Login/Logout_activity_": "На Вашем счету нет активности входов/выходов.", "Lock_Cashier": "Закрыть кассу паролем", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] коснётся заданного барьера к моменту закрытия [_4].", "Please_submit_a_valid_verification_token_": "Пожалуйста, введите правильный проверочный ключ.", "Entry_spot": "Входная котировка", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] и [_2] не могут совпадать.", "Time_out_cannot_be_more_than_6_weeks_": "Перерыв не может превышать 6 недель.", "IP_Address": "IP-адрес", "Open": "Значение при открытии", "Not": "Не", "Wednesday": "Среда", "Time_out_cannot_be_in_the_past_": "Перерыв не может быть в прошлом.", "Contract_Confirmation": "Подтверждение контракта", "Token": "Ключ", "Major_Pairs": "Основные пары", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Можно использовать дополнительный пароль для ограничения доступа к кассе.", "Connection_error:_Please_check_your_internet_connection_": "Проблема со связью: пожалуйста, проверьте Ваше подключение к интернету.", "Virtual_money_credit_to_account": "Виртуальный кредит на счёт", "Profit_Table": "Анализ счета", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Ваш запрос на перевод [_1] [_2] с [_3] на [_4] был выполнен успешно.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Лимит на длительность сессии не может превышать 6 недель.", "Please_enter_an_integer_value": "Пожалуйста, введите целое число", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Допускаются только буквы латинского алфавита, пробелы, дефисы, точки или апострофы.", "Portfolio": "Портфель", "Remaining_time": "Оставшееся время", "Closes_early_(at_21:00)": "Закрывается рано (в 21:00)", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] выйдет за пределы верхнего и нижнего барьера на момент закрытия [_4].", "You_need_to_finish_all_20_questions_": "Вам необходимо ответить на 20 вопросов.", "Contract_Information": "Детали контракта", "Congratulations!_Your_[_1]_Account_has_been_created_": "Поздравляем! Ваш счёт [_1] успешно открыт.", "Up/Down": "Вверх/Вниз", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Поэтому максимально возможная сумма к выводу на данный момент (если на счету есть средства) составляет [_1] [_2] (или эквивалентную сумму в другой валюте).", "Reference_ID": "Номер", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Ваш пароль был изменен. Пожалуйста, зайдите на счет, используя новый пароль.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Вы уже вывели со счета сумму, эквивалентную [_1] [_2].", "Cashier": "Касса", "Only_numbers,_space,_and_hyphen_are_allowed_": "Разрешены только цифры, пробелы и дефисы.", "verification_token": "проверочный ключ", "Opens": "Открывается", "Upgrade_to_a_Financial_Account": "Обновите до финансового счета", "Sell": "Продажа", "Current": "Текущие", "Ends_Between": "закончится между", "Potential_Profit": "Потенциальная прибыль", "Now": "Сейчас", "Remaining_Time": "Оставшееся время", "years": "год(а)/лет", "Today": "Cегодня", "New_token_created_": "Создан новый ключ.", "Digit": "Десятичн.", "Please_select_a_valid_time_": "Пожалуйста, выберите правильное время.", "June": "Июнь", "Exit_Spot": "Выходная котировка", "Please_log_in_": "Пожалуйста, войдите в систему.", "Fridays": "пятница", "Finish": "Завершить", "Market_is_closed__Please_try_again_later_": "В данное время рынок закрыт. Пожалуйста, попробуйте позже.", "Monday": "Понедельник", "Never_Used": "Никогда не использовался", "Explanation": "Объяснение", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Ваша касса закрыта по Вашему запросу – для открытия, пожалуйста, введите пароль.", "today": "сегодня", "Admin": "Администратор", "Waiting_for_exit_tick_": "В ожидании выходного тика.", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Ваш счет полностью авторизован, и лимит на вывод был снят.", "New_Year's_Day": "Новый год", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Вы уверены, что хотите навсегда отказаться от доступа к приложению", "Sorry,_this_feature_is_not_available_": "Извините, данная функция недоступна.", "AM": "утра", "Net_profit": "Чистая прибыль", "Thursday": "Четверг", "New_password": "Новый пароль", "This_contract_won": "Вы выиграли", "Shop": "Магазин", "Action": "Акт", "Failed": "Возникла ошибка", "Barrier_([_1])": "Барьер ([_1])", "Low_Barrier_([_1])": "Нижний Барьер ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "Данный символ неактивен. Воспользуйтесь другим символом.", "Jun": "Июн", "Ends_In/Out": "Закончится Внутри/Вне", "Last_Used": "Последние", "March": "Март", "Details": "Подробности", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Разрешены только буквы, цифры, пробелы, дефис, точки и апостроф.", "Payments": "Платежи", "Please_check_the_above_form_for_pending_errors_": "Пожалуйста, исправьте указанные ошибки в форме выше.", "Day": "День", "Chart": "График", "Should_be_more_than_[_1]": "Значение должно быть больше [_1]", "We": "Ср", "Nov": "Ноя", "Closes": "Закрывается", "January": "Январь", "You_have_not_granted_access_to_any_applications_": "У Вас нет доступа к приложениям.", "Real_Standard": "Реальный стандартный", "October": "Октябрь", "Month": "Месяц", "Resale_not_offered": "Продажа не предлагается", "Sell_at_market": "Продать по текущей цене", "The_two_passwords_that_you_entered_do_not_match_": "Введенные пароли не совпадают.", "November": "Ноябрь", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] не коснётся заданного барьера на момент закрытия [_4].", "The_main_password_of_account_number_[_1]_has_been_changed_": "Основной пароль для счёта [_1] был изменён.", "Higher": "Выше", "Trade": "Торговля", "Select_your_trade_type": "Выбрать тип контракта", "Investment_Account": "Инвестиционный счет", "Please_select": "Выберите", "Dec": "Дек", "Spot": "Спот-котировка", "Successful": "Успешно", "Forex": "Форекс", "Please_enter_a_number_between_[_1]_": "Пожалуйста, введите цифру между [_1].", "Invalid_amount,_minimum_is": "Неправильная сумма. Минимум:", "Contract": "Контракт", "Your_settings_have_been_updated_successfully_": "Ваши настройки обновлены успешно.", "hours": "час.", "April": "Апрель", "Your_transaction_reference_is": "Ссылка на Вашу сделку", "There_was_a_problem_accessing_the_server_": "Возникла проблема с доступом к серверу.", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Достигнуто максимальное число ключей ([_1]).", "logout": "выход", "Sunday": "Воскресенье", "details": "подробности", "End_time_must_be_after_start_time_": "Время окончания должно быть позднее времени начала.", "Should_be_between_[_1]_and_[_2]": "Допустимые значения: от [_1] до [_2]", "Revoke_access": "Отмена доступа", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Данная функция недоступна на демо-счетах.", "Delete": "Удалить", "day": "дн.", "This_field_is_required_": "Данное поле является необходимым.", "Minimum_of_[_1]_characters_required_": "Необходимо минимум [_1] знака(ов).", "Please_accept_the_terms_and_conditions_": "Пожалуйста, примите правила и условия.", "Jul": "Июл", "Your_Application_is_Being_Processed_": "Ваша заявка обрабатывается.", "PM": "вечера", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Пройдите аутентификацию счёта,[_2] чтобы снять торговые лимиты и ограничения на вывод.", "Goes_Outside": "выйдет за пределы", "Exclude_time_cannot_be_for_more_than_5_years_": "Период ограничения не может быть больше 5 лет.", "Return": "Прибыль", "Step": "Шаг", "Payment_Agent": "Платежный агент", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Извините, регистрация счёта недоступна для граждан Вашей страны. Пожалуйста, свяжитесь с отделом <a href=\"[_1]\">поддержки клиентов</a> для получения дополнительной информации.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Указанный Вами электронный адрес уже используется для другого счёта. Если Вы забыли пароль к своему счету, пожалуйста, воспользуйтесь <a href=\"[_1]\">инструментом восстановления пароля</a> или свяжитесь с нашей службой поддержки.", "weeks": "нед.", "Potential_Payout": "Потенциальная выплата", "Deposit": "Пополнение", "Main_password": "Основной пароль", "Please_input_a_valid_date": "Пожалуйста, введите правильную дату", "Select_market": "Выбрать рынок", "Your_changes_have_been_updated_successfully_": "Ваши изменения успешно обновлены.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Срок действия Вашего ключа истёк. Пожалуйста, нажмите <a href=\"[_1]\">здесь,</a> чтобы повторно запустить процесс проверки.", "Sale_Date": "Дата продажи", "email_address": "эл. адрес", "Short": "Короткая позиция", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Внесение и вывод средств для Вашего счета в данный момент невозможны. Пожалуйста, свяжитесь с [_1] для разблокировки.", "Description": "Описание", "High_Barrier": "Верхний барьер", "Asset_Index": "Индекс активов", "Asset": "Актив", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Пожалуйста, <a href=\"[_1]\">войдите,</a> чтобы просмотреть данную страницу.", "Real_Volatility": "Реальный волатильный", "Your_withdrawal_limit_is_[_1]_[_2]_": "Ваш лимит на вывод составляет [_1] [_2].", "Create_Account": "Открыть счёт", "Loss": "Потери", "Real_STP": "Реальный STP", "This_contract_lost": "Вы проиграли", "There_was_a_problem_accessing_the_server_during_purchase_": "Возникла проблема с доступом к серверу во время процесса покупки.", "Low_Barrier": "Нижний Барьер", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Пожалуйста нажмите на ссылку ниже, чтобы повторно запустить процесс восстановления пароля. Если Вам нужна дополнительная помощь, пожалуйста, свяжитесь с нашей службой поддержки.", "Please_select_the_checkbox_": "Пожалуйста, выберите нужный ответ.", "Tu": "Вт", "Target": "Цель", "Your_account_has_no_trading_activity_": "На Вашем счету нет торговой деятельности.", "Password_is_not_strong_enough_": "Пароль недостаточно надёжный.", "Demo": "Демо", "Date_and_Time": "Дата и время", "Exit_Spot_Time": "Время выходной котировки", "Purchase_Price": "Цена покупки", "hour": "час.", "numbers": "цифры", "Duration": "Длительность", "Trading_Times": "Время открытия рынков", "Total_Cost": "Общая стоимость", "Sep": "Сен", "Resources": "Полезное", "Barrier_Change": "Изменение барьера", "Profit/Loss": "Плюс/Минус", "Fr": "Пт", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Ваш счет заблокирован. В данный момент Вам доступна только функция вывода средств. Для дальнейшей информации, пожалуйста, свяжитесь с [_1].", "Profit": "Прибыль", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Срок действия Вашего ключа истёк. Пожалуйста, нажмите [_1]здесь[_2], чтобы повторно запустить процесс проверки.", "Upcoming_Events": "Ближайшие события", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Пароль должен содержать заглавные и строчные буквы и цифры.", "Tuesday": "Вторник", "Exclude_time_cannot_be_less_than_6_months_": "Период ограничения не может быть менее 6 месяцев.", "Purchase_Time": "Время покупки", "August": "Август", "There_was_an_error": "Произошла ошибка", "Aug": "Авг" };
-	texts_json['TH'] = { "Purchase_Price": "ราคาซื้อ", "hour": "ชั่วโมง", "numbers": "ตัวเลข", "Your_account_has_no_trading_activity_": "บัญชีของท่านไม่มีประวัติการซื้อขาย", "Password_is_not_strong_enough_": "รหัสผ่านไม่ปลอดภัยเท่าที่ควร", "Demo": "สาธิต", "Date_and_Time": "วันที่และเวลา", "Exit_Spot_Time": "เวลาที่สปอตสิ้นสุด", "Barrier_Change": "ค่า Barrier เปลี่ยนแปลง", "Profit/Loss": "กำไร/ขาดทุน", "Duration": "ระยะเวลา", "Trading_Times": "เวลาซื้อขาย", "Sep": "ก.ย.", "Total_Cost": "ราคารวม", "Resources": "แหล่งข้อมูล", "Upcoming_Events": "กิจกรรมในอนาคต", "Fr": "ศ", "Profit": "กำไร", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "ในขณะนี้บัญชีของท่านถูกพักชั่วคราว ท่านสามารถทำรายการถอนได้เท่านั้น หากต้องการข้อมูล โปรดติดต่อ [_1]", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "โทเค่นของท่านหมดอายุแล้ว โปรดคลิก [_1]ที่นี่[_2] เพื่อดำเนินกระบวนการตรวจสอบ", "August": "สิงหาคม", "There_was_an_error": "มีความผิดพลาดเกิดขึ้น", "Aug": "ส.ค.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "รหัสผ่านควรประกอบด้วยอักษรตัวเล็ก อักษรตัวใหญ่ และตัวเลข", "Tuesday": "วันอังคาร", "Exclude_time_cannot_be_less_than_6_months_": "เวลาพักไม่น้อยกว่า 6 เดือน", "Purchase_Time": "เวลาซื้อ", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "โทเค่นของท่านหมดอายุแล้ว โปรดคลิก<a href=\"[_1]\">ที่นี่</a> เพื่อดำเนินกระบวนการตรวจสอบ", "Your_changes_have_been_updated_successfully_": "การแก้ไขของท่านถูกดำเนินการเรียบร้อยแล้ว", "Sale_Date": "วันที่ขาย", "email_address": "อีเมล์", "weeks": "สัปดาห์", "Potential_Payout": "ประมาณการจำนวนเงินที่ชำระ", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "อีเมล์ของท่านถูกลงทะเบียนไว้กับผู้ใช้งานอีกบัญชีหนึ่ง หากท่านลืมรหัสผ่านของบัญชีที่ท่านมีอยู่ โปรด <a href=\"[_1]\">เรียกใช้การกู้คืนรหัสผ่าน</a> หรือ ติดต่อเจ้าหน้าที่บริการลูกค้า", "Deposit": "ฝาก", "Please_input_a_valid_date": "โปรดป้อนวันที่ที่ถูกต้อง", "Main_password": "รหัสผ่านหลัก", "Select_market": "กำหนด ตลาด", "Description": "รายละเอียด", "High_Barrier": "Barrier สูง", "Asset_Index": "ดัชนีสินทรัพย์", "Asset": "สินทรัพย์", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "ท่านไม่ได้รับอนุญาตในการดำเนินการฝากเงินและการถอนเงินในบัญชีของท่านในขณะนี้ โปรดติดต่อ [_1] เพื่อปลดล็อค", "Your_withdrawal_limit_is_[_1]_[_2]_": "วงเงินการถอนของท่าน คือ [_1] [_2]", "Real_STP": "STP จริง", "Create_Account": "สร้างบัญชี", "This_contract_lost": "สัญญานี้ขาดทุน", "Loss": "เสีย", "Low_Barrier": "Barrier ต่ำ", "There_was_a_problem_accessing_the_server_during_purchase_": "มีปัญหาเกิดขึ้นในการเข้าถึงเซิร์ฟเวอร์ขณะส่งคำสั่งซื้อ", "Real_Volatility": "ความผันผวนจริง", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "โปรด <a href=\"[_1]\">เข้าสู่ระบบ</a> เพื่อเรียกดูหน้านี้", "Please_select_the_checkbox_": "โปรดระบุค่าจากตัวเลือก", "Tu": "อัง", "Target": "เป้าหมาย", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] โปรดคลิกที่ลิงค์ด้านล่างเพื่อเริ่มกระบวนการกู้คืนรหัสผ่าน หากท่านต้องการความช่วยเหลือ โปรดติดต่อฝ่ายบริการลูกค้าของเรา", "Delete": "ลบ", "End_time_must_be_after_start_time_": "เวลาสิ้นสุดต้องเป็นเวลาภายหลังเวลาเริ่มต้น", "Should_be_between_[_1]_and_[_2]": "ต้องมีค่าระหว่าง [_1] และ [_2]", "Revoke_access": "การเพิกถอนการเข้าถึง", "This_feature_is_not_relevant_to_virtual-money_accounts_": "ฟังก์ชันนี้ไม่สัมพันธ์กับบัญชีเงินเสมือน", "day": "วัน", "This_field_is_required_": "ข้อมูลในช่องนี้จำเป็นต้องมี", "Minimum_of_[_1]_characters_required_": "จำนวนตัวอักขระน้อยที่สุดที่ต้องการ คือ [_1]", "Exclude_time_cannot_be_for_more_than_5_years_": "เวลาพักไม่เกิน 5 ปี", "Goes_Outside": "ออกนอกขอบเขต", "Return": "ผลตอบแทน", "Step": "ขั้น", "Jul": "ก.ค.", "Please_accept_the_terms_and_conditions_": "โปรดยอมรับข้อตกลงและเงื่อนไข", "Your_Application_is_Being_Processed_": "ใบสมัครของท่านอยู่ในกระบวนการพิจารณา", "PM": "น.", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "ขออภัย ยังไม่มีการบริการบัญชีในประเทศของท่าน โปรดติดต่อ <a href=\"[_1]\">ฝ่ายลูกค้าสัมพันธ์</a> สำหรับข้อมูลเพิ่มเติม", "Payment_Agent": "ตัวแทนรับชำระเงิน", "Investment_Account": "บัญชีเพื่อการลงทุน", "Trade": "เทรด", "Higher": "สูงกว่า", "Select_your_trade_type": "กำหนด ประเภทการเทรดของท่าน", "Spot": "สปอต", "Successful": "เรียบร้อยแล้ว", "Forex": "ฟอเร็กซ์", "Please_enter_a_number_between_[_1]_": "โปรดป้อนตัวเลขระหว่าง [_1]", "Dec": "ธ.ค.", "Please_select": "โปรดระบุ", "hours": "ชั่วโมง", "Contract": "สัญญา", "Your_settings_have_been_updated_successfully_": "การตั้งค่าของท่านถูกดำเนินการเรียบร้อยแล้ว", "Invalid_amount,_minimum_is": "จำนวนไม่ถูกต้อง ค่าต่ำสุด คือ", "Sunday": "วันอาทิตย์", "logout": "ออกจากระบบ", "details": "รายละเอียด", "April": "เมษายน", "There_was_a_problem_accessing_the_server_": "มีปัญหาในการเข้าถึงเครื่องแม่ข่าย", "Your_transaction_reference_is": "เลขที่อ้างอิงของธุรกรรมของท่าน คือ", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "จำนวนมากที่สุดของโทเค่น ([_1]) ถูกใช้หมดแล้ว", "Should_be_more_than_[_1]": "ควรมีค่ามากกว่า [_1]", "Chart": "แผนภูมิ", "We": "พวกเรา", "Details": "รายละเอียด", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "ตัวอักษร ตัวเลข ช่องว่าง ขีดกลาง จุด และ เครื่องหมายวรรคตอน ( ' ) เท่านั้น ที่สามารถใช้ได้", "Payments": "การชำระเงิน", "Day": "วัน", "Please_check_the_above_form_for_pending_errors_": "โปรดตรวจสอบแบบฟอร์มข้างต้นสำหรับรายการข้อผิดพลาด", "Real_Standard": "มาตรฐานจริง", "October": "ตุลาคม", "Month": "เดือน", "Nov": "พ.ย.", "Closes": "ปิด", "January": "มกราคม", "You_have_not_granted_access_to_any_applications_": "ท่านไม่ได้รับอนุญาตให้เข้าใช้งานระบบใดๆ", "November": "พฤศจิกายน", "The_two_passwords_that_you_entered_do_not_match_": "รหัสผ่านที่ท่านป้อนสองครั้งไม่เหมือนกัน", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] ไม่แตะ Barrier กระทั่งสิ้นสุดที่ [_4]", "Resale_not_offered": "การขายสัญญาไม่ได้ถูกนำเสนอ", "Sell_at_market": "ขาย ณ ตลาด", "The_main_password_of_account_number_[_1]_has_been_changed_": "รหัสผ่านหลักของเลขที่บัญชี [_1] ได้มีการเปลี่ยนแปลงแล้ว", "False": "ผิด", "June": "มิถุนายน", "Exit_Spot": "สปอตสิ้นสุด", "Please_log_in_": "โปรดเข้าสู่ระบบ", "New_token_created_": "สร้างโทเค่นใหม่แล้ว", "Digit": "ตัวเลข", "Please_select_a_valid_time_": "โปรดระบุเวลาที่ถูกต้อง", "Explanation": "คำอธิบาย", "today": "วันนี้", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "การรับ/ชำระเงินของท่านถูกล็อกตามความประสงค์ของท่าน - หากประสงค์ปลดล็อก โปรดป้อนรหัสผ่าน", "Admin": "แอดมิน", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "บัญชีของท่านได้รับการยืนยันตัวตนอย่างสมบูรณ์แล้ว และวงเงินการถอนเงินของท่านได้รับการยกระดับโดยการเพิ่มวงเงินแล้ว", "Waiting_for_exit_tick_": "กำลังรอช่วงราคาสุดท้าย", "Fridays": "วันศุกร์", "Finish": "เสร็จสิ้น", "Market_is_closed__Please_try_again_later_": "ตลาดได้ปิดทำการแล้ว กรุณาทำรายการใหม่ภายหลัง", "Monday": "วันจันทร์", "Never_Used": "ไม่เคยใช้", "This_contract_won": "สัญญานี้กำไร", "New_password": "รหัสผ่านใหม่", "Thursday": "วันพฤหัสบดี", "Shop": "ร้าน", "Failed": "ล้มเหลว", "Action": "การกระทำ", "New_Year's_Day": "วันปีใหม่", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "ท่านแน่ใจใช่ไหมที่จะยกเลิกการเข้าใช้ระบบถาวร", "Sorry,_this_feature_is_not_available_": "ขออภัย ไม่สามารถใช้งานฟังก์ชันนี้ได้", "AM": "น.", "Net_profit": "กำไรสุทธิ", "Last_Used": "ใช้ครั้งสุดท้าย", "March": "มีนาคม", "Low_Barrier_([_1])": "Barrier ต่ำ ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "ไม่มีสัญลักษณ์นี้ โปรดลองสัญลักษณ์อื่น", "Jun": "มิ.ย.", "Congratulations!_Your_[_1]_Account_has_been_created_": "ขอแสดงความยินดี! บัญชีของท่าน [_1] ได้ถูกสร้างเรียบร้อยแล้ว", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "ดังนั้น วงเงินการถอนมากที่สุดของท่านขณะนี้ (หากบัญชีท่านมีวงเงินเพียงพอ) คือ [_1] [_2] (หรือเทียบเท่าในสกุลเงินอื่น)", "Reference_ID": "หมายเลขอ้างอิง", "Only_numbers,_space,_and_hyphen_are_allowed_": "ตัวเลข ช่องว่าง และเครื่องหมายขีดกลางเท่านั้นที่อนุญาต", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "ท่านได้ถอน [_1] [_2] หรือเทียบเท่า", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "รหัสผ่านของท่านได้ถูกกำหนดใหม่เรียบร้อยแล้ว โปรดเข้าสู่ระบบโดยการใช้รหัสผ่านใหม่ของท่าน", "Cashier": "แคชเชียร์", "Current": "ปัจจุบัน", "Ends_Between": "สิ้นสุดระหว่าง", "Opens": "เปิด", "verification_token": "โทเค่นเพื่อการตรวจสอบ", "Upgrade_to_a_Financial_Account": "อัพเกรดเป็นบัญชีทางการเงิน", "Sell": "ขาย", "Now": "ขณะนี้", "Remaining_Time": "เวลาที่เหลืออยู่", "years": "ปี", "Today": "วันนี้", "Potential_Profit": "ประมาณการกำไร", "Time_out_cannot_be_more_than_6_weeks_": "ช่วงระยะเวลาอ้างอิงไม่สามารถมากกว่า 6 สัปดาห์", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] และ [_2] ไม่สามารถเป็นค่าเดียวกัน", "Contract_Confirmation": "การยืนยันสัญญา", "Major_Pairs": "คู่หลัก", "Token": "โทเค่น", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "รหัสผ่านเพิ่มนี้สามารถใช้เพื่อเข้าถึงส่วนของแคชเชียร์", "Open": "เปิด", "Not": "ไม่", "Wednesday": "วันพุธ", "Time_out_cannot_be_in_the_past_": "ช่วงเวลาที่ใช้อ้างอิงไม่สามารถเป็นเวลาในอดีต", "Closes_early_(at_21:00)": "ปิดก่อนเวลา (เมื่อเวลา 21.00 น.)", "Remaining_time": "เวลาที่เหลืออยู่", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] ออกนอกขอบเขตของ Barrier ต่ำและสูง กระทั่งสิ้นสุดที่ [_4]", "Connection_error:_Please_check_your_internet_connection_": "การเชื่อมต่อมีความผิดพลาด: โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของท่าน", "Virtual_money_credit_to_account": "เครดิตเงินเสมือนไปยังบัญชี", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "คำสั่งของท่านในการโอน [_1] [_2] จาก [_3] ไป [_4] ได้ดำเนินการสำเร็จแล้ว", "Profit_Table": "ตารางกำไร", "Session_duration_limit_cannot_be_more_than_6_weeks_": "รอบระยะเวลาการซื้อขายไม่สามารถมากกว่า 6 สัปดาห์", "Portfolio": "พอร์ตโฟลิโอ", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "ตัวอักษร ช่องว่าง ขีดกลาง จุด และ เครื่องหมายวรรคตอน ( ' ) เท่านั้น ที่สามารถใช้ได้", "Please_enter_an_integer_value": "โปรดป้อนจำนวนเต็ม", "Contract_Information": "ข้อมูลสัญญา", "You_need_to_finish_all_20_questions_": "ท่านต้องตอบคำถาม 20 ข้อ ทุกข้อ", "Upgrade_to_a_Real_Account": "อัพเกรดเป็นบัญชีจริง", "Over/Under": "สูงกว่า/ต่ำกว่า", "Your_changes_have_been_updated_": "การเปลี่ยนแปลงของท่านได้ถูกดำเนินการแล้ว", "Scopes": "ขอบเขต", "Start_time": "เวลาเริ่ม", "Withdraw": "ถอนเงิน", "Minute": "นาที", "Walkthrough_Guide": "คู่มือแนะนำการใช้งาน", "Apr": "เม.ย.", "Verification_code_format_incorrect_": "รูปแบบของรหัสตรวจสอบไม่ถูกต้อง", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] ได้ถอนเงินจากเลขที่บัญชี [_2] ไปยัง [_3] เรียบร้อยแล้ว หมายเลขอ้างอิงธุรกรรม: [_4]", "Hour": "ชั่วโมง", "Only_[_1]_decimal_points_are_allowed_": "ทศนิยม [_1] หลัก เท่านั้น", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "ท่านได้ใช้อัตราการส่งคำสั่งต่อวินาทีเกินที่กำหนด กรุณาลองใหม่ภายหลัง", "Predict_the_direction<br_/>and_purchase": "พยากรณ์ทิศทาง<br />และซื้อ", "Start_Time": "เวลาเริ่ม", "Never": "ไม่เคย", "Please_submit_a_valid_verification_token_": "โปรดส่งโทเค่นที่ถูกต้องเพื่อการตรวจสอบ", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] แตะ Barrier กระทั่งสิ้นสุดที่ [_4]", "Entry_spot": "สปอตเริ่มต้น", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] สิ้นสุดนอกขอบเขต Barrier ต่ำสุดและสูงสุดและสิ้นสุดที่ [_4]", "Time_is_in_the_wrong_format_": "เวลาอยู่ในรูปแบบที่ไม่ถูกต้อง", "Sorry,_an_error_occurred_while_processing_your_request_": "ขออภัย มีความผิดพลาดเกิดขึ้นขณะที่ประมวลผลความประสงค์ของท่าน", "You_have_already_withdrawn_[_1]_[_2]_": "ท่านได้ถอน [_1] [_2]", "Feb": "ก.พ.", "Your_account_has_no_Login/Logout_activity_": "บัญชีของท่านไม่มีประวัติ การเข้าใช้งานระบบ/การออกจากระบบ", "Score": "คะแนน", "Spot_Time": "เวลาสปอต", "Please_select_a_valid_date_": "โปรดระบุวันที่ที่ถูกต้อง", "High_Barrier_([_1])": "Barrier สูง ([_1])", "There_was_some_invalid_character_in_an_input_field_": "มีบางอักขระไม่ถูกต้องจากข้อมูลที่ป้อนเข้ามา", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] สิ้นสุดหรืออยู่ระหว่างค่าต่ำสุดและค่าสูงสุดของ Barrier ณ เวลาปิดที่ [_4]", "today,_Fridays": "วันนี้วันศุกร์", "Female": "เพศหญิง", "Account_balance:": "ยอดคงเหลือในบัญชี:", "Your_transaction_reference_number_is_[_1]": "หมายเลขอ้างอิงของธุรกรรมของท่าน คือ [_1]", "Next": "ถัดไป", "Ref_": "อ้างอิง", "Select_your_underlying_asset": "กำหนด ผลิตภัณฑ์อ้างอิงของท่าน", "Only_letters,_numbers,_and_hyphen_are_allowed_": "ตัวอักษร ตัวเลข และเครื่องหมายขีดกลางเท่านั้นที่อนุญาต", "Payout": "การชำระเงิน", "days": "วัน", "Questions": "คำถาม", "Are_you_sure_that_you_want_to_permanently_delete_token": "ท่านแน่ใจใช่ไหมที่จะลบโทเค่นถาวร", "Does_Not_Touch": "ไม่แตะ", "Contract_Sold": "สัญญาที่ถูกจำหน่าย", "Update": "การปรับปรุง", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] วัน [_2] ชั่วโมง [_3] นาที", "Only_[_1]_are_allowed_": "มีเพียง [_1] ที่จัดให้", "Change_Password": "เปลี่ยนรหัสผ่าน", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรด [_1]ยอมรับข้อตกลงและเงื่อนไข[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "ขออภัย บัญชีของท่านไม่ได้รับอนุญาตในการซื้อสัญญาเพิ่ม", "Indicative": "บ่งชี้", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "โปรดตั้งค่า [_1]ประเทศที่พำนัก[_2] ก่อนอัพเกรดเป็นบัญชีจริง", "Male": "เพศชาย", "Browser": "เบราเซอร์", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "โปรดป้อนข้อมูลในรูปแบบ ตัวเลข 3 หลัก ขีดกลาง และตามด้วย ตัวเลข 4 หลักสุดท้าย", "Ends_Outside": "สิ้นสุดภายนอก", "Sorry,_an_error_occurred_while_processing_your_account_": "ขออภัย มีความผิดพลาดเกิดขึ้นขณะที่ประมวลผลบัญชีของท่าน", "End_Time": "เวลาสิ้นสุด", "Status": "สถานะ", "Amount": "จำนวน", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "เวลาการซื้อขายของท่านจะสิ้นสุดภายใน [_1] วินาที", "Sa": "ส", "Permissions": "สิทธิ์", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "โปรดตั้งค่าวงเงินการซื้อขาย 30 วันของท่านจาก [_1]ตัวเลือกพักการซื้อขาย[_2] เพื่อลบวงเงินการฝากเงิน", "Last_Digit_Stats": "สถิติตัวเลขสุดท้าย", "mins": "นาที", "Total_Profit/Loss": "รวมกำไร/ขาดทุน", "minutes": "นาที", "Christmas_Day": "วันคริสต์มาส", "Settles": "ชำระเงิน", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] มีมูลค่าเท่ากันหรือสูงกว่า Barrier ที่สิ้นสุดเมื่อ [_4]", "December": "ธันวาคม", "Contract_Expiry": "วันหมดอายุสัญญา", "Invalid_amount,_maximum_is": "จำนวนไม่ถูกต้อง ค่าสูงสุด คือ", "February": "กุมภาพันธ์", "You_should_enter_[_1]_characters_": "ท่านควรป้อนข้อมูล [_1] อักขระ", "Mo": "จ", "Time_out_must_be_after_today_": "ช่วงเวลาอ้างอิงต้องเริ่มในวันพรุ่งนี้", "Final_price": "ราคาสุดท้าย", "View": "ดู", "Stake": "วางเงิน", "Adjust_trade_parameters": "ปรับแต่งตัวแปรของการเทรด", "h": "ชม.", "Real_Cent": "เงินจริง", "Price": "ราคา", "year": "ปี", "Select_your_market": "กำหนด ตลาดของท่าน", "Buy_price": "ราคาซื้อ", "space": "ช่องว่าง", "Closes_early_(at_18:00)": "ปิดก่อนเวลา (เมื่อเวลา 18.00 น.)", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] อยู่ระหว่างค่าต่ำและสูงของ Barrier กระทั่งสิ้นสุดเมื่อ [_4]", "Name": "ชื่อ", "Charting_for_this_underlying_is_delayed": "กราฟของผลิตภัณฑ์อ้างอิงนี้ล่าช้า", "Contract_is_not_started_yet": "สัญญายังไม่เริ่ม", "Buy": "ซื้อ", "Japan": "ประเทศญี่ปุ่น", "Old_password_is_wrong_": "รหัสผ่านเก่าไม่ถูกต้อง", "Open_a_Financial_Account": "เปิดบัญชีทางการเงิน 1 บัญชี", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] ได้ฝากเงินจาก [_2] ไปยังเลขที่บัญชี [_3] เรียบร้อยแล้ว หมายเลขอ้างอิงธุรกรรม: [_4]", "Number_of_ticks": "จำนวนของช่วงราคา", "Please_select_at_least_one_scope": "โปรดระบุค่าอย่างน้อยหนึ่งขอบเขต", "minute": "นาที", "Investor_password": "รหัสผ่านของผู้ลงทุน", "min": "ค่าต่ำสุด", "Current_Time": "เวลาปัจจุบัน:", "Even/Odd": "คู่/คี่", "Should_be_a_valid_number": "ควรเป็นตัวเลขที่ถูกต้อง", "Lower": "ต่ำกว่า", "Contract_ID": "หมายเลขสัญญา", "Previous": "ก่อนหน้า", "Exit_spot": "สปอตสิ้นสุด", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "ดังนั้น วงเงินการถอนมากที่สุดของท่านขณะนี้ (หากบัญชีท่านมีวงเงินเพียงพอ) คือ [_1] [_2]", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "เมื่อท่านเลือก \"OK\" ท่านจะถูกพักจากระบบซื้อขายกระทั่งวันที่ที่ท่านระบุ", "month": "เดือน", "Please_select_a_value": "โปรดระบุค่า", "seconds": "วินาที", "letters": "ตัวอักษร", "Date": "วันที่", "Insufficient_balance_": "ยอดคงเหลือไม่เพียงพอ", "Statement": "รายงานทางการเงิน", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "สัญญาจะถูกจำหน่ายที่ราคาทั่วไปของตลาดเมื่อระบบซื้อขายได้รับการแจ้งความจำนง ราคานี้อาจจะแตกต่างจากราคาที่ระบุ", "Sell_time": "เวลาที่ขาย", "Friday": "วันศุกร์", "Balance": "คงเหลือ", "from_[_1]_to_[_2]": "จาก [_1] ถึง [_2]", "Equals": "เท่ากับ", "Note": "บันทึก", "Please_select_a_payment_agent": "โปรดระบุตัวแทนรับชำระเงิน", "End_time": "เวลาสิ้นสุด", "Virtual_Account": "บัญชีทดลองใช้", "May": "พ.ค.", "Sale_Price": "ราคาขาย", "Oct": "ต.ค.", "Closed": "ปิด", "Unlock_Cashier": "ปลดล็อกแคชเชียร์", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรดบันทึกผล [_1]แบบฟอร์มการประเมินทางการเงิน[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "ขณะนี้ไม่มีบริการตัวแทนรับชำระเงินในประเทศของท่าน", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] มีมูลค่าเท่ากันหรือต่ำกว่า Barrier ที่สิ้นสุด ณ [_4]", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "คำสั่งของท่านเพื่อถอน [_1] [_2] จากบัญชีของท่าน [_3] ให้ตัวแทนรับชำระเงิน [_4] บัญชีได้รับการประมวลผลสำเร็จ", "Higher/Lower": "สูงกว่า/ต่ำกว่า", "Gaming_Account": "บัญชีการพนัน", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "เซิร์ฟเวอร์ <a href=\"[_1]\">จุดสิ้นสุด</a> คือ: [_2]", "second": "วินาที", "Sorry,_you_have_entered_an_incorrect_cashier_password": "ขออภัยค่ะ ท่านป้อนรหัสผ่านแคชเชียร์ไม่ถูกต้อง", "Read": "อ่าน", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "วงเงินการถอนของท่าน คือ [_1] [_2] (หรือเทียบเท่าในสกุลเงินอื่น)", "Saturday": "วันเสาร์", "You_have_sold_this_contract_at_[_1]_[_2]": "ท่าได้ขายสัญญานี้ที่ [_1] [_2]", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรด [_1]ปรับปรุงประวัติของท่าน[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "September": "กันยายน", "Mar": "มี.ค.", "True": "จริง", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] ถูกเพิ่มแล้วที่บัญชีเสมือนของท่าน [_3]", "Weekday": "วันธรรมดาที่ไม่ใช่วันเสาร์อาทิตย์", "Entry_Spot": "สปอตเริ่มต้น", "Only_numbers_and_spaces_are_allowed_": "ตัวเลข และช่องว่างเท่านั้นที่อนุญาต", "Stays_Between": "อยู่ระหว่าง", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "ดำเนินธุรกรรมโดย [_1] (App ID: [_2])", "Credit/Debit": "เครดิต/เดบิต", "Su": "อา", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "วงเงินการถอนเงินต่อวันของท่าน [_1] ในปัจจุบัน คือ [_2] [_3] (หรือเทียบเท่าในสกุลเงินอื่น)", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "ในขณะนี้ บัญชีของท่านไม่ได้รับอนุญาตให้ดำเนินการถอนเงิน โปรดติดต่อ [_1] เพื่อปลดล็อค", "Waiting_for_entry_tick_": "กำลังรองช่วงราคาเริ่มต้น", "This_is_a_staging_server_-_For_testing_purposes_only": "นี่คือ เซิร์ฟเวอร์สำหรับพัก เพื่อใช้ในการทดสอบเท่านั้น", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "ขออภัย ฟังก์ชันนี้มีให้ใช้งานเฉพาะบัญชีทดลองใช้เท่านั้น", "You_did_not_change_anything_": "ท่านไม่ได้แก้ไขค่าใดๆ", "Jan": "ม.ค.", "Invalid_email_address": "อีเมล์ไม่ถูกต้อง", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "ท่านได้ถอน [_1] [_2] หรือเทียบเท่า ในช่วง [_3] วันที่ผ่านมา", "Year": "ปี", "Your_trading_statistics_since_[_1]_": "สถิติการซื้อขายของท่านตั้งแต่ [_1]", "Touches": "แตะ", "Current_password": "รหัสผ่านปัจจุบัน", "Should_be_less_than_[_1]": "ควรมีค่าน้อยกว่า [_1]", "All_markets_are_closed_now__Please_try_again_later_": "ตลาดได้ปิดทำการแล้ว กรุณาทำรายการใหม่ภายหลัง", "Real_Account": "บัญชีจริง", "Processing_your_request___": "กำลังดำเนินการตามความประสงค์ของท่าน", "All_barriers_in_this_trading_window_are_expired": "รายการ Barrier ทั้งหมดในหน้าต่างซื้อขายนี้หมดอายุ", "Th": "พฤ", "July": "กรกฎาคม", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "บัญชีของท่านถูกระงับ โปรด [_1]ติดต่อฝ่ายลูกค้าสัมพันธ์[_2] เพื่อดำเนินการต่อไป", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "การรับ/ชำระเงินของท่านถูกล็อก - หากประสงค์ปลดล็อก โปรดคลิก <a href=\"[_1]\">ที่นี่</a>", "months": "เดือน", "week": "สัปดาห์", "Percentage": "ร้อยละ" };
-	texts_json['VI'] = { "Invalid_amount,_maximum_is": "Số tiền không hợp lệ, tối đa là", "February": "Tháng Hai", "Stays_In/Goes_Out": "Vẫn ở trong /Đi ra Ngoài", "Christmas_Day": "Lễ Giáng Sinh", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] là nghiêm chỉnh cao hơn hoặc bằng hàng rào tại gần với [_4].", "Settles": "Quyết toán", "December": "Tháng 12", "Contract_Expiry": "Hợp đồng đã hết hạn", "Last_Digit_Stats": "Dữ liệu Chữ số Cuối cùng", "mins": "phút", "Long": "Dài", "Total_Profit/Loss": "Tổng Lợi nhuận/Thua lỗ", "minutes": "phút", "Permissions": "Quyền hạn", "Real_Cent": "Xu thật", "Buy_price": "Giá mua", "Price": "Giá", "Select_your_market": "Chọn thị trường của bạn", "year": "năm", "Adjust_trade_parameters": "Điều giới hạn giao dịch", "Stake": "Đơn vị vốn, cổ phiếu", "You_should_enter_[_1]_characters_": "Bạn nên nhập vào [_1] ký tự.", "Time_out_must_be_after_today_": "Thời hạn kết thúc phải sau hôm nay.", "Final_price": "Giá cuối cùng", "View": "Xem", "Browser": "Duyệt tìm", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Xin lỗi, tài khoản của bạn không có quyền mua thêm hợp đồng.", "Indicative": "Chỉ thị", "Change_Password": "Thay đổi Mật khẩu", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin [_1] vui lòng chấp nhận cập nhật các điều khoản và điều kiện [_2] để nâng mức tiền rút và giới hạn giao dịch.", "Amount": "Số tiền", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Giới hạn phiên giao dịch của bạn sẽ kết thúc trong [_1] giây nữa.", "End_Time": "Thời gian Kết thúc", "Sorry,_an_error_occurred_while_processing_your_account_": "Xin lỗi, Lỗi xảy ra trong khi đang xử lý tài khoản của bạn.", "Status": "Tình trạng", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Vui lòng tuân theo cấu trúc 3 số, dấu gạch ngang, tiếp theo là 4 số.", "Ends_Outside": "Kết thúc bên ngoài", "Touch/No_Touch": "Chạm/Không Chạm", "Account_balance:": "Số dư tài khoản:", "Your_transaction_reference_number_is_[_1]": "Số tham chiếu giao dịch của bạn là [_1]", "Next": "Tiếp theo", "There_was_some_invalid_character_in_an_input_field_": "Có một vài ký tự không hợp lệ với dữ liệu nhập vào.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] kết thúc vào hoặc giữa cao và thấp giá trị của các rào cản lúc đóng trên [_4].", "Female": "Nữ", "today,_Fridays": "hôm nay, Thứ Sáu", "Score": "Điểm số", "High_Barrier_([_1])": "Rào cản Cao ([_1])", "Spot_Time": "Thời điểm làm giá", "Please_select_a_valid_date_": "Vui lòng chọn một ngày hợp lệ.", "Contract_Sold": "Hợp đồng đã được bán", "Update": "Cập nhật", "Does_Not_Touch": "Không được chạm", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] ngày [_2] giờ [_3] phút", "Only_[_1]_are_allowed_": "Chỉ có [_1] được cho phép.", "Questions": "Câu hỏi", "Are_you_sure_that_you_want_to_permanently_delete_token": "Bạn có chắc chắn muốn xóa vĩnh viễn token", "Payout": "Tiền thưởng", "days": "ngày", "Ref_": "Tham khảo.", "Select_your_underlying_asset": "Chọn tài sản cơ sở của bạn", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Chỉ các chữ cái, số và dấu nối là được phép.", "Apr": "Tháng 4", "Verification_code_format_incorrect_": "Định dạng của mã xác thực không chính xác.", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "% 1 rút khỏi số tài khoản% 2 đến% 3 được thực hiện. ID giao dịch:% 4", "Only_[_1]_decimal_points_are_allowed_": "Chỉ cho phép [_1] số thập phân sau dấu phẩy.", "Hour": "Giờ", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Bạn đã đạt đến giới hạn số lượng lệnh có thể mỗi giây. Xin vui lòng thử lại sau.", "Withdraw": "Rút tiền", "Minute": "Phút", "Walkthrough_Guide": "Hướng dẫn tổng quan", "Over/Under": "Trên/Dưới", "Upgrade_to_a_Real_Account": "Nâng cấp lên Tài khoản Thực", "Your_changes_have_been_updated_": "Những thay đổi của bạn đã được cập nhật.", "Start_time": "Thời gian bắt đầu", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] kết thúc bên ngoài thấp và cao giá trị của các hàng rào tại đóng trên [_4].", "Time_is_in_the_wrong_format_": "Thời gian ở sai định dạng.", "You_have_already_withdrawn_[_1]_[_2]_": "Bạn vừa rút [_1] [_2].", "Sorry,_an_error_occurred_while_processing_your_request_": "Rất tiếc, đã xảy ra lỗi khi đang xử lý yêu cầu của bạn.", "Feb": "Tháng Hai", "Your_account_has_no_Login/Logout_activity_": "Không có hoạt động Đăng nhập/Đăng xuất nào trên tài khoản của bạn.", "Lock_Cashier": "Khóa quầy Thu ngân", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] chạm hàng rào thông qua gần với [_4].", "Please_submit_a_valid_verification_token_": "Vui lòng nhập một mã thông báo xác nhận hợp lệ.", "Entry_spot": "Giá khởi điểm", "Start_Time": "Thời gian bắt đầu", "Never": "Chưa bao giờ", "Predict_the_direction<br_/>and_purchase": "Dự đoán khuynh hướng<br />và trả giá", "Current_password": "Mật khẩu hiện tại", "Touches": "Chạm", "Should_be_less_than_[_1]": "Nên là ít hơn so với [_1]", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Bạn đã rút số tiền tương đương với [_1] [_2] trong tổng số hơn [_3] ngày qua.", "Year": "Năm", "Your_trading_statistics_since_[_1]_": "Số liệu thống kê giao dịch của bạn kể từ [_1].", "Invalid_email_address": "Địa chỉ email không hợp lệ", "Jan": "Tháng Một", "This_is_a_staging_server_-_For_testing_purposes_only": "Đây là một máy chủ dàn dựng - chỉ cho mục đích chỉ thử nghiệm", "You_did_not_change_anything_": "Bạn chưa thay đổi bất cứ nội dung nào.", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Rất tiếc, tính năng này chỉ khả dụng với tài khoản tiền ảo.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Quỹ đã bị khóa theo yêu cầu của bạn - để mở khóa, vui lòng nhấn <a href=\"[_1]\">vào đây </a>.", "week": "tuần", "months": "tháng", "July": "Tháng Bảy", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Tài khoản của bạn bị hạn chế. [_1] vui lòng liên hệ hỗ trợ khách hàng [_2] để được hỗ trợ.", "Processing_your_request___": "Đang xử lý yêu cầu của bạn...", "All_barriers_in_this_trading_window_are_expired": "Tất cả các rào cản trong cửa sổ giao dịch này đã hết hạn", "All_markets_are_closed_now__Please_try_again_later_": "Tất cả các thị trường đều đã đóng cửa. Vui lòng thử lại sau.", "Real_Account": "Tài khoản Thực", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Máy chủ <a href=\"[_1]\">điểm cuối</a> là: [_2]", "Gaming_Account": "Tài khoản Cá cược", "second": "giây", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Yêu cầu rút tiền [_1] [_2] từ tài khoản [_3] của bạn và chuyển tới tài khoản Đại lý Thanh toán [_4] đã được xử lý thành công.", "Higher/Lower": "Cao hơn/Thấp hơn", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] là nghiêm thấp hơn so với các rào cản lúc gần với [_4].", "Unlock_Cashier": "Mở khóa Thu ngân", "Closed": "Đã đóng", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin vui lòng hoàn tất mẫu đánh giá tài chính [_1] [_2] để nâng rút tiền của bạn và kinh doanh các giới hạn.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Các cơ sở đại lý thanh toán hiện không có trong đất nước của bạn.", "Entry_Spot": "Giá khởi điểm", "Only_numbers_and_spaces_are_allowed_": "Chỉ số và khoảng trắng là được phép.", "Stays_Between": "Nằm giữa", "Credit/Debit": "Tín dụng/Ghi nợ", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Giao dịch thực hiện bởi [_1] (ID ứng dụng: [_2])", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Rút tiền tại tài khoản của bạn không được phép tại thời điểm này. Xin vui lòng liên hệ với [_1] để mở khóa.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Hạn mức rút tiền ngày [_1] của bạn hiện là [_2] [_3] (hoặc tương đương với đồng tiền khác).", "Waiting_for_entry_tick_": "Vui lòng đợi cho đến phiên gia nhập.", "September": "Tháng Chín", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin [_1] vui lòng hoàn thành hồ sơ tài khoản [_2] của bạn để nâng mức rút tiền và các giới hạn giao dịch.", "Mar": "Tháng Ba", "True": "Đúng", "Weekday": "Ngày trong tuần", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] vừa được cộng thêm vào tài khoản tiền Ảo [_3] của bạn", "You_have_sold_this_contract_at_[_1]_[_2]": "Bạn đã bán hợp đồng này với mức [_1] [_2]", "In/Out": "Trong/Ngoài", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Xin lỗi, bạn đã nhập sai mật khẩu thu ngân", "Read": "Đọc", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Giới hạn rút tiền của bạn là [_1] [_2] (hoặc tương đương với đồng tiền khác).", "Saturday": "Thứ Bảy", "seconds": "giây", "Tick": "Giây", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Khi bạn nhấp vào \"OK\" bạn sẽ bị loại bỏ khỏi giao dịch trên trang web tới ngày được chọn.", "month": "tháng", "Please_select_a_value": "Vui lòng chọn một giá trị", "Exit_spot": "Giá giao ngay thoát ra", "Barrier": "Rào cản", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Vì vậy khoản tiền rút tối đa hiện giờ của bạn (nói tới tài khoản đang có tiền được rút) là [_1] [_2].", "Matches/Differs": "Phù hợp/Khác", "Contract_ID": "Mã Hợp đồng", "Previous": "Trước", "End_time": "Thời gian Kết thúc", "Virtual_Account": "Tài khoản Ảo", "May": "Tháng Năm", "Sale_Price": "Giá Bán hàng", "Oct": "Tháng Mười", "Equals": "Tương đương", "Please_select_a_payment_agent": "Vui lòng chọn một đại lý thanh toán", "Note": "Chú ý", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Hợp đồng sẽ được bán ở giá thị trường hiện hành khi máy chủ nhận được yêu cầu. Giá này có thể khác với giá đã được chỉ định.", "Sell_time": "Thời gian Bán", "Friday": "Thứ Sáu", "Balance": "Số dư tài khoản", "from_[_1]_to_[_2]": "từ [_1] đến [_2]", "letters": "các ký tự", "Date": "Ngày", "Insufficient_balance_": "Số dư tài khoản không đủ.", "Statement": "Tuyên bố", "Buy": "Mua", "Open_a_Financial_Account": "Mở một Tài khoản Tài chính", "Japan": "Nhật Bản", "Old_password_is_wrong_": "Mật khẩu cũ không đúng.", "Name": "Tên", "Charting_for_this_underlying_is_delayed": "Biểu đồ cho tài sản cơ sở này bị hoãn", "Contract_is_not_started_yet": "Hợp đồng chưa được bắt đầu", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] vẫn giữa cao và thấp giá trị của các rào cản thông qua gần với [_4].", "Rise/Fall": "Tăng/Giảm", "space": "khoảng cách", "Closes_early_(at_18:00)": "Kết thúc sớm (tại 18:00)", "Current_Time": "Thời gian hiện tại", "min": "tối thiểu", "Should_be_a_valid_number": "Nên là một số hợp lệ", "Even/Odd": "Hòa vốn/ Số dư", "Lower": "Thấp hơn", "Investor_password": "Mật khẩu của nhà đầu tư", "Please_select_at_least_one_scope": "Vui lòng chọn ít nhất một phạm vi", "minute": "phút", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "tiền gửi [_1] từ [_2] đến tài khoản số [_3] được thực hiện. Giao dịch ID: [_4]", "Number_of_ticks": "Số điểm", "Dec": "Tháng 12", "Please_select": "Vui lòng chọn", "Spot": "Giao ngay", "Successful": "Thành công", "Forex": "Thị trường ngoại hối", "{JAPAN_ONLY}Please_complete_the_following_questions_": "{CHỈ DÀNH CHO THỊ TRƯỜNG NHẬT BẢN}Vui lòng hoàn thành những câu hỏi sau đây.", "Please_enter_a_number_between_[_1]_": "Vui lòng nhập một số giữa [_1].", "Higher": "Cao hơn", "Trade": "Giao dịch", "Select_your_trade_type": "Chọn loại giao dịch của bạn", "Investment_Account": "Tài khoản Đầu tư", "April": "Tháng 4", "Your_transaction_reference_is": "Tham chiếu giao dịch của bạn là", "There_was_a_problem_accessing_the_server_": "Có lỗi khi truy cập máy chủ.", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Đã đạt đến độ dài tối đa của mã token ([_1]).", "Sunday": "Chủ nhật", "details": "chi tiết", "Invalid_amount,_minimum_is": "Số tiền không hợp lệ, tối thiểu là", "Contract": "Hợp đồng", "hours": "giờ", "Your_settings_have_been_updated_successfully_": "Thiết lập của bạn đã được cập nhật thành công.", "day": "ngày", "This_field_is_required_": "Lĩnh vực này được yêu cầu.", "Minimum_of_[_1]_characters_required_": "Tối thiểu [_1] các kí tự cần thiết.", "End_time_must_be_after_start_time_": "Thời gian kết thúc phải sau thời gian bắt đầu.", "Should_be_between_[_1]_and_[_2]": "Nên ở giữa [_1] và [_2]", "Revoke_access": "Hủy bỏ truy cập", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Đặc điểm này không liên quan tới tài khoản tiền ảo.", "Delete": "Xóa", "Payment_Agent": "Đại lý Thanh toán", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Xin lỗi, tài khoản đăng ký là không có sẵn ở quốc gia của bạn. Xin vui lòng liên hệ với <a href=\"[_1]\"> hỗ trợ khách hàng</a> để biết thêm thông tin.", "Jul": "Tháng Bảy", "Please_accept_the_terms_and_conditions_": "Xin vui lòng chấp nhận các điều khoản và điều kiện.", "Your_Application_is_Being_Processed_": "Ứng dụng của bạn đang được xử lý.", "Goes_Outside": "Đi ra ngoài", "Exclude_time_cannot_be_for_more_than_5_years_": "Thời gian loại trừ không thể nhiều hơn 5 năm.", "Step": "Bước", "Return": "Lợi nhuận", "Short": "Ngắn", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Chức năng gửi tiền và rút tiền tại tài khoản của bạn không được phép tại thời điểm này. Xin vui lòng liên hệ với [_1] để mở khóa.", "High_Barrier": "Rào cản Cao", "Description": "Mô tả", "Asset_Index": "Chỉ số tài sản", "Asset": "Tài sản", "weeks": "tuần", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Địa chỉ thư điện tử cung cấp đang được sử dụng. Nếu bạn quên mật khẩu của bạn, hãy thử <a href=\"[_1]\"> công cụ phục hồi mật khẩu của chúng tôi</a> hoặc liên hệ với dịch vụ khách hàng của chúng tôi.", "Potential_Payout": "Tiền thưởng Tiềm năng", "Deposit": "Gửi tiền", "Please_input_a_valid_date": "Vui lòng nhập ngày hợp lệ", "Main_password": "Mật khẩu chính", "Select_market": "Chọn thị trường", "Your_changes_have_been_updated_successfully_": "Các thay đổi của bạn đã được cập nhật thành công.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Chuỗi xác nhận của bạn đã hết hiệu lực. Xin vui lòng nhấp chuột vào <a chref=\"[_1]\">đây</a> để khởi động lại quá trình xác minh.", "Sale_Date": "Ngày Bán hàng", "email_address": "địa chỉ hòm thư", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Vui lòng nhấn vào đường dẫn dưới đây để bắt đầu lại quá trình khôi phục mật khẩu. Nếu bạn cần thêm trợ giúp, vui lòng liên hệ với Trung tâm hỗ trợ khách hàng của chúng tôi.", "Please_select_the_checkbox_": "Vui lòng chọn hộp tích.", "Target": "Mục tiêu", "Real_Volatility": "Biến động thực", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Xin <a href=\"[_1]\"> vui lòng đăng nhập</a> để xem trang này.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Giới hạn rút tiền của bạn là [_1] [_2].", "Real_STP": "STP thực", "Create_Account": "Tạo Tài khoản", "This_contract_lost": "Hợp đồng này đã bị lỗ", "Loss": "Thất thoát", "There_was_a_problem_accessing_the_server_during_purchase_": "Có lỗi trung cập vào máy chủ khi mua.", "Low_Barrier": "Rào cản Thấp", "Duration": "Khoảng thời gian", "Trading_Times": "Thời gian Giao dịch", "Sep": "Tháng Chín", "Total_Cost": "Tổng Chi phí", "Resources": "Nguồn", "Barrier_Change": "Giới hạn Thay đổi", "Profit/Loss": "Lợi nhuận/Thua lỗ", "Your_account_has_no_trading_activity_": "Không có hoạt động giao dịch nào trên tài khoản của bạn.", "Password_is_not_strong_enough_": "Mật khẩu không đủ mạnh.", "Demo": "Thử nghiệm", "Date_and_Time": "Ngày và Thời gian", "Exit_Spot_Time": "Giá Giao ngay Thoát ra", "Purchase_Price": "Giá Mua", "numbers": "các số", "hour": "giờ", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Mật khẩu nên bao gồm cả chữ hoa, chữ thường và con số.", "Tuesday": "Thứ Ba", "Exclude_time_cannot_be_less_than_6_months_": "Thời gian loại trừ không thể ít hơn 6 tháng.", "Purchase_Time": "Thời gian Mua", "August": "Tháng 8", "There_was_an_error": "Đã có lỗi xảy ra", "Aug": "Tháng 8", "Fr": "Thứ 6", "Profit": "Lợi nhuận", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Tài khoản của bạn hiện đang bị khóa. Chỉ tính năng rút tiền được cho phép. Để biết thêm chi tiết, xin vui lòng liên hệ với [_1].", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Chuỗi xác nhận của bạn đã hết hiệu lực. Xin vui lòng nhấp chuột vào [_1]đây[_2] để khởi động lại quá trình xác minh.", "Upcoming_Events": "Sự kiện sắp diễn ra", "Open": "Mở", "Not": "Không", "Wednesday": "Thứ Tư", "Time_out_cannot_be_in_the_past_": "Thời hạn kết thúc không thể tồn tại trong quá khứ.", "Contract_Confirmation": "Xác nhận Hợp đồng", "Major_Pairs": "Cặp tiền tệ chính", "Token": "Mã Token", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Mật khẩu phụ có thể dùng để hạn chế truy cập vào khu thu ngân.", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] và [_2] không thể giống nhau.", "Time_out_cannot_be_more_than_6_weeks_": "Thời hạn kết thúc không thể lớn hơn 6 tuần.", "IP_Address": "Địa chỉ IP", "You_need_to_finish_all_20_questions_": "Bạn phải hoàn thành toàn bộ 20 câu hỏi.", "Contract_Information": "Thông tin của Hợp đồng", "Connection_error:_Please_check_your_internet_connection_": "Lỗi kết nối: xin vui lòng kiểm tra kết nối internet của bạn.", "Virtual_money_credit_to_account": "Tín dụng tiền ảo cho tài khoản", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Yêu cầu chuyển [_1] [_2] từ [_3] sang [_4] đã được xử lý thành công.", "Profit_Table": "Bảng Lợi nhuận", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Giới hạn thời hạn phiên không thể nhiều hơn 6 tuần.", "Please_enter_an_integer_value": "Vui lòng nhập giá trị số nguyên", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Chỉ chữ cái, khoảng trống, dấu nối, thời gian và dấu nháy đơn được cho phép.", "Portfolio": "Hồ sơ", "Closes_early_(at_21:00)": "Kết thúc sớm (lúc 21:00)", "Remaining_time": "Thời gian còn lại", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] đi bên ngoài thấp và cao các giá trị của các rào cản thông qua gần với [_4].", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Mật khẩu của bạn đã được thiết lập lại thành công. Vui lòng dùng mật khẩu mới đăng nhập vào tài khoản của bạn.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Bạn đã rút số tiền tương đương [_1] [_2].", "Cashier": "Thu ngân", "Only_numbers,_space,_and_hyphen_are_allowed_": "Chỉ số, khoảng trắng và dấu nối là được phép.", "Congratulations!_Your_[_1]_Account_has_been_created_": "Xin chúc mừng! Tài khoản [_1] của bạn đã được tạo.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Vì vậy khoản tiền rút tối đa hiện giờ của bạn (tài khoản đang có tiền được rút) là [_1] [_2] (hoặc đồng tiền khác có giá trị tương đương).", "Up/Down": "Lên/Xuống", "Reference_ID": "Tài khoản tham khảo", "Potential_Profit": "Lợi nhuận Tiềm năng", "Now": "Bây giờ", "Remaining_Time": "Thời gian còn lại", "years": "năm", "Today": "Hôm nay", "verification_token": "chuỗi số xác minh", "Opens": "Mở", "{JAPAN_ONLY}Knowledge_Test_Result": "{CHỈ DÀNH CHO THỊ TRƯỜNG NHẬT BẢN}Kết quả Bài Kiểm tra Kiến thức", "Upgrade_to_a_Financial_Account": "Nâng cấp lên Tài khoản Tài chính", "Sell": "Bán", "Current": "Tiền tệ", "Ends_Between": "Kết thúc giữa", "Fridays": "Thứ Sáu", "Finish": "Kết thúc", "Market_is_closed__Please_try_again_later_": "Thị trường đã đóng cửa. Vui lòng thử lại sau.", "Never_Used": "Chưa bao giờ Sử dụng", "Monday": "Thứ Hai", "Explanation": "Giải thích", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Quỹ đã được khóa theo yêu cầu của bạn - để mở khóa, vui lòng điền mật khẩu.", "today": "hôm nay", "Waiting_for_exit_tick_": "Vui lòng đợi cho dấu tích thoát.", "Admin": "Quản trị viên", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Tài khoản của bạn được xác thực đầy đủ và mức giới hạn rút tiền của bạn đã được nâng lên.", "New_token_created_": "Token mới đã được tạo.", "Please_select_a_valid_time_": "Vui lòng chọn một thời gian hợp lệ.", "June": "Tháng Sáu", "Exit_Spot": "Giá Giao ngay thoát ra", "Please_log_in_": "Vui lòng đăng nhập.", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "{CHỈ ĐỐI VỚI NHẬT BẢN} Ứng dụng của bạn đã xử lý. Xin vui lòng đăng nhập lại để truy cập vào tài khoản tiền thực của bạn.", "This_symbol_is_not_active__Please_try_another_symbol_": "Biểu tượng này là không hoạt động. Hãy thử một biểu tượng khác.", "Barrier_([_1])": "Rào cản ([_1])", "Low_Barrier_([_1])": "Rào cản Thấp ([_1])", "Jun": "Tháng Sáu", "Ends_In/Out": "Kết thúc Trong/Ngoài", "Last_Used": "Lần sử dụng cuối cùng", "March": "Tháng Ba", "New_Year's_Day": "Ngày của năm mới", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Bạn có chắc chắn muốn thu hồi quyền truy cập vào ứng dụng vĩnh viễn", "Sorry,_this_feature_is_not_available_": "Xin lỗi, đặc tính này không có.", "Net_profit": "Lợi nhuận thuần", "This_contract_won": "Hợp đồng này đã thắng", "New_password": "Mật khẩu mới", "Thursday": "Thứ Năm", "Shop": "Cửa hàng", "Failed": "Thất bại", "Action": "Hành động", "Closes": "Kết thúc", "Nov": "Tháng Mười một", "January": "Tháng Một", "You_have_not_granted_access_to_any_applications_": "Bạn không được phép truy cập bất kỳ một ứng dụng nào.", "Real_Standard": "Tiêu chuẩn thực", "October": "Tháng Mười", "Month": "Tháng", "Details": "Chi tiết", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Chỉ chữ cái, số, khoảng trắng, dấu gạch nối, dấu chấm, và dấu gạch ngang được cho phép.", "Please_check_the_above_form_for_pending_errors_": "Vui lòng kiểm tra các mục nêu trên cho những lỗi đang chờ xử lý.", "Payments": "Thanh toán", "Day": "Ngày", "Chart": "Biểu đồ", "Should_be_more_than_[_1]": "Nên là nhiều hơn so với [_1]", "We": "Chúng tôi", "The_main_password_of_account_number_[_1]_has_been_changed_": "Mật khẩu chính của tài khoản số [_1] đã bị thay đổi.", "False": "Sai", "Resale_not_offered": "Bán lại không được cho phép", "Sell_at_market": "Bán tại thị trường", "The_two_passwords_that_you_entered_do_not_match_": "Hai mật khẩu bạn vừa nhập không khớp với nhau.", "November": "Tháng Mười một", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] không chạm vào các rào cản thông qua đóng trên [_4]." };
-	texts_json['JA'] = { "Rise/Fall": "ラダー", "space": "スペース", "Closes_early_(at_18:00)": "判定時刻:18:00", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_3]のSTAY-INは取引期間中([_4])に上限バリア未満かつ下限バリア超過を維持すると予測", "Charting_for_this_underlying_is_delayed": "この対象のチャート表示は不可能です", "Name": "お名前", "Contract_is_not_started_yet": "トレードはまだ開始していません", "Open_a_Financial_Account": "金融口座の開設", "Japan": "日本", "Old_password_is_wrong_": "旧パスワードの値が不正です。", "Buy": "購入", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_2]から口座番号[_3]への入金が完了しました。取引参照ID：[_4]", "Number_of_ticks": "Tickの総数", "minute": "分", "Please_select_at_least_one_scope": "範囲を1つ以上選択してください", "Investor_password": "トレーダーパスワード", "min": "最小値", "Current_Time": "現在時刻：", "Lower": "LOW", "Even/Odd": "偶数/奇数", "Should_be_a_valid_number": "有効な数字を入力してください", "Previous": "戻る", "Contract_ID": "トレード ID", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "現在、出金可能な限度額（口座残高が不足していない場合）は¥ [_2]となります。", "Barrier": "バリア価格", "Exit_spot": "判定レート", "Matches/Differs": "MATCH/DIFFER", "month": "ヶ月", "Please_select_a_value": "値を選択してください。", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "\"Ok\"をクリックすると、選択した日付までこのサイトでのトレードができなくなります。", "seconds": "秒", "Date": "日付", "letters": "文字", "Statement": "口座残高", "Insufficient_balance_": "口座残高が不足しています", "Sell_time": "売却時間", "Friday": "金曜日", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "当社のサーバがリクエストを受理した時点での市場価格で売却取引が成立します。実際の約定価格と注文時の表示価格と異なる場合があります。", "from_[_1]_to_[_2]": "[_1]から[_2]まで", "Balance": "口座残高", "Please_select_a_payment_agent": "決済サービスを選択してください。", "Note": "注意", "Equals": "等しい", "Sale_Price": "売却 / ペイアウト金額", "End_time": "終了時間", "May": "5", "Virtual_Account": "デモ口座番号", "Oct": "10", "Unlock_Cashier": "入出金ロック解除", "Closed": "終了", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "その決済サービスは、お客さまのお住まいの国では現在ご利用いただけません。", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "取引上限と出金限度額を引き上げるには下記財務評価書にご記入をお願いします。", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_3]のラダーLOWは、判定時刻([_4])の時点でバリア価格未満であると予測", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "お客さまのご口座[_3]から決済サービス[_4]口座へ[_1] [_2]の出金リクエストが正常に処理されました。", "Higher/Lower": "ラダーLOW/ラダーHIGH", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "サーバーの <a href=\"[_1]\">エンドポイント</a> : [_2]", "Gaming_Account": "ゲームアカウント", "second": "秒", "Sorry,_you_have_entered_an_incorrect_cashier_password": "申し訳ございませんが、ご入力頂いた入出金パスワードに誤りがあります", "In/Out": "レンジ", "Saturday": "土", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "お客さまの出金限度額は ¥ [_2] です。限度額以上の出金額をご希望される場合は、本人確認が必要となりますのでカスタマーサポートへご連絡ください。", "Read": "読む", "You_have_sold_this_contract_at_[_1]_[_2]": "[_1] [_2]でこのトレードを売却しました", "Mar": "3", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "出金制限及び取引制限を解除するには、[_1]口座情報の入力を完了[_2]していただく必要があります。", "September": "９月", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2]をデモ口座[_3]に付与されました", "Weekday": "平日", "True": "正", "Credit/Debit": "支払/受取", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "[_1](App ID:[_2])によって取引が実行されました", "Su": "日", "Only_numbers_and_spaces_are_allowed_": "数字とスペースのみご利用いただけます。", "Stays_Between": "STAY-IN", "Entry_Spot": "取引開始時刻直後のティック", "Waiting_for_entry_tick_": "エントリーTickを検出中です・・・", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "お客様の口座の出金手続きは現在許可されていません。解除するには[_1]までご連絡ください。", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "お客さまの[_1]日の出金限度額は現在[_2] [_3]です。限度額以上の出金額をご希望される場合、本人確認が必要となります。", "This_is_a_staging_server_-_For_testing_purposes_only": "これはテストを目的としたステージングサーバーです", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "申し訳ございません。この機能はデモ口座のみでご利用頂けます。", "You_did_not_change_anything_": "変更はありません。", "Jan": "1", "Invalid_email_address": "無効なEメールアドレス", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "直近[_3]日間に累計[_1] [_2] と同等の金額を既に出金されています。", "Year": "年", "Your_trading_statistics_since_[_1]_": "[_1]からのお取引統計情報", "Touches": "TOUCH", "Current_password": "現在のパスワード", "Should_be_less_than_[_1]": "[_1]より低い必要があります。", "Real_Account": "リアル口座番号", "All_markets_are_closed_now__Please_try_again_later_": "営業時間外のためご利用になれません。", "All_barriers_in_this_trading_window_are_expired": "すべてのバリア価格は権利行使済みです", "Processing_your_request___": "ただいま処理中です。しばらくお待ち下さい。", "July": "７月", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "お客さまの口座は、現在ご利用制限が掛っております。<a href=\"[_1]\">カスタマーサポート</a>までご連絡下さい。", "Th": "木", "months": "ヶ月", "{JAPAN_ONLY}Congratulations,_you_have_pass_the_test,_our_Customer_Support_will_contact_you_shortly_": "おめでとうございます。テストに合格されましたので、カスタマーサポートよりメールにて口座開設の次のステップについてご連絡させていただきます。", "week": "週間", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "お客様の入出金はリクエストによりロックしました。 - 解除するには<a href=\"[_1]\">こちらをクリック</a>してください。", "Percentage": "割合", "Your_changes_have_been_updated_": "変更が更新されました。", "Over/Under": "以上/以下", "Upgrade_to_a_Real_Account": "リアル口座へアップグレード", "Start_time": "開始時間", "Scopes": "範囲", "Withdraw": "出金", "Walkthrough_Guide": "チュートリアルガイド", "Minute": "分", "Hour": "時間", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "口座番号[_2]から[_3]へのご出金が完了しました。取引参照ID：[_4]", "Only_[_1]_decimal_points_are_allowed_": "小数点以下[_1]桁のみご利用いただけます。", "Verification_code_format_incorrect_": "ワンタイムパスワードの形式が不適切です。", "Apr": "4", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "ページを更新して頂くか、もう一度お試しください。", "Predict_the_direction<br_/>and_purchase": "方向性<br />を予測して購入", "Start_Time": "取引開始時刻", "Never": "決してありません", "Lock_Cashier": "入出金をロック", "Entry_spot": "取引時刻直後のティック", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_3]のTOUCHは、取引期間([_4])が終了するまでバリア価格に達すると予測", "Please_submit_a_valid_verification_token_": "有効なワンタイムパスワードを送信してください。", "You_have_already_withdrawn_[_1]_[_2]_": "現在までの出金額は[_1] [_2]です。", "Sorry,_an_error_occurred_while_processing_your_request_": "通信エラーが発生しましたので、再度ページの読み込みをしてください", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_3]のEND-OUTは、判定時刻([_4])の時点で上限バリア以上もしくは下限バリア未満であるとを予測", "Time_is_in_the_wrong_format_": "開始時間に間違った値になっております", "Your_account_has_no_Login/Logout_activity_": "お客さまのご口座はログイン/ログアウトのアクティビティはございません。", "Feb": "2", "Spot_Time": "スポットタイム", "Please_select_a_valid_date_": "有効な日付を選択してください", "High_Barrier_([_1])": "上限バリア", "Score": "スコア", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_3]のEND-INは、判定時刻([_4])の時点で上限バリア未満かつ下限バリア以上であると予測", "There_was_some_invalid_character_in_an_input_field_": "入力された文字に使用できない文字が含まれています。", "Female": "女性", "today,_Fridays": "本日：金曜日", "Your_transaction_reference_number_is_[_1]": "決済の参照番号は[_1]です", "Account_balance:": "口座残高：", "Next": "次", "Touch/No_Touch": "TOUCH/NO-TOUCH", "Ref_": "約定番号", "Only_letters,_numbers,_and_hyphen_are_allowed_": "文字、数字、ハイフンのみご利用いただけます。", "Select_your_underlying_asset": "原資産を選択して下さい", "Payout": "ペイアウト", "days": "日", "Questions": "問題", "Are_you_sure_that_you_want_to_permanently_delete_token": "トークンを完全に削除してもよろしいですか？", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1]日 [_2]時間 [_3]分", "Update": "更新", "Contract_Sold": "売却", "Does_Not_Touch": "NO-TOUCH", "Only_[_1]_are_allowed_": "[_1]のみご利用いただけます。", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "出金制限及び取引制限を解除するには、[_1]改訂版利用規約に同意[_2]いただく必要があります。", "Change_Password": "パスワード変更", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "申し訳ございませんが、これ以上のトレードの購入を可能にする権限がお客さまのご口座に存在しておりません。", "Indicative": "参考売却金額", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "リアル口座へアップグレードされる前に%居住国[_2]を設定してください。", "Male": "男性", "Browser": "ブラウザ", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "ハイフンを入れて半角で入力してください", "Ends_Outside": "END-OUT", "{JAPAN_ONLY}Dear_customer,_you've_already_completed_the_knowledge_test,_please_proceed_to_next_step_": "お客さまへ\n\n既に知識確認テストは完了しています。送信済みのメールを確認の上、口座開設の手続きを進めてください。", "Sorry,_an_error_occurred_while_processing_your_account_": "通信エラーが発生しましたので、再度ページの読み込みをしてください", "End_Time": "判定時刻", "Status": "金融資産", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "お客様の取引継続時間制限は[_1]秒後に終了します。", "Sa": "土", "Amount": "金額", "Permissions": "アクセス許可", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "入金制限を解除するには、[_1]自己制限[_2]から30日の取引数量限度額を設定してください。", "mins": "分", "Last_Digit_Stats": "下一桁ステータス", "minutes": "分", "Total_Profit/Loss": "合計　損益", "Long": "ロング", "Christmas_Day": "クリスマス", "December": "１２月", "Contract_Expiry": "取引終了", "Settles": "決済時間", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_3]のラダーHIGHは、判定時刻([_4])の時点でバリア価格以上であると予測", "February": "２月", "Invalid_amount,_maximum_is": "無効な値です。最大はXXXです。", "Stays_In/Goes_Out": "STAY-IN/BREAK-OUT", "Time_out_must_be_after_today_": "終了時間は明日以降として設定して下さい。", "Mo": "月", "You_should_enter_[_1]_characters_": "[_1]文字でご入力ください", "View": "表示", "Final_price": "最終価格", "Stake": "購入価格", "Adjust_trade_parameters": "取引期間を選択して頂き購入希望ロット数を入力して下さい。", "h": "時間", "Price": "売却/ペイアウト金額", "Select_your_market": "取引市場を選択", "Buy_price": "購入金額（単価）", "year": "年", "Real_Cent": "リアルセント", "Should_be_more_than_[_1]": "[_1]を上回る必要があります", "Chart": "チャート", "We": "水", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "文字、数字、スペース、ハイフン(-)、ピリオド(.)、アポストロフィ(')のみご利用いただけます。", "Details": "お客さま基本情報", "Payments": "アフィリエイト報酬の支払いについて", "Day": "日", "Please_check_the_above_form_for_pending_errors_": "未入力の項目がありますのでご確認ください", "Real_Standard": "リアル スタンダード", "Month": "月", "October": "１０月", "Closes": "取引終了時間", "Nov": "11", "You_have_not_granted_access_to_any_applications_": "アプリケーションへのアクセス権限がありません。", "January": "１月", "The_two_passwords_that_you_entered_do_not_match_": "入力頂いたパスワードと一致しません。", "November": "１１月", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_3]のNO-TOUCHは、取引期間([_4])が終了するまでにバリア価格に達しないと予測", "Resale_not_offered": "満期までの2分は売却取引不可", "Sell_at_market": "売却", "The_main_password_of_account_number_[_1]_has_been_changed_": "口座番号 [_1]のメインパスワード変更を承りました。", "False": "誤", "June": "６月", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "リアル口座開設は完了致しました。使用するには再度ログインが必要となります。", "Please_log_in_": "ログインをしてください。", "Exit_Spot": "判定レート", "Digit": "数字", "New_token_created_": "新しいトークンが作成されました。", "Please_select_a_valid_time_": "有効な時間を選択してください", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "お客様のキャッシャーはリクエストにより、ロックされました。 - 解除するにはパスワードをご入力ください。", "today": "本日", "Explanation": "取引概要", "Admin": "管理者", "Waiting_for_exit_tick_": "イグジットTickを検出中です・・・", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "お客さまのご口座はアップグレード済みですので、ご出金制限が引き上げられました。", "Finish": "完了", "Fridays": "金曜日", "Monday": "月", "Never_Used": "使用されることはありません。", "Market_is_closed__Please_try_again_later_": "営業時間外のためご利用になれません。", "Shop": "ショップ", "New_password": "新しいパスワード", "This_contract_won": "このトレードは勝ち判定", "Thursday": "木", "Failed": "失敗しました", "Action": "売買", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "アプリケーションへのアクセスを完全に削除してもよろしいですか？", "Sorry,_this_feature_is_not_available_": "申し訳ございませんが、この機能はご利用いただけません。", "New_Year's_Day": "元旦", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "現在テストを受験いただけません。前回のテストの翌営業日に再度受験いただけます。", "Net_profit": "純利益", "AM": "午前", "Last_Used": "最後に使用したもの", "March": "３月", "This_symbol_is_not_active__Please_try_another_symbol_": "このシンボルは現在ご利用いただけません。他のシンボルでお試しください。", "Barrier_([_1])": "バリア価格", "Low_Barrier_([_1])": "下限バリア", "Ends_In/Out": "END-IN/END-OUT", "Jun": "6", "{JAPAN_ONLY}Knowledge_Test": "知識確認テスト", "Up/Down": "ラダー", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "そのため、現在即座にご出金いただける限度金額（ただし、ご口座残高が不足していない場合）は[_1] [_2]までです。", "Congratulations!_Your_[_1]_Account_has_been_created_": "おめでとうございます！[_1]口座の作成が完了しました。", "Reference_ID": "約定番号", "Only_numbers,_space,_and_hyphen_are_allowed_": "数字、スペース、ハイフンのみご利用いただけます。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "[_1] [_2] と同等の金額を既に出金されています。", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "パスワードの再設定を完了しました。新しいパスワードでログインしてください。", "Cashier": "入出金", "Current": "現在", "Ends_Between": "END-IN", "verification_token": "ワンタイムパスワード", "Opens": "取引開始時間", "Sell": "売却", "{JAPAN_ONLY}Knowledge_Test_Result": "知識確認テスト結果", "Upgrade_to_a_Financial_Account": "金融口座へアップグレード", "Remaining_Time": "満期までの残り時間", "Today": "本日", "years": "年", "Potential_Profit": "期待利益", "IP_Address": "IPアドレス", "Time_out_cannot_be_more_than_6_weeks_": "終了時間を6週間以上先には設定できません。", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] と [_2]を同じ内容にすることはできません。", "Major_Pairs": "主要通貨ペア", "Token": "トークン", "Contract_Confirmation": "トレード確定", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "入出金へのアクセスを制限するために、追加パスワードを使用することができます。", "Time_out_cannot_be_in_the_past_": "終了時間を過去の時間に設定することはできません。", "Not": "ない", "Wednesday": "水", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_3]のBREAK-OUTは、取引期間中([_4])に上限バリア以上もしくは下限バリア以下になると予測", "Remaining_time": "満期までの残り時間", "Closes_early_(at_21:00)": "判定時刻:21:00", "Profit_Table": "取引明細", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "[_3]から[_4]へのご送金[_1] [_2]リクエストが正常に処理されました。", "Virtual_money_credit_to_account": "バーチャルマネーを入金", "Connection_error:_Please_check_your_internet_connection_": "接続エラー：インターネット接続状況をご確認ください。", "Portfolio": "ポジション一覧", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "文字、スペース、ハイフン、ピリオド、アポストロフィのみご利用いただけます。", "Please_enter_an_integer_value": "半角で数値をご入力して下さい", "Session_duration_limit_cannot_be_more_than_6_weeks_": "セッション期間制限は7週間以上に設定できません。", "Contract_Information": "約定済み通知", "You_need_to_finish_all_20_questions_": "まだ、無解答の問題があります。", "Purchase_Price": "購入金額", "numbers": "数字", "hour": "時間", "Your_account_has_no_trading_activity_": "取引履歴はありません", "Demo": "デモ", "Date_and_Time": "日時", "Exit_Spot_Time": "売却/判定時刻", "Password_is_not_strong_enough_": "パスワード強度が十分ではありません。", "Profit/Loss": "損益", "Barrier_Change": "バリア値の変更", "Trading_Times": "トレード対応時間", "Duration": "取引期間", "Resources": "取引参考情報", "Sep": "9", "Total_Cost": "合計投資額", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "残念ながら、合格点に達しませんでした。24時間以降（週末を除く）に再受験してください。", "Upcoming_Events": "取引時間短縮日及び祝日", "{JAPAN_ONLY}Dear_customer,_you_are_not_allowed_to_take_knowledge_test_until_[_1]__Last_test_taken_at_[_2]_": "お客さまへ\n\n現在、知識確認テストの受験を行うことができません。[_1]以降に再受験してください。前回受験日[_2]", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "現在お客様の口座は、一時的にご利用いただけません。詳細は、[_1]までご連絡ください。", "Profit": "利益", "{JAPAN_ONLY}Take_knowledge_test": "知識確認テストを受ける", "Fr": "金", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "ワンタイムパスワードの有効期限が切れています。再度、[_1]「最初からやり直し」[_2] をクリックしてワンタイムパスワードを発行して下さい。", "There_was_an_error": "エラーが発生しました", "August": "８月", "Aug": "8", "Exclude_time_cannot_be_less_than_6_months_": "5ヶ月以下の除外時間を設定することはできません。", "Tuesday": "火", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "大文字と小文字を含む英字と数字を組み合わせる必要があります", "Purchase_Time": "購入時間", "email_address": "メールアドレス", "Sale_Date": "売却/判定時刻", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "ワンタイムパスワードの有効期限が切れています。再度、<a href=\"[_1]\">「最初からやり直し」</a> をクリックしてワンタイムパスワードを発行して下さい。", "Your_changes_have_been_updated_successfully_": "設定が正しく更新されました。", "Deposit": "入金", "weeks": "週間", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "ご入力いただいたメールアドレスは既に他のログインIDで使用されています。パスワードをお忘れの場合は、<a href=\"[_1]\">こちら</a>からパスワードを再発行して頂くか、カスタマーサポートまでご連絡下さい。", "Potential_Payout": "ペイアウト", "Select_market": "取引市場を選択", "Please_input_a_valid_date": "有効な日にちを入力して下さい。", "Main_password": "メインパスワード", "Asset_Index": "取引期間データ", "High_Barrier": "上限バリア", "Description": "取引内容", "Asset": "取引対象", "Short": "ショート", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "お客様の口座への入出金手続きは、現在許可されていません。解除するには[_1]までご連絡ください。", "Your_withdrawal_limit_is_[_1]_[_2]_": "お客さまの出金限度額は[_1] [_2]です。限度額以上の出金額をご希望される場合は、本人確認が必要となりますので\nカスタマーサポートへご連絡ください。", "There_was_a_problem_accessing_the_server_during_purchase_": "購入時にサーバーアクセスのエラーが発生がしました。", "Low_Barrier": "下限バリア", "Real_STP": "リアルSTP", "Create_Account": "デモ口座開設", "This_contract_lost": "このトレードは負け判定", "Loss": "損益", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "現在、ログアウトの状態です。ご利用頂くためには再度<a href=\"[_1]\">ログイン</a>をしてください。", "Real_Volatility": "リアル ボラティリティ", "Please_select_the_checkbox_": "チェックボックスを選択してください", "Tu": "火", "Target": "ターゲット", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1]下記リンクをクリックしてパスワードの再設定を再度お試しください。サポートが必要な場合は、 カスタマーサポートまでご連絡ください。", "Delete": "消去", "Should_be_between_[_1]_and_[_2]": "投資は、[_1]から[_2]の間である必要があります。", "End_time_must_be_after_start_time_": "取引終了時間は明日以降として設定して下さい。", "This_feature_is_not_relevant_to_virtual-money_accounts_": "この機能は、デモ口座ではご利用頂けません。", "Revoke_access": "アクセス権の取消", "day": "日", "Minimum_of_[_1]_characters_required_": "[_1]文字以上でご入力ください。", "This_field_is_required_": "この項目は必須です。", "Step": "ステップ", "Return": "リターン率", "Goes_Outside": "BREAK-OUT", "Exclude_time_cannot_be_for_more_than_5_years_": "6年以上の除外期間は設定することはできません。", "Your_Application_is_Being_Processed_": "お客さまの口座開設申込書類の処理中です。", "Jul": "7", "Please_accept_the_terms_and_conditions_": "利用規約に同意していただく必要があります。", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "出金制限及び取引制限を解除するには、[_1]口座認証[_2]をしていただく必要があります。", "PM": "午後", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "申し訳ございませんが、お客様の国では口座の開設ができません。詳細については<a href=\"[_1]\">カスタマーサポート</a>までお問い合わせください。", "Payment_Agent": "決済サービス", "Investment_Account": "投資口座", "Higher": "HIGH", "Trade": "トレード", "Select_your_trade_type": "取引タイプを選択して下さい", "Successful": "成功しました", "Spot": "スポットレート", "Please_enter_a_number_between_[_1]_": "[_1]の間の数字を入力してください。", "{JAPAN_ONLY}Please_complete_the_following_questions_": "知識確認テスト用ディスクレーマー", "Forex": "外国為替", "Please_select": "選択して下さい", "Dec": "12", "hours": "時間", "Contract": "トレード", "Your_settings_have_been_updated_successfully_": "設定は正しく更新されました。", "Invalid_amount,_minimum_is": "無効な値です。最小", "logout": "ログアウト", "Sunday": "日", "details": "詳細", "Your_transaction_reference_is": "トレード参照番号：", "There_was_a_problem_accessing_the_server_": "サーバーアクセスにエラーが発生しました。", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "トークンの最大数([_1]) に達しました。", "April": "４月" };
-	texts_json['ZH_CN'] = { "Browser": "浏览器", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "升级到真实资金账户前请先设置[_1]居住国[_2]。", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "对不起，您的账户无权进一步买入任何合约。", "Indicative": "指示性", "Change_Password": "更改密码", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "请[_1]接受更新条款和条件[_2]，以提高存取款限额。", "Amount": "金额", "Sa": "星期六", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "交易期持续时间限制将于[_1]秒内结束。", "End_Time": "结束时间", "Sorry,_an_error_occurred_while_processing_your_account_": "对不起，您的账户处理发生错误。", "Status": "统计", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "请按照以下格式填写：3个数字，1个短划线，加上4个数字。", "Ends_Outside": "区间之外结束", "Invalid_amount,_maximum_is": "无效金额，最大金额是", "February": "二月", "Stays_In/Goes_Out": "“保持在范围之内/超出范围之外”", "Christmas_Day": "圣诞节", "Settles": "结算", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]严格高于或相等于障碍价格，可获取[_1] [_2] 赔付额。", "December": "十二月", "Contract_Expiry": "合约到期日", "mins": "分钟", "Last_Digit_Stats": "最后数字的统计数据", "Long": "长仓", "Total_Profit/Loss": "利润/亏损合计", "minutes": "分钟", "Permissions": "权限", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "请到[_1]自我禁止工具[_2]设置30天交易限额，以移除存款限额。", "Real_Cent": "真实美分", "Select_your_market": "选择市场", "Price": "价格", "year": "年", "Buy_price": "买入价", "Adjust_trade_parameters": "调整交易参数", "h": "小时", "Stake": "投注资金", "You_should_enter_[_1]_characters_": "您必须输入[_1]个字符。", "Mo": "星期一", "Time_out_must_be_after_today_": "到期时间必须在今日之后。", "Final_price": "最终价格", "View": "查看", "Apr": "四月", "Verification_code_format_incorrect_": "验证码格式不正确。", "Hour": "小时", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "已完成从账号[_2]至[_3]的[_1]提款。交易编号: [_4]交易编号：[_4]", "Only_[_1]_decimal_points_are_allowed_": "只允许 % 个小数位。", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "您已达每秒钟提呈请求的最高限率。请稍后重试。", "Withdraw": "取款", "Minute": "分钟", "Walkthrough_Guide": "攻略指南", "Upgrade_to_a_Real_Account": "升级到真实账户", "Over/Under": "大于/小于", "Your_changes_have_been_updated_": "您的更改已成功更新。", "Scopes": "范围", "Start_time": "开始时间", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]平仓价在障碍价格最低和最高价位范围外，可获取[_1] [_2] 赔付额。", "Time_is_in_the_wrong_format_": "时间格式错误。", "Sorry,_an_error_occurred_while_processing_your_request_": "对不起，您的请求处理发生错误。", "You_have_already_withdrawn_[_1]_[_2]_": "您已提取[_1] [_2]。", "Feb": "二月", "Your_account_has_no_Login/Logout_activity_": "您的账户无交易活动。", "Lock_Cashier": "锁定收银台", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]触及障碍价格，可获取[_1] [_2] 赔付额。", "Please_submit_a_valid_verification_token_": "请提交有效的验证令牌。", "Entry_spot": "入市现价", "Start_Time": "开始时间", "Never": "从未", "Predict_the_direction<br_/>and_purchase": "预测价格走向<br />并购入", "Touch/No_Touch": "触及/未触及", "Account_balance:": "账户余额：", "Your_transaction_reference_number_is_[_1]": "您的交易参考号是 [_1]", "Next": "下一页", "There_was_some_invalid_character_in_an_input_field_": "某字段的输入字符无效。", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]平仓价相等于或介于障碍价格最低和最高价位间，可获取[_1] [_2] 赔付额。", "today,_Fridays": "今天、周五", "Female": "女", "Spot_Time": "现货时间", "High_Barrier_([_1])": "高障碍([_1])", "Please_select_a_valid_date_": "请选择ั有效日期。", "Contract_Sold": "售出合约", "Update": "更新", "Does_Not_Touch": "未触及", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] 天 [_2] 小时 [_3] 分钟", "Only_[_1]_are_allowed_": "只允许 [_1] 。", "Questions": "问题", "Are_you_sure_that_you_want_to_permanently_delete_token": "确定要永久删除令牌吗", "Payout": "赔付", "days": "天", "Ref_": "参考", "Select_your_underlying_asset": "选择基础资产", "Only_letters,_numbers,_and_hyphen_are_allowed_": "只允许字母、数字和连字符。", "Gaming_Account": "博彩账户", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "服务器<a href=\"[_1]\">终端</a>是: [_2]", "second": "秒", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "您从 [_3] 账户提取 [_1] [_2] 到支付代理 [_4]账户的请求已成功处理。", "Higher/Lower": "“高于/低于”", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]严格低于障碍价格，可获取[_1] [_2] 赔付额。", "Unlock_Cashier": "解锁收银台", "Closed": "收盘", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "请完成[_1]财务评估表格[_2]，以便提升您的取款和交易限额 。", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "您的国家无可用支付代理设施。", "Entry_Spot": "入市现价", "Only_numbers_and_spaces_are_allowed_": "只允许数字和空格。", "Stays_Between": "位于区间之内", "Credit/Debit": "借方/贷方", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "交易执行者为[_1] (应用程序 ID: [_2])", "Su": "星期日", "Waiting_for_entry_tick_": "正在等待进场跳动点。", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的账户现时无法取款。请联系[_1]进行解锁。", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "您的 [_1] 天取款限额目前为 [_2] [_3] （或其他货币的等值）。", "September": "九月", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "请[_1]完成账户资料[_2]，以提高取款和交易限额。", "Mar": "三月", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] 已记入您的虚拟资金账户[_3]", "Weekday": "交易日", "You_have_sold_this_contract_at_[_1]_[_2]": "您已经以 [_1] [_2] 卖出此合约", "In/Out": "“范围之内/之外”", "Sorry,_you_have_entered_an_incorrect_cashier_password": "对不起，您输入的收银台密码不正确", "Read": "阅读", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "您的取款限额为 [_1] [_2] (或其他货币的等值 ）。", "Saturday": "周六", "Current_password": "当前密码", "Touches": "触及", "Should_be_less_than_[_1]": "必须少于[_1]", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "过去 [_3] 天里您已累计提取 [_1] [_2] 的等值。", "Your_trading_statistics_since_[_1]_": "您自 [_1] 至今的交易统计。", "Year": "年", "Invalid_email_address": "无效的电子邮件地址", "Jan": "一月", "This_is_a_staging_server_-_For_testing_purposes_only": "这是分期服务器 -仅用于测试目的", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "对不起，此功能仅适用虚拟账户。", "You_did_not_change_anything_": "您没作任何更改。", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "根据您的请求，您的收银台已被锁定 - 如需解除锁定，请点击<a href=\"[_1]\">此处</a>。", "week": "周", "months": "月份", "Percentage": "百分比", "Th": "星期四", "July": "七月", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "您的账户已被限制。请[_1]联系客服部[_2]，以获得帮助。", "All_barriers_in_this_trading_window_are_expired": "此交易窗口的所有障碍已过期", "Processing_your_request___": "您的请求在处理中...", "All_markets_are_closed_now__Please_try_again_later_": "所有市场现已关闭。请稍后重试。", "Real_Account": "真实账户", "Buy": "买入", "Japan": "日本", "Old_password_is_wrong_": "旧密码不正确。", "Open_a_Financial_Account": "开设金融账户", "Name": "姓名", "Charting_for_this_underlying_is_delayed": "此标的资产的图表数据存在延迟", "Contract_is_not_started_yet": "合约还未开始", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]在障碍价格最低和最高价位范围内，可获取[_1] [_2] 赔付额。", "space": "空间", "Rise/Fall": "上涨/下跌", "Closes_early_(at_18:00)": "收盘提前（至18:00）", "min": "最小", "Current_Time": "当前时间", "Even/Odd": "偶/奇", "Should_be_a_valid_number": "必须是有效号码", "Lower": "低于", "Investor_password": "投资者密码", "Please_select_at_least_one_scope": "请选择至少一个范围", "minute": "分钟", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "已完成从[_2]至账号[_3]的[_1]存款。交易编号: [_4]", "Number_of_ticks": "跳动点数目", "seconds": "秒", "Tick": "跳动点", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "当您点选“OK”后，您将被禁止在此网站交易，直到选定期限结束为止。", "Please_select_a_value": "请选择一个数值", "month": "月份", "Barrier": "障碍", "Exit_spot": "退市现价", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "因此，您当前可即时提取的最大金额（要求您的帐户有足够资金）为 [_1] [_2]。", "Matches/Differs": "符合/相差", "Contract_ID": "合约编号", "Previous": "之前", "Virtual_Account": "虚拟账户", "End_time": "结束时间", "May": "五月", "Sale_Price": "卖出价格", "Oct": "十月", "Equals": "相等于", "Please_select_a_payment_agent": "请选择支付代理", "Note": "附注", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "合约将在我们服务器收到请求时，以当时的市场价格卖出。此价格可能与报价有差异。", "Friday": "星期五", "Sell_time": "卖出时间", "Balance": "余额", "from_[_1]_to_[_2]": "从[_1]到[_2]", "letters": "信件", "Date": "日期", "Statement": "账单", "Insufficient_balance_": "余额不足。", "day": "天", "This_field_is_required_": "此字段为必填项。", "Minimum_of_[_1]_characters_required_": "需至少[_1] 个字符。", "End_time_must_be_after_start_time_": "结束时间必须在开始时间之后。", "Should_be_between_[_1]_and_[_2]": "须在[_1] 与 [_2]之间", "Revoke_access": "撤销访问权限", "This_feature_is_not_relevant_to_virtual-money_accounts_": "此功能不适用于虚拟资金账户。", "Delete": "删除", "Payment_Agent": "付款代理", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "对不起，您的国家不可注册账户。欲知详情，请联系<a href=\"[_1]\">客服部</a>。", "Jul": "七月", "Please_accept_the_terms_and_conditions_": "请接受条款和条件。", "Your_Application_is_Being_Processed_": "您的申请已经处理完成。", "PM": "下午", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "立刻进行[_1]账户验证[_2]，以获得取款选项的所有优惠。", "Goes_Outside": "处于区间之外", "Exclude_time_cannot_be_for_more_than_5_years_": "禁止时间不能超过5年。", "Step": "步骤", "Return": "回报", "Please_select": "请选择", "Dec": "十二月", "Spot": "现价", "Successful": "成功", "Forex": "外汇", "Please_enter_a_number_between_[_1]_": "请输入[_1]之间的数字。", "Higher": "高于", "Trade": "交易", "Select_your_trade_type": "选择交易类型", "Investment_Account": "投资账户", "April": "四月", "There_was_a_problem_accessing_the_server_": "服务器访问发生问题。", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "已达令牌 ([_1]) 最大限数。", "Your_transaction_reference_is": "您的交易参考号是", "logout": "注销", "Sunday": "周日", "details": "详情", "Invalid_amount,_minimum_is": "无效金额，最小金额是", "Contract": "合约", "Your_settings_have_been_updated_successfully_": "您的设置已成功更新。", "hours": "小时", "Duration": "期限", "Trading_Times": "交易时间", "Sep": "九月", "Total_Cost": "成本总计", "Resources": "资源", "Barrier_Change": "障碍变更", "Profit/Loss": "利润/亏损", "Your_account_has_no_trading_activity_": "您的账户无交易活动。", "Password_is_not_strong_enough_": "密码安全度不够。", "Demo": "演示", "Date_and_Time": "日期和时间", "Exit_Spot_Time": "退市现价时间", "Purchase_Price": "买入价格", "numbers": "号码", "hour": "小时", "Tuesday": "星期二", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "密码须包含大小写字母与数字。", "Exclude_time_cannot_be_less_than_6_months_": "禁止时间不能少于6个月。", "Purchase_Time": "买入时间", "August": "八月", "There_was_an_error": "出现错误", "Aug": "八月", "Fr": "星期五", "Profit": "利润", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "您的账户已被暂时禁用，现仅允许取款。欲知详情，请联系 [_1]。", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "您的令牌已过期。请点击[_1]此处[_2]重启验证程序。", "Upcoming_Events": "未来事件", "Short": "短仓", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的账户现时无法存取款。请联系[_1]进行解锁。", "High_Barrier": "高障碍", "Description": "说明", "Asset_Index": "资产指数", "Asset": "资产", "weeks": "周", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "所提供的电子邮件地址已经在使用。如果忘了密码，请尝试使用我们的<a href=\"[_1]\">密码恢复工具</a>或联系客服部。", "Potential_Payout": "可能的赔付额", "Deposit": "存款", "Please_input_a_valid_date": "请输入有效日期", "Main_password": "主密码", "Select_market": "选择市场", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "您的令牌已过期。请点击<a href=\"[_1]\">此处</a>重启验证程序。", "Your_changes_have_been_updated_successfully_": "您的更改已成功更新。", "Sale_Date": "卖出日期", "email_address": "电子邮件地址", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] 请点击以下链接重启密码恢复过程。如果需要帮助，请联系客服部。", "Please_select_the_checkbox_": "请选择复选框。", "Tu": "星期二", "Target": "目标", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "要查看此页面请先<a href=\"[_1]\">登录</a>。", "Real_Volatility": "真实波动率", "Your_withdrawal_limit_is_[_1]_[_2]_": "您的取款限额是 [_1] [_2]。", "This_contract_lost": "此合约亏损", "Create_Account": "开立账户", "Real_STP": "真实STP", "Loss": "亏损", "Low_Barrier": "低障碍", "There_was_a_problem_accessing_the_server_during_purchase_": "买入时服务器访问发生问题。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "您已提取 [_1] [_2] 的等值。", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "您的密码已成功重置。请用新密码登录您的账户。", "Cashier": "收银台", "Only_numbers,_space,_and_hyphen_are_allowed_": "只允许数字、空格和连字符。", "Congratulations!_Your_[_1]_Account_has_been_created_": "恭喜! 您已成功开立[_1]账户。", "Up/Down": "涨/跌", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "因此您当前的即时最高取款额（要求您的账户有充足资金）为[_1] [_2]（或其他等值货币）。", "Reference_ID": "参考编号", "Potential_Profit": "潜在利润", "Now": "现在", "Remaining_Time": "剩余时间", "years": "年", "Today": "今天", "Opens": "开盘", "verification_token": "验证令牌", "Upgrade_to_a_Financial_Account": "升级到金融账户", "Sell": "卖出", "Current": "当前", "Ends_Between": "区间之内结束", "Open": "开盘", "Not": "不", "Wednesday": "星期三", "Time_out_cannot_be_in_the_past_": "到期时间不可为过去式。", "Contract_Confirmation": "合约确认", "Token": "令牌", "Major_Pairs": "主要货币对", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "可使用额外密码来限制对收银台的访问。", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] 和 [_2] 不可相同。", "Time_out_cannot_be_more_than_6_weeks_": "到期时间不能大于 6周。", "IP_Address": "IP 地址", "You_need_to_finish_all_20_questions_": "必须答复全部20个问题。", "Contract_Information": "合约信息", "Connection_error:_Please_check_your_internet_connection_": "连接错误：请检查您网络连接。", "Virtual_money_credit_to_account": "虚拟资金进入账户", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "您从 [_3] 转账 [_1][_2] 到 [_4] 的请求已成功处理。", "Profit_Table": "利润表", "Session_duration_limit_cannot_be_more_than_6_weeks_": "交易期持续时间限制不能大于 6周。", "Portfolio": "投资组合", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允许字母、空格、连字符、句号和省略号。", "Please_enter_an_integer_value": "请输入整数", "Closes_early_(at_21:00)": "收盘提前（至21:00）", "Remaining_time": "剩余时间", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]价在障碍价格最低和最高价位范围外，可获取[_1] [_2] 赔付额。", "Nov": "十一月", "Closes": "收盘", "January": "一月", "You_have_not_granted_access_to_any_applications_": "您没有访问任何应用程序的权限。", "Real_Standard": "真实标准", "October": "十月", "Month": "月份", "Details": "详情", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允许使用字母、数字、空格、连字符、句点和省略号。", "Please_check_the_above_form_for_pending_errors_": "请检查以上表格是否有待定错误。", "Payments": "支付", "Day": "天", "Chart": "图表", "Should_be_more_than_[_1]": "必须大于 [_1]", "We": "星期三", "The_main_password_of_account_number_[_1]_has_been_changed_": "[_1]账号的主密码已更改。", "Resale_not_offered": "不提供转售", "Sell_at_market": "按市价卖出", "November": "十一月", "The_two_passwords_that_you_entered_do_not_match_": "两次输入的密码不一致。", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]未触及障碍价格，可获取[_1] [_2]的赔付额。", "Fridays": "星期五", "Finish": "完成", "Market_is_closed__Please_try_again_later_": "市场已关闭。请稍后重试。", "Monday": "星期一", "Never_Used": "从未使用过", "Explanation": "说明", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "根据您的请求，您的收银台已被锁定 - 如需解除锁定，请输入密码。", "today": "今天", "Waiting_for_exit_tick_": "正在等待退场跳动点。", "Admin": "管理中心", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "您的账户已经得到完全验证，且您的取款限额已经取消。", "New_token_created_": "已创建新口令牌。", "Digit": "数字期权", "Please_select_a_valid_time_": "请选择ั有效时间。", "June": "六月", "Exit_Spot": "退市现价", "Please_log_in_": "请登录。", "Barrier_([_1])": "障碍([_1])", "Low_Barrier_([_1])": "低障碍([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "这是个非活跃符号。请试另一符号。", "Jun": "六月", "Ends_In/Out": "“范围之内/之外”收盘", "Last_Used": "上一次使用", "March": "三月", "New_Year's_Day": "元旦", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "确定要永久废除应用程序访问权限吗", "Sorry,_this_feature_is_not_available_": "对不起，此功能不可用。", "Net_profit": "净收益", "AM": "上午", "Thursday": "星期四", "New_password": "新密码", "This_contract_won": "此合约获利", "Shop": "商店", "Action": "操作", "Failed": "失败" };
-	texts_json['ZH_TW'] = { "Goes_Outside": "處於區間之外", "Exclude_time_cannot_be_for_more_than_5_years_": "禁止時間不能超過5年。", "Return": "回報", "Step": "步驟", "Please_accept_the_terms_and_conditions_": "請接受條款和條件。", "Jul": "七月", "Your_Application_is_Being_Processed_": "您的申請已經處理完成。", "PM": "下午", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "立刻進行[_1]帳戶驗證[_2]，以獲得取款選項的所有優惠。", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "對不起，您的國家不能註冊帳戶。欲知詳細資訊，請聯繫<a href=\"[_1]\">客服部</a>。", "Payment_Agent": "付款代理", "Delete": "刪除", "End_time_must_be_after_start_time_": "結束時間必須開始時間之後。", "Should_be_between_[_1]_and_[_2]": "須在[_1] 與 [_2]之間", "This_feature_is_not_relevant_to_virtual-money_accounts_": "此功能不適用於虛擬資金帳戶。", "Revoke_access": "撤銷存取權限", "day": "天", "This_field_is_required_": "此為必填欄位。", "Minimum_of_[_1]_characters_required_": "需至少[_1] 個字元。", "Your_settings_have_been_updated_successfully_": "您的設定已成功更新。", "Contract": "合約", "hours": "小時", "Invalid_amount,_minimum_is": "無效金額，最小是", "logout": "登出", "Sunday": "星期日", "details": "詳細資料", "April": "四月", "There_was_a_problem_accessing_the_server_": "伺服器存取出了問題。", "Your_transaction_reference_is": "您的交易參考號是", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "已達權杖 ([_1]) 最大限數。", "Investment_Account": "投資帳戶", "Higher": "高於", "Trade": "交易", "Select_your_trade_type": "選取交易類型", "Spot": "現價", "Successful": "成功", "Forex": "外匯", "Please_enter_a_number_between_[_1]_": "請輸入[_1]之間的數字。", "Please_select": "請選擇", "Dec": "十二月", "Upcoming_Events": "未來事件", "Fr": "星期五", "Profit": "利潤", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "您的帳戶已被暫時禁用。現僅允許取款。欲知詳情，請聯繫[_1]。", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "您的權杖已過期。請點選[_1]此處[_2]重啟驗證程序。", "August": "八月", "There_was_an_error": "出現錯誤", "Aug": "八月", "Tuesday": "星期二", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "密碼須包含大小寫字母與數字。", "Exclude_time_cannot_be_less_than_6_months_": "禁止時間不能少於6個月。", "Purchase_Time": "買入時間", "numbers": "號碼", "Purchase_Price": "買入價格", "hour": "小時", "Your_account_has_no_trading_activity_": "您的帳號沒有交易活動。", "Password_is_not_strong_enough_": "密碼安全度不夠。", "Demo": "展示", "Date_and_Time": "日期和時間", "Exit_Spot_Time": "退市現價時間", "Barrier_Change": "障礙變更", "Profit/Loss": "利潤/虧損", "Duration": "期限", "Trading_Times": "交易時間", "Sep": "九月", "Total_Cost": "成本總計", "Resources": "資源", "Your_withdrawal_limit_is_[_1]_[_2]_": "您的取款限額是[_1] [_2]。", "This_contract_lost": "此合約虧損", "Create_Account": "開立帳戶", "Real_STP": "真實STP", "Loss": "虧損", "Low_Barrier": "低障礙", "There_was_a_problem_accessing_the_server_during_purchase_": "買入時伺服器存取出了問題。", "Real_Volatility": "真實波動性", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "要查看此頁面，請先<a href=\"[_1]\">登入</a>。", "Please_select_the_checkbox_": "請選擇核取方塊。", "Tu": "星期二", "Target": "目標", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] 請點選以下連結重啟密碼恢復過程。如需要幫助，請聯繫我們的客服部。", "Your_changes_have_been_updated_successfully_": "您的更改已成功更新。", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "您的權杖已過期。請點選<a href=\"[_1]\">此處</a>重啟驗證程序。", "Sale_Date": "賣出日期", "email_address": "電子郵件地址", "weeks": "週", "Potential_Payout": "可能的賠付額", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "所提供的電子郵件地址已經在使用。如果忘了密碼，請嘗試使用我們的<a href=\"[_1]\">密碼恢復工具</a>或聯繫客服部。", "Deposit": "存款", "Please_input_a_valid_date": "請輸入有效日期", "Main_password": "主密碼", "Select_market": "選擇市場", "Description": "描述", "High_Barrier": "高障礙", "Asset_Index": "資產指數", "Asset": "資產", "Short": "短倉", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的帳戶現時無法存取款。請聯繫 [_1]進行解鎖。", "Current": "目前", "Ends_Between": "區間之內結束", "Opens": "開盤", "verification_token": "驗證權杖", "Upgrade_to_a_Financial_Account": "升級到金融帳戶", "Sell": "賣出", "Now": "現在", "Remaining_Time": "剩餘時間", "years": "年", "Today": "今天", "Potential_Profit": "潛在利潤", "Congratulations!_Your_[_1]_Account_has_been_created_": "恭喜! 您已成功開立[_1]帳戶。", "Up/Down": "漲/跌", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "因此您目前的即時最高取款額（要求您的帳戶有充足資金）為 [_1] [_2]（或其他等值貨幣)。", "Reference_ID": "身份參考號", "Only_numbers,_space,_and_hyphen_are_allowed_": "只允許數字、空格和連字符。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "您已提取 [_1] [_2] 的等值。", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "您的密碼已成功重設。請用新密碼登入您的帳戶。", "Cashier": "收銀台", "Closes_early_(at_21:00)": "收盤提前（至21:00）", "Remaining_time": "剩餘時間", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]價在障礙價格最低和最高價位範圍外，可獲取[_1] [_2] 賠付額。", "Virtual_money_credit_to_account": "虛擬資金存入帳戶", "Connection_error:_Please_check_your_internet_connection_": "連接錯誤:請檢查您的網絡連接。", "Profit_Table": "利潤表", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "您從[_3] 轉帳[_1][_2] 到[_4] 的要求已成功處理。", "Session_duration_limit_cannot_be_more_than_6_weeks_": "交易期持續時間限制不能大於6週。", "Please_enter_an_integer_value": "請輸入整數", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允許字母、空格、連字號、句號和所有格號。", "Portfolio": "投資組合", "Contract_Information": "合約確認", "You_need_to_finish_all_20_questions_": "必須答覆全部20個問題。", "Time_out_cannot_be_more_than_6_weeks_": "到期時間不能大於6週。", "IP_Address": "IP地址", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] 和 [_2] 不可相同。", "Contract_Confirmation": "合約確認", "Major_Pairs": "主要貨幣對", "Token": "權杖", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "可使用額外密碼來限制對收銀台的存取。", "Open": "開盤", "Wednesday": "星期三", "Not": "不", "Time_out_cannot_be_in_the_past_": "到期時間不可為過去式。", "November": "十一月", "The_two_passwords_that_you_entered_do_not_match_": "兩次輸入的密碼不相符。", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]未觸及障礙價格，可獲取[_1] [_2]的賠付額。", "Resale_not_offered": "不提供轉售", "Sell_at_market": "按市價賣出", "The_main_password_of_account_number_[_1]_has_been_changed_": "[_1]帳號的主密碼已更改。", "Chart": "圖表", "Should_be_more_than_[_1]": "必須大於[_1]", "We": "星期三", "Details": "詳細資料", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允許使用字母、數字、空格、連字號、句號和所有格號。", "Payments": "支付", "Please_check_the_above_form_for_pending_errors_": "請檢查以上表格是否有待定錯誤。", "Day": "天", "Real_Standard": "真實標準", "October": "十月", "Month": "月份", "Nov": "十一月", "Closes": "收盤", "January": "一月", "You_have_not_granted_access_to_any_applications_": "您未獲權限存取任何應用程式。", "New_password": "新密碼", "This_contract_won": "此合約獲利", "Thursday": "星期四", "Shop": "商店", "Failed": "失敗", "Action": "動作", "New_Year's_Day": "新年", "Sorry,_this_feature_is_not_available_": "對不起，此功能不可用。", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "確定要永久廢除應用程式存取權限嗎", "Net_profit": "淨收益", "AM": "上午", "Last_Used": "最近一次使用", "March": "三月", "Low_Barrier_([_1])": "低障礙 ([_1])", "Barrier_([_1])": "障礙 ([_1])", "This_symbol_is_not_active__Please_try_another_symbol_": "這是個非活躍符號。請試用另一符號。", "Jun": "六月", "Ends_In/Out": "收盤價在「範圍之內/之外」", "June": "六月", "Please_log_in_": "請登入。", "Exit_Spot": "退市現價", "New_token_created_": "已建立新權杖。", "Digit": "數字期權", "Please_select_a_valid_time_": "請選擇有效時間。", "Explanation": "說明", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "根據您的請求，您的收銀台已被鎖定- 如需解除鎖定，請輸入密碼。", "today": "今天", "Admin": "管理中心", "Waiting_for_exit_tick_": "等待賣出價跳動。", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "您的帳戶已經得到完全驗證，且您的取款限額已經取消。", "Fridays": "星期五", "Finish": "完成", "Market_is_closed__Please_try_again_later_": "市場已關閉。請稍後重試。", "Never_Used": "從未使用過", "Monday": "星期一", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "請依照此模式:3個數字，一破折號，接着是4個數字。", "Ends_Outside": "區間之外結束", "Sorry,_an_error_occurred_while_processing_your_account_": "對不起，在處理您的帳戶時出錯。", "End_Time": "結束時間", "Status": "狀況", "Amount": "金額", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "交易期持續時間限制將於[_1]秒內結束。", "Sa": "星期六", "Change_Password": "更改密碼", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "請[_1]接受條款和條件[_2]，以提高存取款限額。", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "對不起，您的帳戶沒有進一步買入任何合約的權限。", "Indicative": "指示性", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "升級到真實資金帳戶前請先設定[_1]居住國[_2]。", "Browser": "瀏覽", "You_should_enter_[_1]_characters_": "您必須輸入[_1]個字元。", "Mo": "星期一", "Time_out_must_be_after_today_": "到期時間必須在今日之後。", "Final_price": "最終價格", "View": "檢視", "Stake": "投注資金", "h": "小時", "Adjust_trade_parameters": "調整交易參數", "Real_Cent": "真實美分", "Select_your_market": "選擇您的市場", "Price": "價格", "Buy_price": "買入價", "year": "年", "Permissions": "權限", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "請到[_1]自我限制工具[_2]設定30天交易限額，以移除存款限額。", "mins": "分鐘", "Last_Digit_Stats": "最後數字的統計資料", "Total_Profit/Loss": "利潤/虧損合計", "Long": "長倉", "minutes": "分鐘", "Christmas_Day": "聖誕節", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]嚴格高於或相等於障礙價格，可獲取[_1] [_2] 賠付額。", "Settles": "結算", "Contract_Expiry": "合約已到期", "December": "十二月", "Invalid_amount,_maximum_is": "無效金額，最大是", "February": "二月", "Stays_In/Goes_Out": "「保持在範圍之內/超出範圍之外」", "Predict_the_direction<br_/>and_purchase": "預測價格走向<br />並購入", "Start_Time": "開始時間", "Never": "從未", "Lock_Cashier": "鎖定收銀台", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]觸及障礙價格，可獲取[_1] [_2] 賠付額。", "Please_submit_a_valid_verification_token_": "請提交有效的驗證權杖。", "Entry_spot": "入市現價", "Time_is_in_the_wrong_format_": "時間格式錯誤。", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]平倉價在障礙價格最低和最高價位範圍外，可獲取[_1] [_2] 賠付額。", "You_have_already_withdrawn_[_1]_[_2]_": "您已提取 [_1] [_2]。", "Sorry,_an_error_occurred_while_processing_your_request_": "對不起，在處理您的請求時發生錯誤。", "Feb": "二月", "Your_account_has_no_Login/Logout_activity_": "您的帳戶沒有登入/登出活動。", "Upgrade_to_a_Real_Account": "升級到真實帳戶", "Over/Under": "大於/小於", "Your_changes_have_been_updated_": "您的更改已成功更新。", "Scopes": "範圍", "Start_time": "開始時間", "Withdraw": "取款", "Minute": "分鐘", "Walkthrough_Guide": "攻略指南", "Verification_code_format_incorrect_": "驗證碼格式不正確。", "Apr": "四月", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "已完成從賬號[_2]至[_3]的[_1]提款。交易編號: [_4]", "Hour": "小時", "Only_[_1]_decimal_points_are_allowed_": "只允許小數點后%位。", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "您已達每秒鐘提呈請求的最高限率。請稍後重試。", "Ref_": "參考", "Select_your_underlying_asset": "選擇標的資產", "Only_letters,_numbers,_and_hyphen_are_allowed_": "只允許字母、數字和連字符。", "Payout": "賠付", "days": "天", "Questions": "問題", "Are_you_sure_that_you_want_to_permanently_delete_token": "確定要永久刪除權杖嗎", "Contract_Sold": "售出合約", "Does_Not_Touch": "未觸及", "Update": "更新", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] 天 [_2] 小時 [_3] 分鐘", "Only_[_1]_are_allowed_": "只允許 [_1] 。", "Spot_Time": "現貨時間", "High_Barrier_([_1])": "高障礙([_1])", "Please_select_a_valid_date_": "請選擇有效日期。", "There_was_some_invalid_character_in_an_input_field_": "某字欄的輸入字元無效。", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]平倉價相等於或介於障礙價格最低和最高價位間，可獲取[_1] [_2] 賠付額。", "today,_Fridays": "今天、週五", "Account_balance:": "帳戶餘額：", "Your_transaction_reference_number_is_[_1]": "您的交易號是 [_1]", "Next": "下一頁", "Touch/No_Touch": "觸及/未觸及", "In/Out": "「範圍之內/之外」", "Sorry,_you_have_entered_an_incorrect_cashier_password": "對不起，您輸入的收銀台密碼不正確", "Read": "閱讀", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "您的取款限額為 [_1] [_2]（或其他貨幣的等值）。", "Saturday": "星期六", "You_have_sold_this_contract_at_[_1]_[_2]": "您已經以 [_1] [_2] 賣出此合約", "September": "九月", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "請[_1]完成帳戶資料[_2]，以提高取款和交易限額。", "Mar": "三月", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": " [_1] [_2]已記入您的虛擬資金帳戶 [_3]", "Weekday": "交易日", "Stays_Between": "位於區間之內", "Only_numbers_and_spaces_are_allowed_": "只允許數字和空格。", "Entry_Spot": "入市現價", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "交易執行者為[_1] (應用程式 ID: [_2])", "Credit/Debit": "借記/貸記", "Su": "星期日", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的帳戶現時無法取款。請聯繫 [_1]進行解鎖。", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "您的 [_1] 天取款限額目前為 [_2] [_3]（或其他貨幣的等值）。", "Waiting_for_entry_tick_": "等待買入價跳動。", "Unlock_Cashier": "解鎖收銀台", "Closed": "已收盤", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "請完成[_1]財務評估表格[_2]，以便提升您的取款和交易限額。", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "目前您的國家無可用付款代理設施。", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]嚴格低於障礙價格，可獲取[_1] [_2] 賠付額。", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "您從 [_3] 帳戶提取[_1] [_2] 到付款代理 [_4] 帳戶的要求已成功處理。", "Higher/Lower": "「高於/低於」", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "伺服器<a href=\"[_1]\">終端</a>是: [_2]", "Gaming_Account": "博彩帳戶", "second": "秒", "All_markets_are_closed_now__Please_try_again_later_": "所有市場現已關閉。請稍後重試。", "Real_Account": "真實帳戶", "Processing_your_request___": "您的要求在處理中...", "All_barriers_in_this_trading_window_are_expired": "此交易窗口的所有障礙已過期", "Th": "星期四", "July": "七月", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "您的帳戶已被限制交易。請[_1]聯繫客服部[_2]，以取得協助。", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "根據您的要求，您的收銀台已被鎖定- 如需解除鎖定，請點選<a href=\"[_1]\">此處</a>。", "week": "週", "months": "月份", "Percentage": "百分比", "This_is_a_staging_server_-_For_testing_purposes_only": "這是分期伺服器，僅用於測試目的", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "對不起，此功能僅適用虛擬帳戶。", "You_did_not_change_anything_": "您沒做任何更改。", "Invalid_email_address": "無效的電子郵件地址", "Jan": "一月", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "過去 [_3] 天裡您已累計提取 [_1] [_2] 的等值。", "Year": "年", "Your_trading_statistics_since_[_1]_": "您自 [_1] 至今的交易統計。", "Touches": "觸及", "Current_password": "目前密碼", "Should_be_less_than_[_1]": "必須大於[_1]", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "已完成從[_2]至帳號[_3]的[_1]存款。交易編號: [_4]", "Number_of_ticks": "跳動點數目", "Please_select_at_least_one_scope": "請選擇至少一個範圍", "minute": "分鐘", "Investor_password": "投資者密碼", "min": "最小", "Current_Time": "目前時間", "Even/Odd": "偶/奇", "Should_be_a_valid_number": "必須是有效號碼", "Lower": "低於", "Rise/Fall": "「上漲/下跌」合約", "space": "空間", "Closes_early_(at_18:00)": "收盤提前（至18:00）", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]在障礙價格最低和最高價位範圍內，可獲取[_1] [_2] 賠付額。", "Name": "姓名", "Charting_for_this_underlying_is_delayed": "此標的資產的圖表資料已延遲", "Contract_is_not_started_yet": "合約尚未開始", "Buy": "買入", "Japan": "日本", "Open_a_Financial_Account": "開設金融帳戶", "Old_password_is_wrong_": "舊密碼不正確。", "letters": "字母", "Date": "日期", "Statement": "帳單", "Insufficient_balance_": "餘額不足。", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "合約將在我們伺服器收到要求時以當時的市場價格賣出。此價格可能會與報價有差異。", "Sell_time": "賣出時間", "Friday": "星期五", "Balance": "餘額", "from_[_1]_to_[_2]": "從[_1]到[_2]", "Equals": "等於", "Please_select_a_payment_agent": "請選擇付款代理", "Note": "備註", "Virtual_Account": "虛擬帳戶", "End_time": "結束時間", "May": "五月", "Sale_Price": "賣出價格", "Oct": "十月", "Contract_ID": "合約編號", "Previous": "之前", "Barrier": "障礙", "Exit_spot": "退市現價", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "因此您目前的即時最高取款額（要求您的帳戶有充足資金）為[_1] [_2]。", "Matches/Differs": "相符/差異", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "當您點選「OK」後，您將被禁止在此網站交易，直到選定期限結束為止。", "Please_select_a_value": "請選擇一個數值", "month": "月份", "seconds": "秒", "Tick": "跳動點" };
-	texts_json['ACH'] = { "days": "crwdns23594:0crwdne23594:0", "Payout": "crwdns22328:0crwdne22328:0", "Select_your_underlying_asset": "crwdns22612:0crwdne22612:0", "Only_letters,_numbers,_and_hyphen_are_allowed_": "crwdns22223:0crwdne22223:0", "Ref_": "crwdns22506:0crwdne22506:0", "Only_[_1]_are_allowed_": "crwdns22220:0[_1]crwdne22220:0", "Contract_Sold": "crwdns21114:0crwdne21114:0", "Update": "crwdns23179:0crwdne23179:0", "Does_Not_Touch": "crwdns21251:0crwdne21251:0", "[_1]_days_[_2]_hours_[_3]_minutes": "crwdns20492:0[_1]crwdnd20492:0[_2]crwdnd20492:0[_3]crwdne20492:0", "Are_you_sure_that_you_want_to_permanently_delete_token": "crwdns20802:0crwdne20802:0", "Questions": "crwdns22480:0crwdne22480:0", "today,_Fridays": "crwdns23639:0crwdne23639:0", "Female": "crwdns21414:0crwdne21414:0", "There_was_some_invalid_character_in_an_input_field_": "crwdns22980:0crwdne22980:0", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "crwdns20469:0[_1]crwdnd20469:0[_2]crwdnd20469:0[_3]crwdnd20469:0[_4]crwdne20469:0", "Score": "crwdns22589:0crwdne22589:0", "High_Barrier_([_1])": "crwdns21538:0[_1]crwdne21538:0", "Spot_Time": "crwdns22694:0crwdne22694:0", "Please_select_a_valid_date_": "crwdns22384:0crwdne22384:0", "Touch/No_Touch": "crwdns23076:0crwdne23076:0", "Next": "crwdns22163:0crwdne22163:0", "Account_balance:": "crwdns20688:0crwdne20688:0", "Your_transaction_reference_number_is_[_1]": "crwdns23566:0[_1]crwdne23566:0", "Never": "crwdns22155:0crwdne22155:0", "Start_Time": "crwdns22697:0crwdne22697:0", "Predict_the_direction<br_/>and_purchase": "crwdns22411:0crwdne22411:0", "Your_account_has_no_Login/Logout_activity_": "crwdns23532:0crwdne23532:0", "Feb": "crwdns21411:0crwdne21411:0", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "crwdns20470:0[_1]crwdnd20470:0[_2]crwdnd20470:0[_3]crwdnd20470:0[_4]crwdne20470:0", "Time_is_in_the_wrong_format_": "crwdns23038:0crwdne23038:0", "You_have_already_withdrawn_[_1]_[_2]_": "crwdns23450:0[_1]crwdnd23450:0[_2]crwdne23450:0", "Sorry,_an_error_occurred_while_processing_your_request_": "crwdns22680:0crwdne22680:0", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "crwdns20475:0[_1]crwdnd20475:0[_2]crwdnd20475:0[_3]crwdnd20475:0[_4]crwdne20475:0", "Please_submit_a_valid_verification_token_": "crwdns22393:0crwdne22393:0", "Entry_spot": "crwdns21332:0crwdne21332:0", "Lock_Cashier": "crwdns22011:0crwdne22011:0", "Minute": "crwdns22115:0crwdne22115:0", "Walkthrough_Guide": "crwdns23228:0crwdne23228:0", "Withdraw": "crwdns23384:0crwdne23384:0", "Scopes": "crwdns22588:0crwdne22588:0", "Start_time": "crwdns22702:0crwdne22702:0", "Over/Under": "crwdns22298:0crwdne22298:0", "Upgrade_to_a_Real_Account": "crwdns23183:0crwdne23183:0", "Your_changes_have_been_updated_": "crwdns23547:0crwdne23547:0", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "crwdns23456:0crwdne23456:0", "Apr": "crwdns20796:0crwdne20796:0", "Verification_code_format_incorrect_": "crwdns23196:0crwdne23196:0", "Only_[_1]_decimal_points_are_allowed_": "crwdns22221:0[_1]crwdne22221:0", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "crwdns20554:0[_1]crwdnd20554:0[_2]crwdnd20554:0[_3]crwdnd20554:0[_4]crwdne20554:0", "Hour": "crwdns21550:0crwdne21550:0", "Stake": "crwdns22696:0crwdne22696:0", "Final_price": "crwdns21419:0crwdne21419:0", "View": "crwdns23202:0crwdne23202:0", "Mo": "crwdns22117:0crwdne22117:0", "You_should_enter_[_1]_characters_": "crwdns23503:0[_1]crwdne23503:0", "Time_out_must_be_after_today_": "crwdns23041:0crwdne23041:0", "Real_Cent": "crwdns22495:0crwdne22495:0", "Select_your_market": "crwdns22610:0crwdne22610:0", "Price": "crwdns22428:0crwdne22428:0", "Buy_price": "crwdns20956:0crwdne20956:0", "year": "crwdns23648:0crwdne23648:0", "Adjust_trade_parameters": "crwdns20706:0crwdne20706:0", "h": "crwdns23601:0crwdne23601:0", "Total_Profit/Loss": "crwdns23074:0crwdne23074:0", "Long": "crwdns22022:0crwdne22022:0", "minutes": "crwdns23616:0crwdne23616:0", "mins": "crwdns23614:0crwdne23614:0", "Last_Digit_Stats": "crwdns21964:0crwdne21964:0", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "crwdns22390:0[_1]scrwdnd22390:0[_2]crwdne22390:0", "Permissions": "crwdns22334:0crwdne22334:0", "Stays_In/Goes_Out": "crwdns22711:0crwdne22711:0", "Invalid_amount,_maximum_is": "crwdns21747:0crwdne21747:0", "February": "crwdns21412:0crwdne21412:0", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "crwdns20472:0[_1]crwdnd20472:0[_2]crwdnd20472:0[_3]crwdnd20472:0[_4]crwdne20472:0", "Settles": "crwdns22641:0crwdne22641:0", "Contract_Expiry": "crwdns21109:0crwdne21109:0", "December": "crwdns21188:0crwdne21188:0", "Christmas_Day": "crwdns21019:0crwdne21019:0", "{JAPAN_ONLY}Dear_customer,_you've_already_completed_the_knowledge_test,_please_proceed_to_next_step_": "crwdns23835:0{JAPAN ONLY}crwdne23835:0", "Ends_Outside": "crwdns21319:0crwdne21319:0", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "crwdns22370:0crwdne22370:0", "Amount": "crwdns20751:0crwdne20751:0", "Sa": "crwdns22580:0crwdne22580:0", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "crwdns23560:0[_1]crwdne23560:0", "Status": "crwdns22707:0crwdne22707:0", "End_Time": "crwdns21311:0crwdne21311:0", "Sorry,_an_error_occurred_while_processing_your_account_": "crwdns22679:0crwdne22679:0", "Indicative": "crwdns21724:0crwdne21724:0", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "crwdns22684:0crwdne22684:0", "Change_Password": "crwdns20987:0crwdne20987:0", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22351:0[_1]acrwdnd22351:0[_2]crwdne22351:0", "Browser": "crwdns20949:0crwdne20949:0", "Male": "crwdns22048:0crwdne22048:0", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "crwdns22389:0[_1]ccrwdnd22389:0[_2]crwdne22389:0", "Balance": "crwdns20859:0crwdne20859:0", "from_[_1]_to_[_2]": "crwdns23599:0[_1]crwdnd23599:0[_2]crwdne23599:0", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "crwdns21121:0crwdne21121:0", "Sell_time": "crwdns22622:0crwdne22622:0", "Friday": "crwdns21472:0crwdne21472:0", "Statement": "crwdns22705:0crwdne22705:0", "Insufficient_balance_": "crwdns21737:0crwdne21737:0", "letters": "crwdns23608:0crwdne23608:0", "Date": "crwdns21181:0crwdne21181:0", "Oct": "crwdns22203:0crwdne22203:0", "Virtual_Account": "crwdns23217:0crwdne23217:0", "End_time": "crwdns21312:0crwdne21312:0", "May": "crwdns22096:0crwdne22096:0", "Sale_Price": "crwdns22583:0crwdne22583:0", "Equals": "crwdns21335:0crwdne21335:0", "Note": "crwdns22182:0crwdne22182:0", "Please_select_a_payment_agent": "crwdns22383:0crwdne22383:0", "Matches/Differs": "crwdns22079:0crwdne22079:0", "Barrier": "crwdns20867:0crwdne20867:0", "Exit_spot": "crwdns21370:0crwdne21370:0", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "crwdns22983:0[_1]crwdnd22983:0[_2]crwdne22983:0", "Contract_ID": "crwdns21110:0crwdne21110:0", "Previous": "crwdns22422:0crwdne22422:0", "seconds": "crwdns23625:0crwdne23625:0", "Tick": "crwdns23034:0crwdne23034:0", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "crwdns23330:0crwdne23330:0", "month": "crwdns23617:0crwdne23617:0", "Please_select_a_value": "crwdns22386:0crwdne22386:0", "Please_select_at_least_one_scope": "crwdns22387:0crwdne22387:0", "minute": "crwdns23615:0crwdne23615:0", "Number_of_ticks": "crwdns22194:0crwdne22194:0", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "crwdns20493:0[_1]crwdnd20493:0[_2]crwdnd20493:0[_3]crwdnd20493:0[_4]crwdne20493:0", "Even/Odd": "crwdns21342:0crwdne21342:0", "Should_be_a_valid_number": "crwdns22653:0crwdne22653:0", "Lower": "crwdns22035:0crwdne22035:0", "Current_Time": "crwdns21166:0crwdne21166:0", "min": "crwdns23611:0crwdne23611:0", "Investor_password": "crwdns21760:0crwdne21760:0", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "crwdns20474:0[_1]crwdnd20474:0[_2]crwdnd20474:0[_3]crwdnd20474:0[_4]crwdne20474:0", "Closes_early_(at_18:00)": "crwdns21059:0crwdne21059:0", "space": "crwdns23626:0crwdne23626:0", "Rise/Fall": "crwdns22563:0crwdne22563:0", "Buy": "crwdns20953:0crwdne20953:0", "Old_password_is_wrong_": "crwdns22207:0crwdne22207:0", "Japan": "crwdns21784:0crwdne21784:0", "Open_a_Financial_Account": "crwdns22236:0crwdne22236:0", "Contract_is_not_started_yet": "crwdns21118:0crwdne21118:0", "Name": "crwdns22142:0crwdne22142:0", "Charting_for_this_underlying_is_delayed": "crwdns20996:0crwdne20996:0", "Processing_your_request___": "crwdns22442:0crwdne22442:0", "All_barriers_in_this_trading_window_are_expired": "crwdns20728:0crwdne20728:0", "All_markets_are_closed_now__Please_try_again_later_": "crwdns20739:0crwdne20739:0", "Real_Account": "crwdns22493:0crwdne22493:0", "Percentage": "crwdns22331:0crwdne22331:0", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "crwdns23544:0[_1]crwdne23544:0", "{JAPAN_ONLY}Congratulations,_you_have_pass_the_test,_our_Customer_Support_will_contact_you_shortly_": "crwdns23831:0{JAPAN ONLY}crwdne23831:0", "week": "crwdns23645:0crwdne23645:0", "months": "crwdns23618:0crwdne23618:0", "Th": "crwdns22785:0crwdne22785:0", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "crwdns23538:0[_1]ccrwdnd23538:0[_2]crwdne23538:0", "July": "crwdns21941:0crwdne21941:0", "Jan": "crwdns21782:0crwdne21782:0", "Invalid_email_address": "crwdns21749:0crwdne21749:0", "You_did_not_change_anything_": "crwdns23446:0crwdne23446:0", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "crwdns22681:0crwdne22681:0", "This_is_a_staging_server_-_For_testing_purposes_only": "crwdns23016:0crwdne23016:0", "Should_be_less_than_[_1]": "crwdns22655:0[_1]crwdne22655:0", "Current_password": "crwdns21167:0crwdne21167:0", "Touches": "crwdns23079:0crwdne23079:0", "Year": "crwdns23403:0crwdne23403:0", "Your_trading_statistics_since_[_1]_": "crwdns23564:0[_1]crwdne23564:0", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "crwdns23451:0[_1]crwdnd23451:0[_2]crwdnd23451:0[_3]crwdne23451:0", "You_have_sold_this_contract_at_[_1]_[_2]": "crwdns23459:0[_1]crwdnd23459:0[_2]crwdne23459:0", "Read": "crwdns22485:0crwdne22485:0", "Saturday": "crwdns22584:0crwdne22584:0", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "crwdns23572:0[_1]crwdnd23572:0[_2]crwdne23572:0", "In/Out": "crwdns21714:0crwdne21714:0", "Sorry,_you_have_entered_an_incorrect_cashier_password": "crwdns22683:0crwdne22683:0", "Waiting_for_entry_tick_": "crwdns23226:0crwdne23226:0", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "crwdns23389:0[_1]crwdne23389:0", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "crwdns23524:0[_1]crwdnd23524:0[_2]crwdnd23524:0[_3]crwdne23524:0", "Entry_Spot": "crwdns21331:0crwdne21331:0", "Only_numbers_and_spaces_are_allowed_": "crwdns22226:0crwdne22226:0", "Stays_Between": "crwdns22709:0crwdne22709:0", "Credit/Debit": "crwdns21159:0crwdne21159:0", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "crwdns23120:0[_1]crwdnd23120:0[_2]crwdne23120:0", "Su": "crwdns22739:0crwdne22739:0", "True": "crwdns23134:0crwdne23134:0", "Weekday": "crwdns23306:0crwdne23306:0", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "crwdns20467:0[_1]crwdnd20467:0[_2]crwdnd20467:0[_3]crwdne20467:0", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22352:0[_1]ccrwdnd22352:0[_2]crwdne22352:0", "September": "crwdns22629:0crwdne22629:0", "Mar": "crwdns22054:0crwdne22054:0", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "crwdns20473:0[_1]crwdnd20473:0[_2]crwdnd20473:0[_3]crwdnd20473:0[_4]crwdne20473:0", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22361:0[_1]fcrwdnd22361:0[_2]crwdne22361:0", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "crwdns22859:0crwdne22859:0", "Closed": "crwdns21057:0crwdne21057:0", "Unlock_Cashier": "crwdns23175:0crwdne23175:0", "second": "crwdns23624:0crwdne23624:0", "Gaming_Account": "crwdns21487:0crwdne21487:0", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "crwdns22955:0[_1]crwdnd22955:0[_2]crwdne22955:0", "Higher/Lower": "crwdns21544:0crwdne21544:0", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "crwdns23559:0[_1]crwdnd23559:0[_2]crwdnd23559:0[_3]crwdnd23559:0[_4]crwdne23559:0", "Real_Volatility": "crwdns22499:0crwdne22499:0", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "crwdns22355:0[_1]crwdne22355:0", "Create_Account": "crwdns21150:0crwdne21150:0", "Loss": "crwdns22027:0crwdne22027:0", "Real_STP": "crwdns22497:0crwdne22497:0", "This_contract_lost": "crwdns23009:0crwdne23009:0", "Low_Barrier": "crwdns22029:0crwdne22029:0", "There_was_a_problem_accessing_the_server_during_purchase_": "crwdns22976:0crwdne22976:0", "Your_withdrawal_limit_is_[_1]_[_2]_": "crwdns23573:0[_1]crwdnd23573:0[_2]crwdne23573:0", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "crwdns20482:0[_1]crwdne20482:0", "Tu": "crwdns23143:0crwdne23143:0", "Target": "crwdns22760:0crwdne22760:0", "Please_select_the_checkbox_": "crwdns22388:0crwdne22388:0", "Please_input_a_valid_date": "crwdns22371:0crwdne22371:0", "Main_password": "crwdns22039:0crwdne22039:0", "Select_market": "crwdns22607:0crwdne22607:0", "weeks": "crwdns23646:0crwdne23646:0", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "crwdns22910:0[_1]crwdne22910:0", "Potential_Payout": "crwdns22405:0crwdne22405:0", "Deposit": "crwdns21200:0crwdne21200:0", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "crwdns23563:0[_1]crwdne23563:0", "Your_changes_have_been_updated_successfully_": "crwdns23546:0crwdne23546:0", "Sale_Date": "crwdns22582:0crwdne22582:0", "email_address": "crwdns23597:0crwdne23597:0", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "crwdns21210:0[_1]crwdne21210:0", "Short": "crwdns22647:0crwdne22647:0", "Asset": "crwdns20825:0crwdne20825:0", "High_Barrier": "crwdns21537:0crwdne21537:0", "Description": "crwdns21213:0crwdne21213:0", "Asset_Index": "crwdns20826:0crwdne20826:0", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "crwdns23562:0[_1]hecrwdnd23562:0[_2]crwdne23562:0", "Fr": "crwdns21461:0crwdne21461:0", "{JAPAN_ONLY}Take_knowledge_test": "crwdns24116:0{JAPAN ONLY}crwdne24116:0", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "crwdns23534:0[_1]crwdne23534:0", "{JAPAN_ONLY}Dear_customer,_you_are_not_allowed_to_take_knowledge_test_until_[_1]__Last_test_taken_at_[_2]_": "crwdns23834:0{JAPAN ONLY}crwdnd23834:0[_1]crwdnd23834:0[_2]crwdne23834:0", "Profit": "crwdns22450:0crwdne22450:0", "Upcoming_Events": "crwdns23178:0crwdne23178:0", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "crwdns24014:0{JAPAN ONLY}crwdne24014:0", "Purchase_Time": "crwdns22468:0crwdne22468:0", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "crwdns22316:0crwdne22316:0", "Tuesday": "crwdns23144:0crwdne23144:0", "Exclude_time_cannot_be_less_than_6_months_": "crwdns21360:0crwdne21360:0", "Aug": "crwdns20836:0crwdne20836:0", "August": "crwdns20837:0crwdne20837:0", "There_was_an_error": "crwdns22979:0crwdne22979:0", "Password_is_not_strong_enough_": "crwdns22314:0crwdne22314:0", "Date_and_Time": "crwdns21182:0crwdne21182:0", "Demo": "crwdns21195:0crwdne21195:0", "Exit_Spot_Time": "crwdns21369:0crwdne21369:0", "Your_account_has_no_trading_activity_": "crwdns23533:0crwdne23533:0", "hour": "crwdns23602:0crwdne23602:0", "Purchase_Price": "crwdns22467:0crwdne22467:0", "numbers": "crwdns23622:0crwdne23622:0", "Total_Cost": "crwdns23071:0crwdne23071:0", "Sep": "crwdns22628:0crwdne22628:0", "Resources": "crwdns22542:0crwdne22542:0", "Duration": "crwdns21260:0crwdne21260:0", "Trading_Times": "crwdns23109:0crwdne23109:0", "Barrier_Change": "crwdns20869:0crwdne20869:0", "Profit/Loss": "crwdns22453:0crwdne22453:0", "Invalid_amount,_minimum_is": "crwdns21748:0crwdne21748:0", "hours": "crwdns23603:0crwdne23603:0", "Contract": "crwdns21105:0crwdne21105:0", "Your_settings_have_been_updated_successfully_": "crwdns23561:0crwdne23561:0", "April": "crwdns20797:0crwdne20797:0", "There_was_a_problem_accessing_the_server_": "crwdns22977:0crwdne22977:0", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "crwdns22936:0[_1]crwdne22936:0", "Your_transaction_reference_is": "crwdns23565:0crwdne23565:0", "details": "crwdns23595:0crwdne23595:0", "logout": "crwdns23609:0crwdne23609:0", "Sunday": "crwdns22752:0crwdne22752:0", "Select_your_trade_type": "crwdns22611:0crwdne22611:0", "Higher": "crwdns21543:0crwdne21543:0", "Trade": "crwdns23083:0crwdne23083:0", "Investment_Account": "crwdns21753:0crwdne21753:0", "Please_select": "crwdns22382:0crwdne22382:0", "Dec": "crwdns21187:0crwdne21187:0", "Forex": "crwdns21454:0crwdne21454:0", "Please_enter_a_number_between_[_1]_": "crwdns22365:0[_1]crwdne22365:0", "{JAPAN_ONLY}Please_complete_the_following_questions_": "crwdns23973:0{JAPAN ONLY}crwdne23973:0", "Spot": "crwdns22693:0crwdne22693:0", "Successful": "crwdns22747:0crwdne22747:0", "PM": "crwdns22307:0crwdne22307:0", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "crwdns20568:0[_1]crwdnd20568:0[_2]crwdne20568:0", "Please_accept_the_terms_and_conditions_": "crwdns22356:0crwdne22356:0", "Jul": "crwdns21940:0crwdne21940:0", "Your_Application_is_Being_Processed_": "crwdns23525:0crwdne23525:0", "Goes_Outside": "crwdns21519:0crwdne21519:0", "Exclude_time_cannot_be_for_more_than_5_years_": "crwdns21359:0crwdne21359:0", "Step": "crwdns22714:0crwdne22714:0", "Return": "crwdns22553:0crwdne22553:0", "Payment_Agent": "crwdns22319:0crwdne22319:0", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "crwdns22678:0[_1]crwdne22678:0", "Revoke_access": "crwdns22560:0crwdne22560:0", "This_feature_is_not_relevant_to_virtual-money_accounts_": "crwdns23013:0crwdne23013:0", "End_time_must_be_after_start_time_": "crwdns21313:0crwdne21313:0", "Should_be_between_[_1]_and_[_2]": "crwdns22654:0[_1]crwdnd22654:0[_2]crwdne22654:0", "Delete": "crwdns21194:0crwdne21194:0", "This_field_is_required_": "crwdns23015:0crwdne23015:0", "Minimum_of_[_1]_characters_required_": "crwdns22112:0[_1]crwdne22112:0", "day": "crwdns23593:0crwdne23593:0", "Net_profit": "crwdns22152:0crwdne22152:0", "AM": "crwdns20658:0crwdne20658:0", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "crwdns24135:0{JAPAN ONLY}crwdne24135:0", "New_Year's_Day": "crwdns22159:0crwdne22159:0", "Sorry,_this_feature_is_not_available_": "crwdns22682:0crwdne22682:0", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "crwdns20803:0crwdne20803:0", "Failed": "crwdns21404:0crwdne21404:0", "Action": "crwdns20699:0crwdne20699:0", "New_password": "crwdns22160:0crwdne22160:0", "Thursday": "crwdns23033:0crwdne23033:0", "This_contract_won": "crwdns23010:0crwdne23010:0", "Shop": "crwdns22646:0crwdne22646:0", "Jun": "crwdns21942:0crwdne21942:0", "{JAPAN_ONLY}Knowledge_Test": "crwdns23939:0{JAPAN ONLY}crwdne23939:0", "Ends_In/Out": "crwdns21316:0crwdne21316:0", "Low_Barrier_([_1])": "crwdns22030:0[_1]crwdne22030:0", "Barrier_([_1])": "crwdns20868:0[_1]crwdne20868:0", "This_symbol_is_not_active__Please_try_another_symbol_": "crwdns23026:0crwdne23026:0", "March": "crwdns22055:0crwdne22055:0", "Last_Used": "crwdns21965:0crwdne21965:0", "Please_select_a_valid_time_": "crwdns22385:0crwdne22385:0", "New_token_created_": "crwdns22162:0crwdne22162:0", "Digit": "crwdns21227:0crwdne21227:0", "Please_log_in_": "crwdns22372:0crwdne22372:0", "Exit_Spot": "crwdns21368:0crwdne21368:0", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "crwdns24180:0{JAPAN ONLY}crwdne24180:0", "June": "crwdns21943:0crwdne21943:0", "Market_is_closed__Please_try_again_later_": "crwdns22071:0crwdne22071:0", "Monday": "crwdns22118:0crwdne22118:0", "Never_Used": "crwdns22156:0crwdne22156:0", "Fridays": "crwdns21473:0crwdne21473:0", "Finish": "crwdns21428:0crwdne21428:0", "Admin": "crwdns20707:0crwdne20707:0", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "crwdns23535:0crwdne23535:0", "Waiting_for_exit_tick_": "crwdns23227:0crwdne23227:0", "Explanation": "crwdns21388:0crwdne21388:0", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "crwdns23545:0crwdne23545:0", "today": "crwdns23638:0crwdne23638:0", "Sell_at_market": "crwdns22619:0crwdne22619:0", "Resale_not_offered": "crwdns22537:0crwdne22537:0", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "crwdns20468:0[_1]crwdnd20468:0[_2]crwdnd20468:0[_3]crwdnd20468:0[_4]crwdne20468:0", "The_two_passwords_that_you_entered_do_not_match_": "crwdns22965:0crwdne22965:0", "November": "crwdns22191:0crwdne22191:0", "False": "crwdns21405:0crwdne21405:0", "The_main_password_of_account_number_[_1]_has_been_changed_": "crwdns22929:0[_1]crwdne22929:0", "Day": "crwdns21185:0crwdne21185:0", "Payments": "crwdns22327:0crwdne22327:0", "Please_check_the_above_form_for_pending_errors_": "crwdns22357:0crwdne22357:0", "Details": "crwdns21217:0crwdne21217:0", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "crwdns22224:0crwdne22224:0", "We": "crwdns23234:0crwdne23234:0", "Chart": "crwdns20993:0crwdne20993:0", "Should_be_more_than_[_1]": "crwdns22656:0[_1]crwdne22656:0", "January": "crwdns21783:0crwdne21783:0", "You_have_not_granted_access_to_any_applications_": "crwdns23454:0crwdne23454:0", "Nov": "crwdns22190:0crwdne22190:0", "Closes": "crwdns21058:0crwdne21058:0", "October": "crwdns22204:0crwdne22204:0", "Month": "crwdns22128:0crwdne22128:0", "Real_Standard": "crwdns22498:0crwdne22498:0", "Session_duration_limit_cannot_be_more_than_6_weeks_": "crwdns22632:0crwdne22632:0", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "crwdns22225:0crwdne22225:0", "Please_enter_an_integer_value": "crwdns22366:0crwdne22366:0", "Portfolio": "crwdns22399:0crwdne22399:0", "Virtual_money_credit_to_account": "crwdns23218:0crwdne23218:0", "Connection_error:_Please_check_your_internet_connection_": "crwdns21096:0crwdne21096:0", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "crwdns23558:0[_1]crwdnd23558:0[_2]crwdnd23558:0[_3]crwdnd23558:0[_4]crwdne23558:0", "Profit_Table": "crwdns22452:0crwdne22452:0", "Remaining_time": "crwdns22532:0crwdne22532:0", "Closes_early_(at_21:00)": "crwdns21060:0crwdne21060:0", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "crwdns20471:0[_1]crwdnd20471:0[_2]crwdnd20471:0[_3]crwdnd20471:0[_4]crwdne20471:0", "You_need_to_finish_all_20_questions_": "crwdns23483:0crwdne23483:0", "Contract_Information": "crwdns21111:0crwdne21111:0", "[_1]_and_[_2]_cannot_be_the_same_": "crwdns20488:0[_1]crwdnd20488:0[_2]crwdne20488:0", "Time_out_cannot_be_more_than_6_weeks_": "crwdns23040:0crwdne23040:0", "IP_Address": "crwdns21595:0crwdne21595:0", "Not": "crwdns22180:0crwdne22180:0", "Wednesday": "crwdns23305:0crwdne23305:0", "Time_out_cannot_be_in_the_past_": "crwdns23039:0crwdne23039:0", "Open": "crwdns22230:0crwdne22230:0", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "crwdns20758:0crwdne20758:0", "Contract_Confirmation": "crwdns21107:0crwdne21107:0", "Major_Pairs": "crwdns22043:0crwdne22043:0", "Token": "crwdns23066:0crwdne23066:0", "Upgrade_to_a_Financial_Account": "crwdns23182:0crwdne23182:0", "{JAPAN_ONLY}Knowledge_Test_Result": "crwdns23940:0{JAPAN ONLY}crwdne23940:0", "Sell": "crwdns22617:0crwdne22617:0", "verification_token": "crwdns23643:0crwdne23643:0", "Opens": "crwdns22247:0crwdne22247:0", "Ends_Between": "crwdns21314:0crwdne21314:0", "Current": "crwdns21165:0crwdne21165:0", "Potential_Profit": "crwdns22406:0crwdne22406:0", "years": "crwdns23649:0crwdne23649:0", "Today": "crwdns23064:0crwdne23064:0", "Now": "crwdns22193:0crwdne22193:0", "Remaining_Time": "crwdns22531:0crwdne22531:0", "Reference_ID": "crwdns22507:0crwdne22507:0", "Congratulations!_Your_[_1]_Account_has_been_created_": "crwdns21095:0[_1]crwdne21095:0", "Up/Down": "crwdns23177:0crwdne23177:0", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "crwdns22982:0[_1]crwdnd22982:0[_2]crwdne22982:0", "Cashier": "crwdns20982:0crwdne20982:0", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "crwdns23452:0[_1]crwdnd23452:0[_2]crwdne23452:0", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "crwdns23556:0crwdne23556:0", "Only_numbers,_space,_and_hyphen_are_allowed_": "crwdns22227:0crwdne22227:0" };
+	texts_json['DE'] = { "minute": "Minute", "Payout": "Auszahlung", "Select_your_trade_type": "Wählen Sie Ihren Trade-Typ aus", "Insufficient_balance_": "Unzureichendes Guthaben.", "Start_time": "Startzeit", "Oct": "Okt", "Buy": "Kaufen", "Low_Barrier_([_1])": "Untere Schwelle ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "Die Ausschlusszeit darf nicht länger als 5 Jahre sein.", "Year": "Jahr", "Read": "Lesen", "The_main_password_of_account_number_[_1]_has_been_changed_": "Das Hauptpasswort für die Kontonummer [_1] wurde geändert.", "Low_Barrier": "Untere Schwelle", "Verification_code_format_incorrect_": "Format des Verifikationscodes falsch.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] die Schwelle durch den Schluss auf [_4] berührt.", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Der Kontrakt wird, sobald der Auftrag von unseren Servern empfangen wurde, zum dann geltenden Marktkurs verkauft. Dieser Kurs kann von den angegebenen Kursen abweichen.", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "Ihr Web-Browser ([_1]) ist veraltet und kann Ihre Handelserfahrung beeinflussen. Fahren Sie auf Ihr eigenes Risiko fort. [_2]Browser aktualisieren[_3]", "Virtual_money_credit_to_account": "Virtuelles Geldguthaben zum Konto", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Ihr Token ist abgelaufen. Bitte klicken Sie <a href=\"[_1]\">hier</a>, um den Verfikationsprozess zu wiederholen.", "Unlock_Cashier": "Kasse entsperren", "Charting_for_this_underlying_is_delayed": "Die grafische Darstellung für diesen Basiswert ist verzögert", "Matches/Differs": "Gleich/Verschieden", "Digit": "Ziffer", "Weekday": "Wochentag", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Es tut uns leid, aber Sie haben ein ungültiges Kassen-Passwort eingegeben", "Permissions": "Berechtigungen", "Please_select_a_value": "Bitte wählen Sie einen Wert aus", "hour": "Stunde", "Entry_spot": "Startkurs", "Congratulations!_Your_[_1]_Account_has_been_created_": "Herzlichen Glückwunsch! Ihr [_1] Konto wurde erstellt.", "Closes": "Schließt", "AM": "morgens", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Bitte [_1]akzeptieren Sie die aktualisierten allgemeinen Geschäftsbedingungen[_2], um Ihre Abhebe- und Handelslimits aufzuheben.", "Last_Used": "Zuletzt verwendet", "Your_withdrawal_limit_is_[_1]_[_2]_": "Ihr Abhebelimit beträgt  [_1] [_2].", "New_token_created_": "Neuer Token generiert.", "Only_[_1]_decimal_points_are_allowed_": "Es sind nur [_1] Dezimalstellen erlaubt.", "Profit/Loss": "Gewinn/Verlust", "Minimum_of_[_1]_characters_required_": "Mindestens [_1] Zeichen sind erforderlich.", "Does_Not_Touch": "Erreicht Nicht", "Change_Password": "Passwort ändern", "May": "Mai", "There_was_a_problem_accessing_the_server_": "Es gab ein Problem beim Zugriff auf den Server.", "Select_your_market": "Wählen Sie Ihren Markt", "Mar": "Mär", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Ihr [_1] Tage Abhebelimit beträgt derzeit [_2] [_3] (oder Gegenwert in einer anderen Währung).", "Real_Volatility": "Echte Volatilität", "There_was_some_invalid_character_in_an_input_field_": "Es ist ein ungültiges Zeichen in einem Eingabefeld vorhanden.", "Exit_Spot_Time": "Schlusskurszeit", "logout": "abmelden", "Select_your_underlying_asset": "Wählen Sie Ihren Basiswert aus", "Tu": "Di", "Closed": "Geschlossen", "Potential_Payout": "Mögliche Auszahlung", "Total_Cost": "Gesamtkosten", "Invalid_amount,_maximum_is": "Ungültiger Betrag, das Maximum ist", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] zwischen den niedrigen und hohen Werten der Schwelle durch den Schluss auf [_4] bleibt.", "Lower": "Niedriger", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Wenn Sie auf 'OK' klicken, werden Sie bis zum ausgewählten Datum vom Handel auf dieser Site ausgeschlossen.", "Market_is_closed__Please_try_again_later_": "Börse ist derzeit geschlossen. Bitte versuchen Sie es später erneut.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Sie haben bereits den Gegenwert von [_1] [_2] abgehoben.", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Der Server <a href=\"[_1]\">Endpunkt</a> ist: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Die Höchstzahl an Token ([_1]) wurde erreicht.", "weeks": "Wochen", "Finish": "Beenden", "Ends_In/Out": "Endet innerhalb/außerhalb", "Long": "Lang", "Sorry,_this_feature_is_not_available_": "Leider ist diese Funktion nicht vorhanden.", "today,_Fridays": "heute, Freitage", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Sind Sie sicher, dass Sie den Zugang endgültig widerrufen möchten", "Forex": "Devisenhandel", "years": "Jahre", "Waiting_for_exit_tick_": "Warten auf den Endtick.", "Connection_error:_Please_check_your_internet_connection_": "Verbindungsfehler: Bitte überprüfen Sie Ihre Internetverbindung.", "Your_changes_have_been_updated_successfully_": "Ihre Änderungen wurden erfolgreich aktualisiert.", "Up/Down": "Auf/Ab", "Number_of_ticks": "Anzahl der Ticks", "Failed": "Fehlgeschlagen", "Touches": "Berührt", "Fridays": "Freitage", "Delete": "Löschen", "Upcoming_Events": "Bevorstehende Events", "Create_Account": "Konto einrichten", "Contract": "Kontrakt", "Sorry,_an_error_occurred_while_processing_your_request_": "Es tut uns leid, bei der Bearbeitung Ihrer Anfrage ist ein Fehler aufgetreten.", "Remaining_time": "Verbleibende Zeit", "Should_be_between_[_1]_and_[_2]": "Sollte zwischen [_1] und [_2] betragen", "Details": "Angaben", "Account_balance:": "Kontostand:", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Daher beträgt Ihre derzeitige maximale Sofortabhebung (vorausgesetzt Ihr Konto hat ein ausreichendes Guthaben) [_1] [_2].", "Buy_price": "Kaufpreis", "Please_select_a_valid_time_": "Bitte wählen Sie eine gültige Uhrzeit aus.", "Barrier_Change": "Grenzänderung", "week": "Woche", "Contract_Expiry": "Kontraktauslauf", "Higher/Lower": "Höher/Tiefer", "Duration": "Laufzeit", "Contract_Information": "Kontraktinformation", "Resale_not_offered": "Wiederverkauf wird nicht angeboten", "Open": "Offen", "Current_password": "Aktuelles Passwort", "Sell": "Verkaufen", "Please_log_in_": "Melden Sie sich bitte an.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Daher ist Ihr aktuelles sofortiges Maximum für eine Abhebung (sofern Ihr Konto über ausreichend Guthaben verfügt) EUR [_1] [_2] (oder Gegenwert in einer anderen Währung).", "All_barriers_in_this_trading_window_are_expired": "Alle Schwellen in diesem Handelsfenster sind abgelaufen", "Your_account_has_no_Login/Logout_activity_": "Ihr Konto hat keine Anmelde- und/oder Abmeldeaktivität.", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] wurden Ihrem virtuellen Geldkonto [_3] gutgeschrieben", "Investor_password": "Investoren Passwort", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] ausdrücklich niedriger als die Schwelle zum Schluss auf [_4] ist.", "December": "Dezember", "Payments": "Zahlungen", "October": "Oktober", "Purchase_Time": "Kaufuhrzeit", "Christmas_Day": "Weihnachtstag", "This_field_is_required_": "Dieses Feld ist erforderlich.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Auszahlungen von Ihrem Konto sind derzeit nicht erlaubt. Bitte setzen Sie sich mi [_1] in Verbindung, um es zu entsperren.", "from_[_1]_to_[_2]": "von [_1] bis [_2]", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Es sind nur Buchstaben, Zahlen, und Bindestriche erlaubt.", "Exit_Spot": "Schlusskurs", "second": "Sekunde", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Das Limit Ihrer Sitzungsdauer endet in [_1] Sekunden.", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Bitte legen Sie ein [_1]Wohnsitzland[_2] fest, bevor Sie auf ein Echtgeldkonto aufrüsten.", "You_need_to_finish_all_20_questions_": "Sie müssen alle 20 Fragen beantworten.", "This_symbol_is_not_active__Please_try_another_symbol_": "Dieses Zeichen ist nicht aktiv. Bitte versuchen Sie ein anderes Zeichen.", "This_is_a_staging_server_-_For_testing_purposes_only": "Dies ist ein Staging-Server - Nur zu Testzwecken", "Adjust_trade_parameters": "Anpassen von Handelsparametern", "You_did_not_change_anything_": "Sie haben nichts geändert.", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Derzeit sind Einzahlungen und Auszahlungen nicht erlaubt. Bitte setzen Sie sich mit [_1] in Verbindung, um es freizuschalten.", "Contract_Sold": "Kontrakt verkauft", "Stays_In/Goes_Out": "Bleibt in/Geht außerhalb", "Stake": "Einsatz", "Only_[_1]_are_allowed_": "Es sind nur [_1] erlaubt.", "mins": "Min", "Step": "Schritt", "True": "Wahr", "Return": "Rendite", "Predict_the_direction<br_/>and_purchase": "Sagen Sie die Richtung voraus<br />und kaufen Sie", "Barrier": "Schwelle", "High_Barrier_([_1])": "Hohe Schwelle ([_1])", "Short": "Kurz", "We": "Mi", "Amount": "Betrag", "Ends_Outside": "Endet Außerhalb", "seconds": "Sekunden", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] außerhalb der niedrigen und hohen Werte der Schwelle zum Schluss auf [_4] endet.", "Purchase_Price": "Kaufpreis", "High_Barrier": "Hohe Schwelle", "today": "heute", "Action": "Handlung", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] Tage [_2] Stunden [_3] Minuten", "Asset_Index": "Vermögensindex", "July": "Juli", "Potential_Profit": "Möglicher Gewinn", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Bitte befolgen Sie dieses Muster: 3 Zahlen, ein Bindestrich, gefolgt von 4 Zahlen.", "Select_market": "Wählen Sie den Markt", "View": "Ansehen", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] die Schwelle nicht durch das Schließen auf [_4] erreicht.", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Ihr Konto ist derzeit gesperrt. Jetzt sind nur Auszahlungen erlaubt. Setzen Sie sich bitte mit [_1] in Verbindung, um mehr Informationen zu erhalten.", "Real_Standard": "Echter Standard", "Hour": "Stunde", "Please_select_at_least_one_scope": "Bitte wählen Sie zumindest einen Bereich aus", "Your_Application_is_Being_Processed_": "Ihr Antrag wird bearbeitet.", "Trading_Times": "Börsenzeiten", "Day": "Tag", "Please_select_the_checkbox_": "Bitte wählen Sie das Kontrollkästchen.", "PM": "nachmittags", "You_have_not_granted_access_to_any_applications_": "Sie haben keinen Zugriff auf Anwendungen gewährt.", "Profit_Table": "Gewinntabelle", "Indicative": "Indikativ", "Asset": "Kapital", "Date_and_Time": "Datum und Zeit", "Barrier_([_1])": "Schwelle ([_1])", "Friday": "Freitag", "Payment_Agent": "Zahlungsagent", "End_Time": "Endzeit", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Ihr Konto ist vollständig authentifiziert und Ihr Abhebelimit wurde angehoben.", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Es darf ein zusätzliches Passwort verwendet werden, um den Zugang zum Kassensabschnitt zu beschränken.", "Opens": "Öffnet", "Last_Digit_Stats": "Statistiken der Letzten Stelle", "Upgrade_to_a_Financial_Account": "In ein Finanzkonto ändern", "Should_be_more_than_[_1]": "Sollte mehr als [_1] sein", "Previous": "Vorige", "Today": "Heute", "Update": "Aktualisieren", "Questions": "Fragen", "Scopes": "Geltungsbereiche", "Current_Time": "Aktuelle Zeit", "Real_Cent": "Echter Cent", "Explanation": "Erläuterung", "Never_Used": "Nie verwendet", "Please_enter_an_integer_value": "Bitte geben Sie einen ganzzahligen Wert ein", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Ihr Auftrag [_1] [_2] von [_3] an [_4] zu überweisen, wurde erfolgreich bearbeitet.", "Tuesday": "Dienstag", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Die Sitzungsdauer kann nicht mehr als 6 Wochen betragen.", "Remaining_Time": "Verbleibende Zeit", "Net_profit": "Nettogewinn", "Now": "Jetzt", "You_should_enter_[_1]_characters_": "Sie müssen [_1] Zeichen eingeben.", "Sale_Date": "Verkaufsdatum", "Please_select": "Bitte wählen Sie", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Bitte legen Sie Ihre 30-Tage Umsatzgrenze in unseren [_1]Selbstausschluss Einrichtungen[_2] fest, um Einzahlungslimits zu entfernen.", "Next": "Weiter", "Processing_your_request___": "Ihre Anfrage wird bearbeitet...", "June": "Juni", "Are_you_sure_that_you_want_to_permanently_delete_token": "Sind Sie sicher, dass Sie den Token endgültig löschen möchten?", "This_contract_lost": "Dieser Kontrakt verlor", "Your_transaction_reference_is": "Ihre Überweisungsreferenz lautet", "Settles": "Begleicht", "Invalid_email_address": "Falsche E-Mail Adresse", "Equals": "Gleicht", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] Einzahlung von [_2] zu Kontonummer [_3] ist erledigt. Überweisungs-ID: [_4]", "hours": "Stunden", "Contract_Confirmation": "Vertragsbestätigung", "Time_is_in_the_wrong_format_": "Die Zeit ist im falschen Format.", "Please_select_a_payment_agent": "Bitte wählen Sie einen Zahlungsagent aus", "min": "Min.", "Major_Pairs": "Wichtigste Paare", "Sorry,_an_error_occurred_while_processing_your_account_": "Es tut uns leid, bei der Bearbeitung Ihres Kontos ist ein Fehler aufgetreten.", "Percentage": "Prozentsatz", "Password_is_not_strong_enough_": "Passwort ist nicht stark genug.", "day": "Tag", "Walkthrough_Guide": "Kompletter Leitfaden", "Statement": "Abrechnung", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Ihr Konto ist eingeschränkt. Bitte [_1]kontaktieren Sie die Kundenbetreuung[_2] für Hilfe.", "Invalid_amount,_minimum_is": "Ungültiger Betrag, das Minimum ist", "Please_accept_the_terms_and_conditions_": "Bitte akzeptieren Sie die Geschäftsbedingungen.", "Not": "Nicht", "New_password": "Neues Passwort", "Chart": "Diagramm", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Sie haben bereits den Gegenwert von [_1] [_2]  abgehoben, der sich in den letzten [_3] Tagen angesammelt hat.", "March": "März", "Closes_early_(at_21:00)": "Schließt früh (um 21:00)", "All_markets_are_closed_now__Please_try_again_later_": "Alle Börsen sind derzeit geschlossen. Bitte versuchen Sie es später erneut.", "Profit": "Rendite", "Su": "So", "Your_settings_have_been_updated_successfully_": "Ihre Einstellungen wurden erfolgreich aktualisiert.", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Füllen Sie bitte das [_1]finanzielle Beurteilungsformular[_2] aus, um Ihre Abhebe- und Handelslimits aufzuheben.", "Sell_at_market": "Zum Börsenkurs verkaufen", "Exit_spot": "Schlusskurs", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] Auszahlung von Kontonummer [_2] bis [_3] ist erledigt. Überweisungs-ID: [_4]", "Over/Under": "Über/Unter", "month": "Monat", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] außerhalb der niedrigen und hohen Werte der Schwelle zum Schluss auf [_4] geht.", "email_address": "E-Mail Adresse", "Loss": "Verlust", "Monday": "Montag", "Spot": "Kassakurs", "January": "Januar", "Open_a_Financial_Account": "Eröffnen Sie ein Finanzkonto", "Main_password": "Hauptpasswort", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Bitte [_1]vervollständigen Sie Ihr Kontoprofil[_2], um Ihre Abhebe- und Handelslimits aufzuheben.", "Sell_time": "Verkaufszeit", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "Bitte [_1]Authentifizieren Sie Ihr Konto[_2] jetzt, um von allen Abhebeoptionen Gebrauch zu machen.", "Trade": "Handel", "Please_enter_a_number_between_[_1]_": "Bitte geben Sie eine Zahl zwischen [_1] ein.", "In/Out": "Innerhalb/Außerhalb", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Ihr Token ist abgelaufen. Bitte klicken Sie [_1]hier[_2], um den Verfikationsprozess zu wiederholen.", "year": "Jahr", "Stays_Between": "Bleibt Zwischen", "Please_check_the_above_form_for_pending_errors_": "Bitte überprüfen Sie das oben stehende Formular nach ausstehenden Fehlern.", "IP_Address": "IP-Adresse", "Closes_early_(at_18:00)": "Schließt früh (um 18:00)", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Überweisung durchgeführt von [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "Die beiden Passwörter, die Sie eingegeben haben, stimmen nicht überein.", "Note": "Anmerkung", "Total_Profit/Loss": "Gesamter Gewinn/Verlust", "Real_STP": "Echtes STP", "Wednesday": "Mittwoch", "There_was_a_problem_accessing_the_server_during_purchase_": "Während des Kaufs ist ein Problem beim Zugriff auf den Server aufgetreten.", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] und [_2] können nicht gleich sein.", "space": "Bereich", "verification_token": "Verifikationstoken", "Ends_Between": "Schließt Zwischen", "Saturday": "Samstag", "Higher": "Höher", "Th": "Do", "Old_password_is_wrong_": "Altes Passwort ist falsch.", "Spot_Time": "Kassa-Zeit", "Month": "Monat", "Waiting_for_entry_tick_": "Warten auf den Eingangstick.", "February": "Februar", "Your_trading_statistics_since_[_1]_": "Ihre Trading-Statistiken seit [_1].", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Ihr Auftrag, [_1] [_2] von Ihrem Konto [_3] auf das Konto des Zahlungsagent [_4] zu überweisen, wurde erfolgreich bearbeitet.", "Dec": "Dez", "Exclude_time_cannot_be_less_than_6_months_": "Die Ausschlusszeit darf nicht kürzer als 6 Monate sein.", "Real_Account": "Echtes Konto", "minutes": "Minuten", "months": "Monate", "Your_account_has_no_trading_activity_": "Ihr Konto hat keine Handelsaktivität.", "Virtual_Account": "Virtuelles Konto", "Target": "Ziel", "Investment_Account": "Investmentkonto", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Bitte <a href=\"[_1]\">melden Sie sich an</a>, um diese Seite anzuzeigen.", "letters": "Buchstaben", "Should_be_a_valid_number": "Sollte eine gültige Zahl sein", "Thursday": "Donnerstag", "Price": "Kurs", "Time_out_cannot_be_in_the_past_": "Die Auszeit darf nicht in der Vergangenheit sein.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Ihre Kasse ist auf Ihren Antrag hin gesperrt - um Sie zu entsperren, geben Sie bitte das Passwort ein.", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Es tut uns leid, aber Ihr Konto ist für den Erwerb weiterer Kontrakte nicht berechtigt.", "Even/Odd": "Gerade/ungerade", "Reference_ID": "Referenznr.", "Current": "Derzeit", "Description": "Beschreibung", "Please_input_a_valid_date": "Bitte geben Sie ein gültiges Datum ein", "numbers": "Zahlen", "You_have_already_withdrawn_[_1]_[_2]_": "Sie haben bereits [_1] [_2] abgehoben.", "Sunday": "Sonntag", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Es tut uns leid, die Anmeldung ist in Ihrem Land nicht vorhanden. Bitte kontaktieren Sie die <a class=\"pjaxload\" href=\"[_1]\">Kundenbetreuung</a>, um weitere Informationen zu erhalten.", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Nur Buchstaben, Zahlen, Abstände, Bindestriche, Punkte, und Apostrophe sind erlaubt.", "Never": "Nie", "Time_out_cannot_be_more_than_6_weeks_": "Die Auszeit kann nicht mehr als 6 Wochen betragen.", "Lock_Cashier": "Kasse blockieren", "Contract_ID": "Kontrakt ID", "Should_be_less_than_[_1]": "Sollte kleiner als [_1] sein", "Contract_is_not_started_yet": "Kontrakt ist noch nicht gestartet", "Your_changes_have_been_updated_": "Ihre Änderungen wurden aktualisiert.", "Upgrade_to_a_Real_Account": "Erweitern Sie auf ein Echtgeldkonto", "Start_Time": "Startzeit", "Cashier": "Kasse", "Deposit": "Einzahlung", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Ihr Auszahlungslimit beträgt  [_1] [_2] (oder Gegenwert in anderer Währung).", "Rise/Fall": "Steigen/Fallen", "This_contract_won": "Dieser Vertrag gewann", "Only_numbers,_space,_and_hyphen_are_allowed_": "Es sind nur Zahlen, Abstände und Bindestriche erlaubt.", "Sale_Price": "Verkaufskurs", "Date": "Datum", "Withdraw": "Abheben", "False": "Falsch", "Goes_Outside": "Geht Außerhalb", "Final_price": "Schlusskurs", "Revoke_access": "Zugang widerrufen", "End_time_must_be_after_start_time_": "Die Endzeit muss nach der Startzeit beginnen.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Die angegebene E-Mail Adresse, ist bereits in Verwendung. Wenn Sie Ihr Passwort vergessen haben, versuchen Sie bitte unser <a href=\"[_1]\">Passwort-Wiederfindung Tool</a>, oder kontaktieren Sie die Kundenbetreuung.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "In Ihrem Land ist derzeit kein Zahlungsagent vorhanden.", "details": "Angaben", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Leider steht diese Funktion nur für virtuelle Konten zur Verfügung.", "Successful": "Erfolgreich", "Resources": "Quellen", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] ausdrücklich höher als oder gleich mit (der), die Schwelle zum Schluss auf [_4] ist.", "You_have_sold_this_contract_at_[_1]_[_2]": "Sie haben diesen Kontrakt für [_1] [_2] verkauft", "New_Year's_Day": "Neujahrstag", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Ihr Passwort wurde erfolgreich zurückgesetzt. Bitte loggen Sie mit Ihrem neuen Passwort in Ihr Konto ein.", "Balance": "Guthaben", "days": "Tage", "Entry_Spot": "Startkurs", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Bitte klicken Sie auf den nachfolgenden Link, um den Passwort Erneuerungsprozess zu starten. Wenn Sie weitere Unterstützung benötigen, setzen Sie sich bitte mit unserem Kundensupport in Verbindung.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Das Passwort muss Klein- und Großbuchstaben sowie Zahlen enthalten.", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Diese Funktion ist für virtuelle Geldkonten nicht relevant", "Your_transaction_reference_number_is_[_1]": "Ihre Überweisungsnummer ist [_1]", "End_time": "Endzeit", "There_was_an_error": "Es ist ein Fehler aufgetreten", "Credit/Debit": "Gutschrift/Lastschrift", "Gaming_Account": "Spielkonto", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] Auszahlung, wenn [_3] auf, oder zwischen niedrigen und hohen Werten der Schwelle, zum Schluss auf [_4] endet.", "Time_out_must_be_after_today_": "Die Auszeit muss nach dem heutigen Tag beginnen.", "Only_numbers_and_spaces_are_allowed_": "Es sind nur Zahlen und Abstände erlaubt.", "Please_select_a_valid_date_": "Bitte wählen Sie ein gültiges Datum aus.", "Please_submit_a_valid_verification_token_": "Bitte übermitteln Sie einen gültigen Verifikationstoken.", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Sie haben das Kurslimit für Anfragen pro Sekunde erreicht. Bitte versuchen Sie es später.", "Touch/No_Touch": "Erreicht", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Ihre Kasse wurde auf Ihren Antrag hin gesperrt - um Sie wieder zu entsperren, bitte <a href=\"[_1]\">hier</a>anklicken.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Es sind nur Buchstaben, Leerzeichen, Bindestriche, Punkte und Apostrophe erlaubt." };
+	texts_json['ES'] = { "Withdraw": "Retirar", "Revoke_access": "Revocar el acceso", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Los agentes de pagos no están disponibles actualmente para su país.", "Successful": "Exitoso", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Lo sentimos, esta característica está disponible solo para cuentas virtuales.", "details": "detalles", "You_have_sold_this_contract_at_[_1]_[_2]": "Usted ha vendido este contrato en [_1] [_2]", "Resources": "Recursos", "Cashier": "Cajero", "Start_Time": "Hora de comienzo", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Su límite de retirada es [_1] [_2] (o el equivalente en otra divisa).", "Deposit": "Depósito", "Rise/Fall": "Alza/Baja", "This_contract_won": "Este contrato ganó", "Date": "Fecha", "Sale_Price": "Precio venta", "Gaming_Account": "Cuenta de juego", "Touch/No_Touch": "Toque/Sin toque", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Su contraseña se ha restablecido. Por favor, inicie sesión en su cuenta utilizando su nueva contraseña.", "Balance": "Saldo", "Jan": "Ene", "days": "días", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Esta característica no es relevante para cuentas de dinero virtual.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "La contraseña debe tener letras minúsculas y mayúsculas con números.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Por favor haga clic en el enlace de abajo para reiniciar el proceso de recuperación de contraseña. Si necesita más ayuda, póngase en contacto con nuestro Servicio de Atención al Cliente.", "Entry_Spot": "Punto de entrada", "End_time": "Hora de finalización", "Your_transaction_reference_number_is_[_1]": "El número de referencia de su transacción es [_1]", "Female": "Mujer", "There_was_an_error": "Hubo un error", "Credit/Debit": "Crédito/débito", "minutes": "minutos", "Your_account_has_no_trading_activity_": "Su cuenta no tiene actividad comercial.", "months": "meses", "Investment_Account": "Cuenta de inversión", "Target": "Objetivo", "Virtual_Account": "Cuenta virtual", "letters": "letras", "Thursday": "Jueves", "Price": "Precio", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Su cajero está bloqueado según su petición - para desbloquearlo, por favor introduzca la contraseña.", "space": "espacio", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] y [_2] no pueden ser iguales.", "Old_password_is_wrong_": "Su antigua contraseña es incorrecta.", "verification_token": "token de verificación", "Saturday": "Sábado", "Th": "JU", "Waiting_for_entry_tick_": "Esperando el tick de entrada.", "Month": "Mes", "Spot_Time": "Tiempo Spot", "February": "Febrero", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Su solicitud de retirada de [_1] [_2] de su cuenta [_3] al agente de pagos [_4] se ha procesado correctamente.", "Your_trading_statistics_since_[_1]_": "Las estadísticas de sus transacciones desde [_1].", "Aug": "Ago", "Dec": "Dic", "Exclude_time_cannot_be_less_than_6_months_": "El tiempo de exclusión no puede ser menor a 6 meses.", "Real_Account": "Cuenta real", "Lock_Cashier": "Bloquear cajero", "Contract_ID": "ID del Contrato", "Contract_is_not_started_yet": "El contrato no ha comenzado todavía", "Your_changes_have_been_updated_": "Sus cambios se han actualizado.", "Upgrade_to_a_Real_Account": "Actualice a la cuenta de dinero real", "Mo": "LU", "Even/Odd": "Par/Impar", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Lo sentimos, su cuenta no está autorizada para continuar con la compra de contratos.", "Please_input_a_valid_date": "Ingrese una fecha válida", "Reference_ID": "ID de Referencia", "Current": "Actual", "Description": "Descripción", "numbers": "números", "Sunday": "Domingo", "You_have_already_withdrawn_[_1]_[_2]_": "Usted ya retiró [_1] [_2].", "Never": "Nunca", "All_markets_are_closed_now__Please_try_again_later_": "Todos los mercados están cerrados ahora. Inténtelo más tarde.", "Profit": "Beneficios", "Sell_at_market": "Vender al precio actual", "Su": "DO", "Over/Under": "Encima/Debajo", "Exit_spot": "Punto de salida", "email_address": "correo electrónico", "month": "mes", "Loss": "Pérdida", "Monday": "Lunes", "January": "Enero", "Spot": "Precio actual del mercado", "day": "día", "Walkthrough_Guide": "Guía tutorial", "Statement": "Extracto", "Invalid_amount,_minimum_is": "Monto inválido, el mínimo es", "New_password": "Contraseña nueva", "Chart": "Gráfico", "Browser": "Navegador", "March": "Marzo", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Usted ya retiró un total equivalente a [_1] [_2]  en los últimos [_3] días.", "In/Out": "Dentro/Fuera", "year": "año", "IP_Address": "Dirección IP", "The_two_passwords_that_you_entered_do_not_match_": "Las dos contraseñas introducidas no coinciden.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transacción realizada por [_1] (ID de la aplicación: [_2])", "Total_Profit/Loss": "Beneficios/perdidas totales", "Note": "Nota", "April": "Abril", "There_was_a_problem_accessing_the_server_during_purchase_": "Hubo un problema al acceder al servidor durante la compra.", "Wednesday": "Miércoles", "Open_a_Financial_Account": "Abrir una cuenta financiera", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Autentifique su cuenta[_2] ahora para aprovechar al máximo todas las opciones de retiro disponibles.", "Trade": "Operar", "Please_enter_a_number_between_[_1]_": "Por favor, introduzca un número entre [_1].", "Please_enter_an_integer_value": "Ingrese un valor entero", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Su solicitud de transferencia [_1] [_2] de [_3] a [_4] ha sido procesada exitosamente.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "El límite de la duración de la sesión no puede ser superior a 6 semanas.", "Tuesday": "Martes", "Remaining_Time": "Tiempo Restante", "Net_profit": "Beneficio Neto", "Now": "Ahora", "September": "Septiembre", "Male": "Hombre", "Payment_Agent": "Agente de Pagos", "Friday": "Viernes", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Su cuenta está totalmente autenticada y su límite de retirada ha sido aumentado.", "End_Time": "Hora de finalización", "Upgrade_to_a_Financial_Account": "Actualice a la cuenta financiera", "Last_Digit_Stats": "Estadísticas del último dígito", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Se puede utilizar una contraseña adicional para restringir el acceso al cajero.", "Opens": "Abre", "Previous": "Anterior", "Questions": "Preguntas", "Update": "Actualizar", "Never_Used": "Nunca usado", "Explanation": "Explicación", "Current_Time": "Hora actual", "Invalid_email_address": "Correo electrónico no válido", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] depósito desde [_2] a la cuenta número [_3] se ha realizado con éxito. ID de transacción: [_4]", "hours": "horas", "Contract_Confirmation": "Confirmación del contrato", "Please_select_a_payment_agent": "Seleccione un agente de pago", "Admin": "Administrador", "Major_Pairs": "Pares mayores", "Sorry,_an_error_occurred_while_processing_your_account_": "Lo sentimos, ha ocurrido un error mientras se procesaba su cuenta.", "Password_is_not_strong_enough_": "La contraseña no es lo suficientemente fuerte.", "Sale_Date": "Fecha de venta", "Please_select": "Seleccione", "Next": "Siguiente", "June": "Junio", "Are_you_sure_that_you_want_to_permanently_delete_token": "Está seguro de querer eliminar el token", "Your_transaction_reference_is": "La referencia de su transacción es", "This_contract_lost": "Este contrato perdió", "Settles": "Establece", "Tick": "Intervalo", "Stake": "Inversión", "Step": "Paso", "Only_[_1]_are_allowed_": "Se permiten solo [_1].", "Japan": "Japón", "We": "MI", "Barrier": "Límite", "Predict_the_direction<br_/>and_purchase": "Prediga la dirección<br /> y compre", "Short": "Cortos", "Return": "Ganancias", "Amount": "Monto", "You_need_to_finish_all_20_questions_": "Tiene que terminar todas las 20 preguntas.", "Adjust_trade_parameters": "Ajustar parámetros de comercio", "Fr": "VI", "You_did_not_change_anything_": "No ha cambiado nada.", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "En este momento no puede depositar ni retirar fondos de su cuenta. Por favor, póngase en contacto con [_1] para desbloquearla.", "Contract_Sold": "Contrato Vendido", "Stays_In/Goes_Out": "Queda Dentro/Sale Fuera", "Trading_Times": "Horarios comerciales", "Day": "Día", "You_have_not_granted_access_to_any_applications_": "Usted no ha concedido acceso a ninguna aplicación.", "Asset": "Activo", "Indicative": "Indicativo", "Profit_Table": "Tabla de beneficios", "Date_and_Time": "Fecha y Hora", "seconds": "segundos", "High_Barrier": "Barrera Superior", "Purchase_Price": "Precio de compra", "Potential_Profit": "Beneficios potenciales", "July": "Julio", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] días [_2] horas [_3] minutos", "Asset_Index": "Índice de activos", "Action": "Acción", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Por favor, siga el patrón de 3 números y un guión seguido de 4 números.", "Select_market": "Seleccione mercado", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Su cuenta está actualmente suspendida. Solo tiene permitido retirar. Para más información, por favor póngase en contacto con 1%.", "View": "Ver", "Barrier_Change": "Cambio de Límite", "Contract_Expiry": "Vencimiento del Contrato", "Duration": "Duración", "Higher/Lower": "Superior/Inferior", "Contract_Information": "Información del Contrato", "Sorry,_an_error_occurred_while_processing_your_request_": "Lo sentimos, ha ocurrido un error mientras se procesaba su petición.", "Contract": "Contrato", "Details": "detalles", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Por lo tanto, la cantidad máxima que puede retirar de forma inmediata (sujeta a la existencia de fondos suficientes en su cuenta) es [_1] [_2].", "Purchase_Time": "Hora de compra", "This_field_is_required_": "Este campo es obligatorio.", "Name": "Nombre", "Portfolio": "Cartera", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "No se permiten las retiradas de su cuenta en este momento. Por favor, póngase en contacto con [_1] para desbloquearla.", "Exit_Spot": "Punto de salida", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "El límite de duración de su sesión terminará en [_1] segundos.", "second": "segundo", "Open": "Abierto", "Sell": "Venta", "Current_password": "Contraseña actual", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Por lo tanto, la cantidad máxima que puede retirar de forma inmediata (sujeta a la existencia de fondos suficientes en su cuenta) es [_1] [_2] (o su equivalente en otra divisa).", "Please_log_in_": "Por favor inicie sesión.", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] se ha acreditado en su cuenta de dinero virtual [_3]", "Your_account_has_no_Login/Logout_activity_": "Su cuenta no tiene actividad de accesos/cierres de sesión.", "All_barriers_in_this_trading_window_are_expired": "Todos los límites en esta ventana de comercio han caducado", "December": "Diciembre", "Payments": "Pagos", "August": "Agosto", "October": "Octubre", "Closed": "Cerrado", "Total_Cost": "Coste total", "Potential_Payout": "Pago potencial", "Invalid_amount,_maximum_is": "Monto invalido. El máximo es", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Usted ya retiró el equivalente a [_1] [_2].", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "El máximo número de tokens ([_1]) ha sido alcanzado.", "Finish": "Terminar", "Long": "Largos", "Ends_In/Out": "Finaliza Dentro/Fuera", "Shop": "Tienda", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Su [_1] límite diario para retirar dinero es actualmente [_2] [_3] (o el equivalente en otra divisa).", "There_was_some_invalid_character_in_an_input_field_": "Había un carácter no válido en el campo de entrada.", "Exit_Spot_Time": "Tiempo de Punto de Salida", "Select_your_underlying_asset": "Seleccione el activo subyacente", "Tu": "MA", "Number_of_ticks": "Número de intervalos", "Failed": "Fallado", "Up/Down": "Arriba/Abajo", "Fridays": "Viernes", "Sa": "SA", "Upcoming_Events": "Próximos eventos", "Delete": "Eliminar", "Sorry,_this_feature_is_not_available_": "Esta funcionalidad no está disponible.", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Está seguro de que desea revocar permanentemente el acceso a la aplicación", "years": "años", "Read": "Leer", "Verification_code_format_incorrect_": "El formato del código de verificación es incorrecto.", "Low_Barrier": "Barrera Inferior", "minute": "minuto", "Payout": "Pago", "Select_your_trade_type": "Seleccione el tipo de contrato", "Start_time": "Hora de comienzo", "Exclude_time_cannot_be_for_more_than_5_years_": "El tiempo de exclusión no puede ser mayor a 5 años.", "Buy": "Comprar", "Year": "Año", "November": "Noviembre", "Your_withdrawal_limit_is_[_1]_[_2]_": "Su límite de retirada es [_1] [_2].", "Last_Used": "Último usado", "New_token_created_": "Un token nuevo ha sido creado.", "Profit/Loss": "Ganado/Perdido", "Minimum_of_[_1]_characters_required_": "Mínimo de [_1] caracteres requeridos.", "Change_Password": "Cambiar contraseña", "There_was_a_problem_accessing_the_server_": "Hubo un problema al acceder al servidor.", "Select_your_market": "Seleccione su mercado", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "El contrato se venderá al precio vigente en el mercado en el momento de la recepción de la solicitud de venta por nuestros servidores. Este precio puede ser diferente del precio indicado.", "Matches/Differs": "Iguales/Diferentes", "Unlock_Cashier": "Desbloquear cajero", "Charting_for_this_underlying_is_delayed": "Gráficos para este instrumento se muestran con retraso", "Weekday": "Día de la semana", "Permissions": "Permisos", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Lo sentimos, ingresó una contraseña de cajero incorrecta", "hour": "hora", "Apr": "Abr", "Status": "Estado", "Entry_spot": "Punto de entrada", "Closes": "Cierra" };
+	texts_json['FR'] = { "Ref_": "Réf.", "January": "janvier", "Monday": "lundi", "Loss": "Pertes", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] sort de la zone délimitée par les valeurs inférieure et supérieure de la barrière avant la fermeture le [_4].", "email_address": "Adresse e-mail", "month": "mois", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Le retrait [_1] à partir du numéo de compte [_2] vers [_3] a été effectué. Identifiant de transaction : [_4]", "Over/Under": "Au dessus/En dessous", "Exit_spot": "Point de sortie", "Your_settings_have_been_updated_successfully_": "Vos paramètres ont été actualisés avec succès.", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Veuillez remplir le [_1]formulaire d'évaluation financière[_2] pour lever vos limites de retrait et de trading.", "Sell_at_market": "Vendre au prix du marché", "Su": "Di", "Profit": "Profits", "All_markets_are_closed_now__Please_try_again_later_": "Tous les marchés sont actuellement fermés. Veuillez réessayer ultérieurement.", "Demo": "Demonstration", "Closes_early_(at_21:00)": "Ferme tôt (à 21h)", "March": "mars", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Vous avez déjà retiré l'équivalent de [_2] [_1] au total au cours des [_3] derniers jours.", "New_password": "Nouveau mot de passe", "Chart": "Graphique", "Browser": "Navigateur", "Not": "Pas", "Statement": "Relevé", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Votre compte est restreint. Veuillez [_1]contacter le Service Clientèle[_2] pour obtenir de l'aide.", "Invalid_amount,_minimum_is": "Montant non valide, le minimum est de", "Please_accept_the_terms_and_conditions_": "Veuillez accepter les conditions générales.", "Walkthrough_Guide": "Guide interactif", "day": "jour", "There_was_a_problem_accessing_the_server_during_purchase_": "Il y a eu un problème d'accès au serveur durant l'achat.", "Wednesday": "mercredi", "April": "avril", "Real_STP": "Réel STP", "Total_Profit/Loss": "Total des profits/pertes", "Note": "Remarque", "The_two_passwords_that_you_entered_do_not_match_": "Les deux mots de passe que vous avez entrés ne correspondent pas.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transaction effectuée par [_1] (identifiant d'application : [_2])", "Please_check_the_above_form_for_pending_errors_": "Veuillez vérifier que les informations ci-dessus ne contiennent pas d'erreurs.", "IP_Address": "Adresse IP", "Closes_early_(at_18:00)": "Ferme tôt (à 18h)", "Stays_Between": "Reste dans la zone", "year": "année", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Votre jeton a expiré. Veuillez cliquer [_1]ici[_2] pour relancer le processus de vérification.", "In/Out": "Zone In/Out", "Please_enter_a_number_between_[_1]_": "Veuillez saisir un chiffre entre [_1].", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Authentifiez votre compte[_2] maintenant profiter pleinement de toutes les possibilités de retrait disponibles.", "Trade": "Trading", "Sell_time": "Heure de vente", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "S'il vous plait [_1]complétez le profile de votre compte[_2] pour supprimer vos limites de retrait et de trading.", "Main_password": "Mot de passe principal", "Open_a_Financial_Account": "Ouvrir un compte financier", "Male": "Masculin", "You_should_enter_[_1]_characters_": "Vous devez saisir [_1] caractères.", "Now": "Maintenant", "September": "septembre", "Net_profit": "Bénéfice net", "Remaining_Time": "Temps restant", "Session_duration_limit_cannot_be_more_than_6_weeks_": "La limite de durée de session ne peut excéder 6 semaines.", "Tuesday": "mardi", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Votre demande de transférer [_1] [_2] de [_3] à [_4] a été traitée avec succès.", "Please_enter_an_integer_value": "Veuillez saisir un nombre entier", "Real_Cent": "Compte réel Cent", "Explanation": "Explication", "Never_Used": "Jamais utilisé", "Current_Time": "Heure actuelle", "Scopes": "Périmètre", "Update": "Mise à jour", "Today": "Aujourd'hui", "Previous": "Précédent", "Should_be_more_than_[_1]": "Devrait être plus de [_1]", "Upgrade_to_a_Financial_Account": "Ouvrir un compte financier", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Un mot de passe supplémentaire peut être utilisé afin de restreindre l'accès à la caisse.", "Last_Digit_Stats": "Statistiques du dernier chiffre", "Opens": "Ouvre", "End_Time": "Heure de fin", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Votre compte est entièrement authentifié et vos limites de retrait ont été levées.", "Payment_Agent": "Agent de paiement", "Barrier_([_1])": "Barrière ([_1])", "Friday": "vendredi", "Percentage": "Pourcentage", "Password_is_not_strong_enough_": "Le mot de passe n'est pas assez fiable.", "Sorry,_an_error_occurred_while_processing_your_account_": "Désolé, une erreur est survenu pendant le traitement de votre compte.", "Major_Pairs": "Paires majeures", "Please_select_a_payment_agent": "Veuillez sélectionner une date valide", "Admin": "Administration", "Contract_Confirmation": "Confirmation de contrat", "Time_is_in_the_wrong_format_": "Le format de l'heure est incorrect.", "hours": "heures", "Equals": "Égaux", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Le dépôt [_1] à partir de [_2] vers le numéro de compte [_3] est effectué. Identifiant de transaction : [_4]", "Invalid_email_address": "Adresse email non valide", "Settles": "Règlements", "This_contract_lost": "Ce contrat a été perdu", "Your_transaction_reference_is": "Votre référence de transaction est", "Are_you_sure_that_you_want_to_permanently_delete_token": "Voulez-vous vraiment supprimer ce jeton de façon permanente ?", "June": "juin", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "S'il vous plaît, définissez votre limite de chiffres d'affaires sur 30 jours dans notre [_1]infrastructures d'auto exclusion[_2] pour supprimer les limites de dépôts.", "Next": "Suivant", "Processing_your_request___": "Traitement de votre demande en cours...", "Please_select": "Sélection", "Sale_Date": "Date de vente", "You_have_sold_this_contract_at_[_1]_[_2]": "Vous avez vendu ce contrat [_2] [_1]", "Resources": "Ressources", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] est strictement supérieur ou égal à la barrière au moment de la fermeture le [_4].", "Successful": "Réussite", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Désolé, cette fonctionnalité est disponible uniquement pour les comptes virtuels.", "details": "informations", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "L'option des Agents de Paiement n'est pas disponible pour le moment dans votre pays.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "L'adresse e-mail que vous avez saisie est déjà utilisée. Si vous avez oublié votre mot de passe, veuillez essayer notre <a href=\"[_1]\">outil de récupération de mot de passe</a> ou contacter le service clientèle.", "End_time_must_be_after_start_time_": "L'heure de fin doit être ultérieure à l'heure de début.", "Revoke_access": "Révoquer l'accès", "Final_price": "Prix final", "Goes_Outside": "Sort de la zone", "Withdraw": "Retrait", "False": "Faux", "Sale_Price": "Prix de vente", "Only_numbers,_space,_and_hyphen_are_allowed_": "Les chiffres, les espaces et les traits d'union sont les seuls caractères autorisés.", "This_contract_won": "Ce contrat a été gagné", "Rise/Fall": "Hausse/Baisse", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Votre limite de retrait est de [_2] [_1] (ou équivalent dans une autre devise).", "Deposit": "Dépôt", "Cashier": "Caisse", "Start_Time": "Heure de début", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Les lettres, les espaces, les traits d'union, la virgule et le point sont les seuls caractères autorisés.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Votre caisse est verrouillée conformément à votre demande - si vous souhaitez la déverrouiller, veuillez cliquer <a href=\"[_1]\">ici</a>.", "Touch/No_Touch": "Touche/Ne touche pas", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Vous avez atteint la limite de tentatives par seconde. Veuillez réessayer ultérieurement.", "Please_submit_a_valid_verification_token_": "Veuillez saisir un jeton de vérification valide.", "Please_select_a_valid_date_": "Veuillez sélectionner une date valide.", "Only_numbers_and_spaces_are_allowed_": "Les chiffres et les espaces sont les seuls caractères autorisés.", "Time_out_must_be_after_today_": "La période d'expiration doit être ultérieure.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] termine sur ou entre les valeurs inférieure et supérieure de la barrière à la fermeture le [_4].", "Gaming_Account": "Compte de jeu", "Credit/Debit": "Crédit/débit", "There_was_an_error": "Une erreur s'est produite", "Female": "Femme", "End_time": "Moment de fin", "Your_transaction_reference_number_is_[_1]": "Le numéro de référence de votre transaction est [_1]", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Cette fonction ne s'applique pas aux comptes virtuels.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Le mot de passe doit se composer de majuscules, de minuscules et de chiffres.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Veuillez cliquer sur le lien ci-dessous pour relancer le processus de récupération de mot de passe. Pour obtenir de l'aide, veuillez contacter notre Service Clientèle.", "Entry_Spot": "Point d'entrée", "days": "jours", "Jan": "jan.", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Votre mot de passe a été réinitialisé avec succès. Veuillez vous connecter à votre compte en utilisant votre nouveau mot de passe.", "Balance": "Solde", "New_Year's_Day": "Jour de l'An", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Votre caisse est verrouillée conformément à votre demande - si vous souhaitez la déverrouiller, veuillez saisir le mot de passe.", "Price": "Prix", "Should_be_a_valid_number": "La saisie doit être un nombre valide", "Time_out_cannot_be_in_the_past_": "La période d'expiration ne peut être antérieure.", "Thursday": "jeudi", "letters": "lettres", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Veuillez <a href=\"[_1]\">vous connecter</a> pour afficher cette page.", "Virtual_Account": "Compte virtuel", "Target": "Cible", "Investment_Account": "Compte d'investissement", "Your_account_has_no_trading_activity_": "Votre compte n'indique aucune activité de trading.", "months": "mois", "Nov": "nov.", "Real_Account": "Compte réel", "Exclude_time_cannot_be_less_than_6_months_": "Le temps d'exclusion ne peut pas être inférieur à 6 mois.", "Your_trading_statistics_since_[_1]_": "Vos statistiques de trading depuis [_1].", "Dec": "déc.", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Votre demande de retirer [_1] [_2] de votre compte [_3] pour le compte de l'Agent de Paiement [_4] a été traitée avec succès.", "Aug": "août", "February": "février", "Waiting_for_entry_tick_": "En attente du tick d'entrée.", "Month": "Mois", "Spot_Time": "Heure spot", "Old_password_is_wrong_": "L'ancien mot de passe est erroné.", "Ends_Between": "Termine dans la zone", "Th": "Je", "Higher": "Supérieur", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "{seulement pour le JAPON}Votre requête a été traité. Connectez vous s'il vous plaît pour accéder à votre Compte d'Argent Réel.", "verification_token": "jeton de vérification", "Saturday": "samedi", "space": "espace", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] et [_2] ne peuvent être identiques.", "Mo": "Lu", "Upgrade_to_a_Real_Account": "Ouvrir un compte réel", "Your_changes_have_been_updated_": "Vos modifications ont été prises en compte.", "Contract_is_not_started_yet": "Le contrat n'est pas encore actif", "Should_be_less_than_[_1]": "La saisie doit être inférieure à [_1]", "Contract_ID": "Identifiant du contrat", "Lock_Cashier": "Caisse", "Time_out_cannot_be_more_than_6_weeks_": "La période d'expiration ne peut excéder 6 semaines.", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Seuls les lettres, chiffres, espace, trait d'union et apostrophe sont permis.", "Never": "Jamais", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Nous sommes désolés, l'inscription pour un compte n'est pas disponible dans votre pays. Veuillez contacter le <a href=\"[_1]\">service clientèle</a> pour obtenir des informations.", "Sunday": "dimanche", "You_have_already_withdrawn_[_1]_[_2]_": "Vous avez déjà retiré [_2] [_1].", "numbers": "chiffres", "Current": "Valeur actuelle", "Reference_ID": "Identifiant de référence", "Please_input_a_valid_date": "Veuillez saisir une date valide", "Even/Odd": "Pair/Impair", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Désolé, votre compte n'est autorisé pour aucun achat supplémentaire de contrat.", "Ends_In/Out": "Termine dans/hors de la zone", "weeks": "semaines", "Finish": "Finnois", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Le nombre maximum de jetons d'authentification ([_1]) est atteint.", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Le <a href=\"[_1]\"> 1terminal</a> 2 du serveur est : [_2]", "Market_is_closed__Please_try_again_later_": "Le marché est fermé. Veuillez réessayer ultérieurement.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Vous avez déjà retiré l'équivalent de [_2] [_1].", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Lorsque vous cliquerez sur « Ok », vous serez exclu des opérations de trading du site jusqu'à la date sélectionnée.", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] reste dans la zone délimitée par les valeurs supérieure et inférieure de la barrière jusqu'à la fermeture le [_4].", "Lower": "Inférieur", "Invalid_amount,_maximum_is": "Montant non valide, le maximum est de", "Total_Cost": "Coût total", "Potential_Payout": "Paiement potentiel", "Closed": "Fermé", "Tu": "mar.", "Select_your_underlying_asset": "Sélectionnez votre actif sous-jacent", "logout": "déconnexion", "Exit_Spot_Time": "Prix de sortie actuel", "There_was_some_invalid_character_in_an_input_field_": "Un caractère non valide a été saisi dans un champ.", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Votre limite de retrait sur [_1] jours est actuellement de [_3] [_2] (ou équivalent dans une autre devise).", "Real_Volatility": "Volatilité réelle", "Mar": "mars", "Shop": "Boutique", "Create_Account": "Créer un compte", "Sep": "sep.", "Upcoming_Events": "Évènements à venir", "Delete": "Supprimer", "Fridays": "Vendredis", "Number_of_ticks": "Nombre de ticks", "Failed": "Échec", "Touches": "Touche", "Your_changes_have_been_updated_successfully_": "Vos modifications ont bien été prises en compte.", "Up/Down": "Hausse/Baisse", "Connection_error:_Please_check_your_internet_connection_": "Erreur de connexion : veuillez vérifier votre connexion à Internet.", "Waiting_for_exit_tick_": "En attente du tick de sortie.", "years": "années", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Voulez-vous vraiment révoquer l'accès à cette application de façon permanente ?", "today,_Fridays": "aujourd'hui, vendredis", "Sorry,_this_feature_is_not_available_": "Désolé, cette option n'est pas disponible.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] touche la barrière avant la fermeture le [_4].", "Verification_code_format_incorrect_": "Le format du code de vérification est incorrect.", "Low_Barrier": "Barrière inférieure", "The_main_password_of_account_number_[_1]_has_been_changed_": "Le mot de passe principal du compte numéro [_1] a été modifié.", "Read": "Lire", "Year": "Année", "November": "novembre", "Low_Barrier_([_1])": "Barrière inférieure ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "Le temps d'exclusion ne peut pas être supérieur à 5 ans.", "Buy": "Acheter", "Start_time": "Heure de début", "Oct": "oct.", "Insufficient_balance_": "Solde insuffisant.", "Select_your_trade_type": "Sélectionnez votre type de transaction", "Payout": "Paiement", "Select_your_market": "Sélectionnez votre marché", "There_was_a_problem_accessing_the_server_": "Il y a eu un problème d'accès au serveur.", "May": "mai", "Change_Password": "Modifier le mot de passe", "Token": "Jeton", "Does_Not_Touch": "Ne touche pas", "Minimum_of_[_1]_characters_required_": "Un minimum de [_1] caractères est requis.", "Profit/Loss": "Profits/pertes", "Only_[_1]_decimal_points_are_allowed_": "[_1] décimales seulement sont autorisées.", "New_token_created_": "Nouveau jeton d'authentification créé.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Votre limite de retrait est de [_2] [_1].", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "S'il vous plait [_1]acceptez les termes et conditions mises à jour[_2] pour supprimer vos limites de retrait et de trading.", "Last_Used": "Dernière utilisation", "AM": " ", "Closes": "Fermetures", "Status": "Statut", "Congratulations!_Your_[_1]_Account_has_been_created_": "Félicitations ! Votre compte [_1] a été créé.", "Entry_spot": "Point d'entrée", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Désolé, vous avez entré un mot de passe de caisse incorrect", "Please_select_a_value": "Veuillez sélectionner une valeur", "hour": "heure", "Apr": "avr.", "Weekday": "Jour de la semaine", "Digit": "Chiffre", "Matches/Differs": "Égal/Différent", "Unlock_Cashier": "Déverrouiller la caisse", "Charting_for_this_underlying_is_delayed": "Les graphiques sont retardés pour ce sous-jacent", "Virtual_money_credit_to_account": "Crédit de fonds virtuels sur le compte", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Votre jeton a expiré. Veuillez cliquer <a href=\"[_1]\">ici</a> pour relancer le processus de vérification.", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "Votre navigateur internet ([_1]) est obsolète et cela peut affecter votre expérience de trading. Procédez à vos risques et périls. [_2]Mise à jour de navigateur internet[_3]", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Le contrat sera vendu au prix de marché en vigueur à réception de la demande par nos serveurs. Ce prix peut différer du prix indiqué.", "Amount": "Montant", "Ends_Outside": "Termine hors de la zone", "Predict_the_direction<br_/>and_purchase": "Prédire la direction<br />et acheter", "Barrier": "Barrière", "High_Barrier_([_1])": "Barrière supérieure ([_1])", "We": "Me", "Short": "Court", "Return": "Retours sur investissement", "Japan": "Japon", "mins": "minutes", "True": "Vrai", "Step": "Étape", "Only_[_1]_are_allowed_": "Seulement [_1] autorisées.", "Stake": "Investissement", "Stays_In/Goes_Out": "Reste dans/Sort de la zone", "Contract_Sold": "Contrat vendu", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Les dépôts et retraits ne sont actuellement pas autorisés sur votre compte. Veuillez contacter [_1] pour accéder à ces fonctions.", "You_did_not_change_anything_": "Vous n'avez effectué aucune modification.", "Fr": "ven.", "Adjust_trade_parameters": "Définir les paramètres de la transaction", "This_is_a_staging_server_-_For_testing_purposes_only": "Il s'agit d'un serveur intermédiaire, utilisé uniquement à des fins de test", "This_symbol_is_not_active__Please_try_another_symbol_": "Ce symbole n'est pas actif. Veuillez sélectionner un autre symbole.", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "S'il vous plaît définissez votre [_1]pays de résidence[_2] avant de mettre à jour votre compte d'argent réel.", "You_need_to_finish_all_20_questions_": "Vous devez répondre aux 20 questions.", "Date_and_Time": "Date et heure", "Asset": "Actif", "Profit_Table": "Tableau des profits", "Indicative": "Indicatif", "PM": "Après midi", "You_have_not_granted_access_to_any_applications_": "Vous n'avez acheté aucun contrat.", "Please_select_the_checkbox_": "Veuillez cocher la case.", "Day": "Jour", "Trading_Times": "Horaires de trading", "Your_Application_is_Being_Processed_": "Votre demande est en cours de traitement.", "Please_select_at_least_one_scope": "Veuillez sélectionner au moins un champ d'application", "Hour": "Heure", "Real_Standard": "Réel Standard", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Votre compte est actuellement suspendu. Désormais, seuls les retraits sont autorisés. Pour obtenir des informations supplémentaires, veuillez contacter [_1].", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] ne touche pas la barrière jusqu'à la fermeture de l'option le [_4].", "View": "Affichage", "Select_market": "Sélectionnez un marché", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Veuillez respecter le format suivant : 3 chiffres, 1 tiret suivi de 4 chiffres.", "Potential_Profit": "Profits potentiels", "July": "juillet", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] jours [_2] heures [_3] minutes", "Asset_Index": "Indice des actifs", "High_Barrier": "Barrière supérieure", "today": "aujourd'hui", "Purchase_Price": "Prix d'achat", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] termine hors de la zone délimitée par les valeurs inférieure et supérieure de la barrière à la fermeture le [_4].", "seconds": "secondes", "Resale_not_offered": "La revente n'est pas proposée", "Jul": "juill.", "Contract_Information": "Informations du contrat", "Duration": "Durée", "Higher/Lower": "Supérieur/Inférieur", "week": "semaine", "Contract_Expiry": "Échéance du contrat", "Barrier_Change": "Modification de barrière", "Buy_price": "Prix d'achat", "Please_select_a_valid_time_": "Veuillez sélectionner un horaire valide.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Par conséquent, votre montant maximal de retrait immédiat (sous réserve de fonds suffisants disponibles sur votre compte) est de [_2] [_1].", "Account_balance:": "Solde du compte :", "Details": "Informations", "Should_be_between_[_1]_and_[_2]": "La saisie doit se situer entre [_1] et [_2]", "Remaining_time": "Temps restant", "Sorry,_an_error_occurred_while_processing_your_request_": "Désolé, une erreur s'est produite pendant le traitement de votre demande.", "Contract": "Contrat", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Votre limite de durée de session sera atteinte dans [_1] secondes.", "second": "seconde", "Exit_Spot": "Point de sortie", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Les lettres, les chiffres et les traits d'union sont les seuls caractères autorisés.", "Portfolio": "Portefeuille", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Les retraits sur votre compte ne sont pas autorisés actuellement. Veuillez contacter [_1] pour déverrouiller cette fontion.", "from_[_1]_to_[_2]": "de [_1] à [_2]", "This_field_is_required_": "Ce champ est requis.", "Name": "Nom", "Christmas_Day": "Jour de Noël", "Purchase_Time": "Heure d'achat", "October": "octobre", "August": "août", "December": "décembre", "Payments": "Paiements", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Paiement de [_2] [_1] si [_3] est strictement inférieur ou égal à la barrière au moment de la fermeture le [_4].", "Investor_password": "Mot de passe investisseur", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_2] [_1] ont été crédités sur votre compte virtuel [_3]", "All_barriers_in_this_trading_window_are_expired": "Toutes les barrières de cette fenêtre de trading sont expirées", "Your_account_has_no_Login/Logout_activity_": "Votre compte n'indique aucune activité de connexion/déconnexion.", "Feb": "fév.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Par conséquent, votre montant maximal de retrait immédiat (sous réserve de fonds suffisants disponibles sur votre compte) est de [_2] [_1] (ou équivalent dans une autre devise).", "Please_log_in_": "Veuillez vous connecter.", "Sell": "Vente", "Current_password": "Mot de passe actuel", "Jun": "juin", "Open": "Ouvrir" };
+	texts_json['ID'] = { "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Maaf, akun Anda tidak dapat membeli kontrak selanjutnya.", "Reference_ID": "ID referensi", "Current": "Saat ini", "Description": "Deskripsi", "Please_input_a_valid_date": "Masukkan tanggal yang benar", "numbers": "nomor", "You_have_already_withdrawn_[_1]_[_2]_": "Anda telah menarik dana sebesar [_1] [_2].", "Sunday": "Minggu", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Maaf, pendaftaran akun tidak tersedia untuk negara domisili Anda. Silahkan hubungi <a href=\"[_1]\">customer support</a> untuk info lebih lanjut.", "Never": "Tidak pernah", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Hanya huruf, angka, ruang, tanda hubung, periode, dan apostrof diperbolehkan.", "Time_out_cannot_be_more_than_6_weeks_": "Time out tidak bisa lebih dari 6 minggu.", "Lock_Cashier": "Kunci Kasir", "Contract_ID": "ID Kontrak", "Should_be_less_than_[_1]": "Harus kurang dari [_1]", "Contract_is_not_started_yet": "Kontrak belum dimulai", "Your_changes_have_been_updated_": "Perubahan Anda telah diperbarui.", "Upgrade_to_a_Real_Account": "Upgrade ke Akun Riil", "Mo": "Sen", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] dan [_2] tidak bisa sama.", "space": "ruang", "Saturday": "Sabtu", "verification_token": "token verifikasi", "Th": "Kam", "Old_password_is_wrong_": "Kata sandi lama salah.", "Spot_Time": "Waktu Spot", "Waiting_for_entry_tick_": "Menunggu tik masuk...", "Month": "Bulan", "February": "Pebruari", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Permohonan penarikan Anda [_1] [_2] dari account [_3] ke Agen Pembayaran [_4] telah diproses.", "Your_trading_statistics_since_[_1]_": "Statistik trading Anda sejak [_1].", "Aug": "Agustus", "Dec": "Des", "Exclude_time_cannot_be_less_than_6_months_": "Waktu pengecualian tidak boleh kurang dari 6 bulan.", "Real_Account": "Akun Riil", "Nov": "Nop", "minutes": "menit", "months": "bulan", "Your_account_has_no_trading_activity_": "Akun Anda tidak memiliki aktifitas trading.", "Virtual_Account": "Akun Virtual", "Target": "Sasaran", "Investment_Account": "Akun Investasi", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Silahkan <a href=\"[_1]\">masuk</a> untuk melihat halaman ini.", "letters": "huruf", "Price": "Harga", "Should_be_a_valid_number": "Harus angka yang berlaku", "Thursday": "Kamis", "Time_out_cannot_be_in_the_past_": "Time out tidak bisa di masa lalu.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Kasir Anda terkunci sesuai permintaan Anda - untuk membuka kunci, masukkan kata sandi.", "New_Year's_Day": "Tahun Baru", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Kata sandi Anda sudah berhasil dibuat ulang. Silahkan akes akun Anda menggunakan kata sandi baru.", "Balance": "Saldo", "days": "hari", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Silahkan klik link di bawah ini untuk memulai kembali proses pemulihan kata sandi. Jika Anda membutuhkan bantuan lebih lanjut, silakan hubungi Customer Support kami.", "Entry_Spot": "Spot Masuk", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Kata sandi harus memiliki huruf kecil dan besar beserta angka.", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Fasilitas ini tidak tersedia untuk akun uang virtual.", "Your_transaction_reference_number_is_[_1]": "Nomor referensi transaksi Anda adalah [_1]", "End_time": "Waktu end", "There_was_an_error": "Terdapat error", "Credit/Debit": "Kredit/Debit", "Female": "Wanita", "Gaming_Account": "Akun Trading", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir pada atau antara Batasan rendah dan tinggi pada penutupan [_4].", "Time_out_must_be_after_today_": "Time out harus setelah hari ini.", "Only_numbers_and_spaces_are_allowed_": "Hanya nomor dan spasi diperbolehkan.", "Please_select_a_valid_date_": "Pilih tanggal yang berlaku.", "Please_submit_a_valid_verification_token_": "Kirimkan token verifikasi yang berlaku.", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Anda telah mencapai batas tingkat permintaan per detik. Silakan coba lagi nanti.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Bagian kasir akun Anda telah di batalkan - untuk membukanya, silahkan klik <a href=\"[_1]\">disini</a>.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Hanya huruf, spasi, tanda hubung, periode, dan apostrof diperbolehkan.", "Cashier": "Kasir", "Start_Time": "Waktu Mulai", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Batas penarikan Anda adalah [_1] [_2] (atau setara dengan mata uang lain).", "This_contract_won": "Kontrak ini untung", "Only_numbers,_space,_and_hyphen_are_allowed_": "Hanya angka, ruang dan tanda hubung diperbolehkan.", "Sale_Price": "Harga Jual", "Date": "Tanggal", "False": "Salah", "Withdraw": "Pencairan", "Final_price": "Harga akhir", "Revoke_access": "Mencabut akses", "End_time_must_be_after_start_time_": "Waktu berakhir harus setelah waktu mulai.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Alamat email yang Anda sediakan sudah pernah di daftarkan. Jika Anda lupa kata sandi, silahkan coba <a href=\"[_1]\">alat pemulihan kata sandi</a> atau hubungi customer service kami.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Fasilitas Agen Pembayaran tidak tersedia pada negara anda.", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Maaf, fasilitas ini hanya tersedia untuk rekening virtual saja.", "details": "perincian", "Successful": "Berhasil", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] pasti lebih tinggi dari atau sama dengan Batasan pada penutupan [_4].", "Resources": "Sumber", "You_have_sold_this_contract_at_[_1]_[_2]": "Anda telah menjual kontrak pada [_1] [_2]", "Sale_Date": "Tanggal Jual", "Processing_your_request___": "Memproses permintaan Anda...", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Tentukan batasan total pembelian kontrak 30-hari pada [_1]fasilitas pengecualian diri[_2] untuk menghapus batasan deposit Anda.", "Next": "Lanjutkan", "Please_select": "Tolong pilih", "June": "Juni", "Are_you_sure_that_you_want_to_permanently_delete_token": "Apakah Anda yakin untuk menghapus token secara permanen", "This_contract_lost": "Kontrak ini rugi", "Your_transaction_reference_is": "Referensi transaksi Anda adalah", "Settles": "Diselesaikan", "Invalid_email_address": "Invalid alamat email", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] deposit dari [_2] ke dalam akun [_3] telah berhasil. ID Transaksi: [_4]", "Equals": "Sama", "hours": "jam", "Contract_Confirmation": "Konfirmasi Kontrak", "Time_is_in_the_wrong_format_": "Waktu dalam format salah.", "Please_select_a_payment_agent": "Silahkan pilih agen pembayaran", "Major_Pairs": "Pasangan Utama", "Sorry,_an_error_occurred_while_processing_your_account_": "Maaf, error terjadi ketika memproses rekening Anda.", "Password_is_not_strong_enough_": "Kata sandi tidak cukup kuat.", "Percentage": "Persentase", "Barrier_([_1])": "Batasan ([_1])", "Payment_Agent": "Agen Pembayaran", "Friday": "Jum'at", "End_Time": "Waktu berakhir", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Akun Anda telah terbukti dan batasan penarikan Anda telah dihapuskan.", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Kata sandi tambahan dapat digunakan untuk membatasi akses ke kasir.", "Opens": "Dibuka", "Last_Digit_Stats": "Statistik Digit Terakhir", "Upgrade_to_a_Financial_Account": "Upgrade ke Akun Finansial", "Should_be_more_than_[_1]": "Harus lebih dari [_1]", "Previous": "Sebelumnya", "Today": "Hari ini", "Update": "Memperbarui", "Scopes": "Cakupan", "Questions": "Pertanyaan", "Current_Time": "Waktu Terkini", "Real_Cent": "Riil Cent", "Explanation": "Penjelasan", "Never_Used": "Tidak pernah dipakai", "Please_enter_an_integer_value": "Silahkan masukan nilai penuh", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Permintaan Anda untuk mentransfer [_1] [_2] dari [_3] ke [_4] berhasil diproses.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Batas durasi sesi tidak dapat lebih dari 6 minggu.", "Tuesday": "Selasa", "Remaining_Time": "Waktu Yang Tersisa", "Net_profit": "Laba bersih", "Now": "Sekarang", "You_should_enter_[_1]_characters_": "Anda harus memasukkan [_1] karakter.", "Male": "Pria", "Open_a_Financial_Account": "Daftar Akun Finansial", "Main_password": "Kata sandi utama", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan [_1]lengkapi profil akun Anda[_2] untuk meningkatkan batasan penarikan dan trading.", "Sell_time": "Waktu jual", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Otentikasi akun Anda[_2] untuk manfaat maksimal dari pilihan penarikan yang tersedia.", "Please_enter_a_number_between_[_1]_": "Silakan masukkan nomor antara [_1].", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Token Anda telah berakhir. Silahkan klik [_1]disini[_2] untuk memulai proses verifikasi.", "year": "tahun", "Closes_early_(at_18:00)": "Ditutup awal (pada 18:00)", "IP_Address": "Alamat IP", "Please_check_the_above_form_for_pending_errors_": "Silahkan periksa formulir diatas untuk error yang masih tertunda.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transaksi dilakukan oleh [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "Kedua-dua kata sandi yang Anda masukkan tidak cocok.", "Note": "Catatan", "Real_STP": "STP Riil", "Total_Profit/Loss": "Total Untung/Rugi", "Wednesday": "Rabu", "There_was_a_problem_accessing_the_server_during_purchase_": "Terjadi masalah mengakses server saat pembelian berlangsung.", "day": "hari", "Walkthrough_Guide": "Panduan Langsung", "Please_accept_the_terms_and_conditions_": "Silahkan terima syarat dan ketentuan.", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Akun Anda memiliki akses terbatas. Silahkan [_1]hubungi customer support[_2] untuk bantuan.", "Invalid_amount,_minimum_is": "Jumlah tidak berlaku, minimal", "Statement": "Pernyataan", "Not": "Bukan", "Chart": "Grafik", "New_password": "Kata sandi baru", "March": "Maret", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Anda telah menarik dana sebesar [_1] [_2] dalam tempo [_3] hari terakhir.", "Closes_early_(at_21:00)": "Ditutup awal (pada 21:00)", "All_markets_are_closed_now__Please_try_again_later_": "Semua pasar ditutup saat ini. Coba kembali nanti.", "Profit": "Keuntungan", "Su": "Mgg", "Sell_at_market": "Jual pada pasar", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan lengkapi [_1]formulir penilaian finansial[_2] untuk meningkatkan batasan penarikan dan trading Anda.", "Your_settings_have_been_updated_successfully_": "Bagian pengaturan Anda telah berhasil diperbarui.", "Exit_spot": "Spot akhir", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] penarikan dari akun [_2] ke [_3] telah berhasil. ID Transaksi: [_4]", "email_address": "alamat email", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir keluar Batasan rendah dan tinggi hingga penutupan [_4].", "month": "bulan", "Loss": "Rugi", "Monday": "Senin", "January": "Januari", "Spot": "Posisi", "Open": "Awal", "Jun": "Juni", "Current_password": "Kata sandi saat ini", "Sell": "Jual", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Maka dengan itu jumlah maksimal yang dapat Anda tarik (tergantung pada saldo tunai yang tersedia) adalah [_1] [_2] (atau setara dengan mata uang lainnya).", "Please_log_in_": "Silahkan log in.", "Feb": "Peb", "All_barriers_in_this_trading_window_are_expired": "Semua batasan pada tampilan trading ini telah berakhir", "Your_account_has_no_Login/Logout_activity_": "Akun Anda tidak memiliki aktifitas Login/Logout.", "h": "j", "Investor_password": "Kata sandi investor", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] telah dikreditkan kedalam akun uang virtual Anda [_3]", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] pasti lebih rendah dari Batasan pada penutupan [_4].", "Payments": "Pembayaran", "December": "Desember", "October": "Oktober", "August": "Agustus", "Christmas_Day": "Hari Natal", "Purchase_Time": "Waktu Beli", "This_field_is_required_": "Bagian ini diperlukan.", "Name": "Nama", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Penarikan untuk akun Anda tidak dapat dilanjutkan untuk saat ini. Silahkan hubungi [_1] untuk pengaktifan.", "from_[_1]_to_[_2]": "dari [_1] ke [_2]", "Portfolio": "Portopolio", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Hanya huruf, angka, dan tanda hubung diperbolehkan.", "Exit_Spot": "Spot akhir", "second": "detik", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Batas durasi sesi Anda akan berakhir dalam [_1] detik.", "Contract": "Kontrak", "Sorry,_an_error_occurred_while_processing_your_request_": "Maaf, error terjadi ketika memproses permohonan Anda.", "Remaining_time": "Waktu yang tersisa", "Should_be_between_[_1]_and_[_2]": "Harus antara [_1] dan [_2]", "Details": "Rincian", "Account_balance:": "Saldo akun:", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Oleh karena itu jumlah maksimal yang dapat Anda cairkan langsung (jika saldo mencukupi) adalah [_1] [_2].", "Buy_price": "Harga beli", "Please_select_a_valid_time_": "Silahkan pilih waktu yang berlaku.", "Barrier_Change": "Perubahan Batasan", "week": "minggu", "Contract_Expiry": "Kontrak berakhir", "Duration": "Durasi", "Contract_Information": "Informasi Kontrak", "Resale_not_offered": "Penjualan ulang tidak ditawarkan", "seconds": "detik", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] berakhir diluar Batasan rendah dan tinggi pada penutupan [_4].", "Purchase_Price": "Harga Beli", "High_Barrier": "Batasan Tinggi", "today": "hari ini", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] hari [_2] jam [_3] menit", "Action": "Aksi", "Asset_Index": "Indeks Aset", "Potential_Profit": "Potensi Hasil", "July": "Juli", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Silahkan ikuti pola 3 angka, garis, diikuti oleh 4 angka.", "Select_market": "Pilih pasar", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] tidak menyentuh Batasan hingga penutupan [_4].", "View": "Lihat", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Saat ini akun Anda ditangguhkan. Hanya penarikan yang dapat Anda lakukan. Untuk informasi lanjut, silahkan hubungi [_1].", "Real_Standard": "Standar Riil", "Hour": "Jam", "Please_select_at_least_one_scope": "Silakan pilih minimal satu scope", "Your_Application_is_Being_Processed_": "Permohonan Anda Sudah Terproses.", "Trading_Times": "Waktu Trading", "Day": "Hari", "Please_select_the_checkbox_": "Silakan pilih kotak centang.", "You_have_not_granted_access_to_any_applications_": "Anda belum diberikan akses ke dalam aplikasi apapun.", "Profit_Table": "Tabel Laba Rugi", "Indicative": "Indikatif", "Asset": "Aset", "Date_and_Time": "Tanggal dan Waktu", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Silahkan pilih %negara domisili[_2] sebelum mengupgrade ke dalam akun riil.", "You_need_to_finish_all_20_questions_": "Anda perlu menjawab semua 20 pertanyaan.", "This_symbol_is_not_active__Please_try_another_symbol_": "Simbol ini tidak aktif. Silakan coba simbol lain.", "Adjust_trade_parameters": "Menyesuaikan parameter trading", "This_is_a_staging_server_-_For_testing_purposes_only": "Ini adalah staging server - Untuk tujuan pengujian saja", "Score": "Skor", "Fr": "Jum", "You_did_not_change_anything_": "Anda tidak melakukan perubahan.", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Bagian deposit dan penarikan akun Anda tidak tersedia untuk sementara. Silahkan hubungi [_1] untuk pengaktifan.", "Contract_Sold": "Kontrak Terjual", "Tick": "Tik", "Stake": "Modal", "Only_[_1]_are_allowed_": "Hanya [_1] dibenarkan.", "mins": "menit", "True": "Benar", "Step": "Langkah", "Japan": "Jepang", "Return": "Laba", "High_Barrier_([_1])": "Batasan Tinggi ([_1])", "Barrier": "Batasan", "We": "Kami", "Predict_the_direction<br_/>and_purchase": "Analisa arah<br />dan beli", "Short": "Pendek", "Amount": "Jumlah", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Kontrak akan dijual pada harga pasar terkini ketika permintaan diterima oleh server kami. Harga ini mungkin berbeda dari harga yang diindikasikan.", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "Browser web Anda ([_1]) sudah ketinggalan zaman yang dapat mempengaruhi pengalaman trading Anda. Lanjutkan dengan risiko sendiri. [_2]Perbarui browser[_3]", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Token Anda telah berakhir. Silahkan klik <a href=\"[_1]\">disini</a> untuk memulai kembali proses verifikasi.", "Virtual_money_credit_to_account": "Mengkreditkan dana virtual kedalam akun", "Unlock_Cashier": "Buka Kasir", "Charting_for_this_underlying_is_delayed": "Grafik untuk dasar pasar mengalami penundaan", "Weekday": "Hari Kerja", "hour": "jam", "Permissions": "Izin", "Please_select_a_value": "Silahkan pilih nilai", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Maaf, kata sandi yang Anda masukkan salah", "Entry_spot": "Spot masuk", "Congratulations!_Your_[_1]_Account_has_been_created_": "Selamat! Akun [_1] Anda telah berhasil didaftarkan.", "Closes": "Ditutup", "Your_withdrawal_limit_is_[_1]_[_2]_": "Batas penarikan Anda adalah [_1] [_2].", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Silahkan [_1]setujui Syarat dan Ketentuan terbaru[_2] untuk meningkatkan batasan penarikan dan trading Anda.", "Last_Used": "Terakhir digunakan", "New_token_created_": "Token baru dibuat.", "Profit/Loss": "Untung/Rugi", "Only_[_1]_decimal_points_are_allowed_": "Hanya [_1] poin desimal diperbolehkan.", "Minimum_of_[_1]_characters_required_": "Minimal [_1] karakter diperlukan.", "Change_Password": "Perubahan Kata Sandi", "May": "Mei", "There_was_a_problem_accessing_the_server_": "Terjadi masalah pada saat mengakses server.", "Select_your_market": "Pilih market anda", "minute": "menit", "Payout": "Hasil", "Select_your_trade_type": "Pilih jenis kontrak Anda", "Insufficient_balance_": "Saldo tidak mencukupi.", "Oct": "Oktober", "Start_time": "Waktu mulai", "Buy": "Beli", "Exclude_time_cannot_be_for_more_than_5_years_": "Waktu pengecualian tidak dapat melebihi 5 tahun.", "Low_Barrier_([_1])": "Batasan Rendah ([_1])", "November": "Nopember", "Year": "Tahun", "Read": "Baca", "The_main_password_of_account_number_[_1]_has_been_changed_": "Kata sandi utama untuk akun [_1] telah dirubah.", "Minute": "Menitan", "Low_Barrier": "Batasan Rendah", "Verification_code_format_incorrect_": "Format kode verifikasi salah.", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] menyentuh Batasan hingga penutupan [_4].", "Sorry,_this_feature_is_not_available_": "Maaf, fasilitas ini tidak tersedia.", "today,_Fridays": "hari ini, Jumat", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Apakah Anda yakin bahwa Anda ingin secara permanen mencabut akses ke aplikasi", "years": "tahun", "Waiting_for_exit_tick_": "Menunggu tik akhir.", "Connection_error:_Please_check_your_internet_connection_": "Koneksi error: Silakan periksa koneksi internet Anda.", "Your_changes_have_been_updated_successfully_": "Perubahan Anda telah berhasil diperbarui.", "Number_of_ticks": "Jumlah tik", "Failed": "Gagal", "Sa": "Sab", "Fridays": "Jum'at", "Delete": "Hapus", "Upcoming_Events": "Acara Mendatang", "Create_Account": "Daftar Akun", "Shop": "Toko", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Batas penarikan [_1] hari Anda saat ini adalah [_2] [_3] (atau setara dengan mata uang lainnya).", "Real_Volatility": "Volatilitas Nyata", "There_was_some_invalid_character_in_an_input_field_": "Terdapat beberapa karakter yang tidak berlaku pada kolom input.", "Exit_Spot_Time": "Waktu Exit Spot", "logout": "keluar", "Select_your_underlying_asset": "Pilih aset dasar Anda", "Tu": "Kam", "Closed": "Tutup", "Potential_Payout": "Potensi Hasil", "Total_Cost": "Total Biaya", "Invalid_amount,_maximum_is": "Jumlah tidak berlaku, maksimal", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Hasil [_1] [_2] jika [_3] tetap berada pada Batasan rendah dan tinggi hingga penutupan [_4].", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Setelah mengklik \"OK\" Anda akan dikecualikan dari trading hingga tanggal yang dipilih.", "Market_is_closed__Please_try_again_later_": "Pasar ditutup. Silakan coba kembali nanti.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Anda telah melakukan penarikan setara dengan [_1] [_2].", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Titik akhir <a href=\"[_1]\">server</a> adalah: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Jumlah maksimum token ([_1]) telah tercapai.", "Finish": "Selesai", "weeks": "minggu", "Long": "Panjang" };
+	texts_json['IT'] = { "seconds": "secondi", "Purchase_Price": "Prezzo d'acquisto", "High_Barrier": "Barriera superiore", "today": "oggi", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] giorni [_2] ore [_3] minuti", "Action": "Azione", "Asset_Index": "Indice degli asset", "July": "Luglio", "Potential_Profit": "Profitto potenziale", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Segui il modello con 3 numeri, un trattino e 4 numeri.", "Select_market": "Seleziona il mercato", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Il payout di [_1] [_2] se [_3] non tocca la Barriera vicino a [_4].", "View": "Mostra", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Al momento il tuo account è sospeso. Sono consentiti solo i prelievi. Per ulteriori informazioni, contatta [_1].", "Hour": "Ora", "Please_select_at_least_one_scope": "Seleziona almeno uno scopo", "Your_Application_is_Being_Processed_": "La tua richiesta è stata elaborata.", "Day": "Giorno", "Trading_Times": "Orari di trading", "You_have_not_granted_access_to_any_applications_": "Non hai accesso ad alcuna applicazione.", "Indicative": "Indicativo", "Profit_Table": "Tabella dei profitti", "Date_and_Time": "Data e orario", "You_need_to_finish_all_20_questions_": "Devi completare tutte le 20 domande.", "This_symbol_is_not_active__Please_try_another_symbol_": "Questo simbolo non è attivo. Prova un altro simbolo.", "This_is_a_staging_server_-_For_testing_purposes_only": "Questo è un server tecnico - Solo per scopo di test", "Adjust_trade_parameters": "Regola i parametri di trading", "Score": "Punteggio", "Fr": "Ven", "You_did_not_change_anything_": "Non hai modificato nulla.", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "In questo momento sul tuo account non sono consentiti i depositi e i prelievi. Per sbloccarli, contatta [_1].", "Contract_Sold": "Contratto venduto", "Stays_In/Goes_Out": "Stays In (Rimane in) / Goes Out (Esce fuori)", "Stake": "Puntata", "Only_[_1]_are_allowed_": "Sono consentiti solo [_1].", "True": "Vero", "Japan": "Giappone", "Return": "Rendimento", "Barrier": "Barriera", "Predict_the_direction<br_/>and_purchase": "Prevedi la direzione<br />e acquista", "High_Barrier_([_1])": "Barriera superiore ([_1])", "Short": "Breve", "We": "Noi", "Amount": "Importo", "Ends_Outside": "Termina fuori", "Jun": "Giu", "Open": "Apri", "Current_password": "Password attuale", "Sell": "Vendi", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Pertanto il tuo attuale prelievo massimo immediato (soggetto alla disponibilità di fondi sufficienti nell'account) è pari a [_1] [_2] (o equivalente in un'altra valuta).", "Please_log_in_": "Effettua il login.", "Your_account_has_no_Login/Logout_activity_": "Sul tuo account non c'è alcuna attività di Login/Logout.", "All_barriers_in_this_trading_window_are_expired": "Tutte le barriere in questa finestra di trading sono scadute", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] sono stati accreditati sul tuo Account di moneta virtuale [_3]", "December": "Dicembre", "Payments": "Pagamenti", "August": "Agosto", "October": "Ottobre", "Purchase_Time": "Orario d'acquisto", "Christmas_Day": "Giorno di Natale", "Name": "Nome", "This_field_is_required_": "Questo campo è obbligatorio.", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "In questo momento non è consentito prelevare dal tuo account. Per sbloccarlo, contatta [_1].", "Portfolio": "Portafoglio", "Exit_Spot": "Prezzo di uscita", "second": "secondo", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Il limite di durata della tua sessione terminerà tra [_1] secondi.", "Contract": "Contratto", "Sorry,_an_error_occurred_while_processing_your_request_": "Siamo spiacenti, si è verificato un errore durante l'elaborazione della tua richiesta.", "Remaining_time": "Tempo residuo", "Details": "Dettagli", "Account_balance:": "Saldo dell'account:", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Pertanto il tuo attuale prelievo massimo immediato (soggetto alla disponibilità di fondi sufficienti nell'account) è pari a [_1] [_2].", "Please_select_a_valid_time_": "Seleziona un orario valido.", "Buy_price": "Prezzo d'acquisto", "Barrier_Change": "Modifica della barriera", "Contract_Expiry": "Scadenza del contratto", "week": "settimana", "Higher/Lower": "High/Low", "Duration": "Durata", "Contract_Information": "Informazioni del contratto", "Jul": "Lug", "Resale_not_offered": "La rivendita non è offerta", "Sorry,_this_feature_is_not_available_": "Siamo spiacenti, questa funzione non è disponibile.", "today,_Fridays": "oggi, Venerdì", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Sei sicuro di voler revocare definitivamente l'accesso all'applicazione", "years": "anni", "Waiting_for_exit_tick_": "In attesa del tick d'uscita.", "Your_changes_have_been_updated_successfully_": "Le tue modifiche sono state aggiornate con successo.", "Failed": "Non riuscito", "Number_of_ticks": "Numero di tick", "Touches": "Tocca", "Fridays": "Venerdì", "Sa": "Sab", "Delete": "Elimina", "Upcoming_Events": "Prossimi eventi", "Sep": "Sett", "Create_Account": "Crea un account", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Il tuo limite di prelievo giornaliero di [_1] è attualmente [_2] [_3] (oppure equivalente in un'altra valuta).", "Real_Volatility": "Volatilità reale", "There_was_some_invalid_character_in_an_input_field_": "Un campo di immissione testo conteneva uno o più caratteri non validi.", "Exit_Spot_Time": "Orario del prezzo di uscita", "Select_your_underlying_asset": "Scegli il tuo asset sottostante", "Tu": "Mar", "Closed": "Chiuso", "Potential_Payout": "Payout potenziale", "Total_Cost": "Costo totale", "Invalid_amount,_maximum_is": "Importo non valido, il massimo è", "Lower": "Inferiore", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Quando clicchi su \"OK\" verrai escluso dal trading sul sito fino alla data selezionata.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Hai già prelevato l'equivalente di [_1] [_2].", "Market_is_closed__Please_try_again_later_": "Il mercato è chiuso. Si prega di riprovare più tardi.", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Il server <a href=\"[_1]\">finale</a> è: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Il numero massimo di token ([_1]) è stato raggiunto.", "Finish": "Termina", "weeks": "settimane", "Ends_In/Out": "Termina In/Out", "Long": "A lungo", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Il Contratto verrá venduto al prezzo di mercato prevalente nel momento in cui i nostri server ricevono la richiesta. Tale prezzo può differire rispetto al prezzo indicato.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Il tuo token è scaduto. Clicca <a href=\"[_1]\">qui</a> per riavviare la procedura di verifica.", "Virtual_money_credit_to_account": "Credito virtuale sull'account", "Unlock_Cashier": "Sblocca Cassa", "Charting_for_this_underlying_is_delayed": "I grafici per questo strumento sono differiti", "Matches/Differs": "Combacia/Differisce", "Digit": "Cifra", "Weekday": "Giorno feriale", "Please_select_a_value": "Seleziona un valore", "Permissions": "Autorizzazioni", "hour": "ora", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Siamo spiacenti, hai inserito una password della cassa non corretta", "Entry_spot": "Punto d'ingresso", "Congratulations!_Your_[_1]_Account_has_been_created_": "Congratulazioni! Il tuo account [_1] è stato creato.", "Status": "Stato", "Closes": "Chiude", "Your_withdrawal_limit_is_[_1]_[_2]_": "Il tuo limite di prelievo è [_1] [_2].", "Last_Used": "Ultimo utilizzato", "New_token_created_": "Nuovo token creato.", "Profit/Loss": "Profitto/Perdita", "Only_[_1]_decimal_points_are_allowed_": "Sono consentite solo [_1] cifre decimali.", "Minimum_of_[_1]_characters_required_": "Sono richiesti minimo [_1] caratteri.", "Does_Not_Touch": "Non tocca", "Change_Password": "Modifica Password", "May": "Mag", "There_was_a_problem_accessing_the_server_": "Si è verificato un problema d'accesso al server.", "Select_your_market": "Seleziona il tuo mercato", "minute": "minuto", "Select_your_trade_type": "Seleziona la tua tipologia di trade", "Insufficient_balance_": "Saldo non sufficiente.", "Start_time": "Orario d'inizio", "Oct": "Ott", "Buy": "Acquista", "Low_Barrier_([_1])": "Barriera inferiore ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "Il periodo di esclusione non può essere superiore a 5 anni.", "November": "Novembre", "Year": "Anno", "Read": "Leggi", "The_main_password_of_account_number_[_1]_has_been_changed_": "La password principale del numero di account [_1] è stata modificata.", "Minute": "Minuto", "Low_Barrier": "Barriera inferiore", "Verification_code_format_incorrect_": "Formato del codice di verifica non corretto.", "Balance": "Saldo", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "La tua password è stata ripristinata con successo. Effettua il login sul tuo account utilizzando la tua nuova password.", "Jan": "Gen", "days": "giorni", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] clicca il link sottostante per riavviare la procedura di ripristino della password. Per ulteriore assistenza, contatta la nostra Assistenza Clienti.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "La password deve contenere lettere minuscole e maiuscole con numeri.", "Entry_Spot": "Punto d'ingresso", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Questa funzione non è riferita agli account con denaro virtuale.", "Your_transaction_reference_number_is_[_1]": "Il tuo numero di riferimento per le transazioni è [_1]", "End_time": "Orario di fine", "Credit/Debit": "Credito/Debito", "There_was_an_error": "Si è verificato un errore", "Gaming_Account": "Account di gioco", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Il payout di [_1] [_2] se [_3] termina su o tra i valori inferiori e superiori del prezzo d'esercizio vicino a [_4].", "Only_numbers_and_spaces_are_allowed_": "Sono consentiti solo numeri e spazi.", "Please_submit_a_valid_verification_token_": "Invia un token di verifica valido.", "Please_select_a_valid_date_": "Seleziona una data valida.", "Touch/No_Touch": "Touch/No touch", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Come da tua richiesta, la cassa è bloccata. Per sbloccarla, clicca <a href=\"[_1]\">qui</a>.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Sono consentite solo lettere, spazi, trattini, punti e apostrofi.", "Start_Time": "Orario di inizio", "Cashier": "Cassa", "Deposit": "Deposita", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Il tuo limite di prelievo è [_2] [_1] (oppure equivalente in altra valuta).", "Rise/Fall": "Rialzo/Ribasso", "This_contract_won": "Questo contratto ha vinto", "Only_numbers,_space,_and_hyphen_are_allowed_": "Sono consentiti solo numeri, spazi e trattini.", "Sale_Price": "Prezzo di vendita", "Date": "Data", "Withdraw": "Preleva", "False": "Falso", "Goes_Outside": "Esce fuori", "Final_price": "Prezzo finale", "Revoke_access": "Revocare l'accesso", "End_time_must_be_after_start_time_": "L'orario di fine deve essere successivo all'orario di inizio.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "La funzione dell'Agente di pagamento al momento non è disponibile nel tuo paese.", "details": "dettagli", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Siamo spiacenti, questa funzione è disponibile solo sugli account virtuali.", "Successful": "Riuscito", "Resources": "Risorse", "You_have_sold_this_contract_at_[_1]_[_2]": "Hai venduto questo contratto a [_1] [_2]", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Siamo spiacenti, il tuo account non è autorizzato per qualsiasi altro acquisto di contratti.", "Even/Odd": "Pari/Dispari", "Current": "Attuale", "Reference_ID": "ID di riferimento", "Please_input_a_valid_date": "Inserisci una data valida", "Description": "Descrizione", "numbers": "numeri", "You_have_already_withdrawn_[_1]_[_2]_": "Hai già prelevato [_1] [_2].", "Sunday": "Domenica", "Never": "Mai", "Lock_Cashier": "Blocca la Cassa", "Contract_ID": "ID del contratto", "Contract_is_not_started_yet": "Il contratto non è ancora iniziato", "Your_changes_have_been_updated_": "Le tue modifiche sono state aggiornate.", "Upgrade_to_a_Real_Account": "Passa a un account reale", "Mo": "Lun", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] e 2% non possono essere uguali.", "space": "spazio", "Th": "Gio", "Ends_Between": "Finisce tra", "Higher": "Superiore", "verification_token": "token di verifica", "Saturday": "Sabato", "Old_password_is_wrong_": "La password vecchia è errata.", "Spot_Time": "Orario dello spot", "Waiting_for_entry_tick_": "In attesa del tick d'ingresso.", "Month": "Mese", "February": "Febbraio", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "La tua richiesta di prelevare [_1] [_2] dal tuo account [_3] all'account dell'Agente di pagamento [_4] è stata elaborata con successo.", "Your_trading_statistics_since_[_1]_": "Le tue statistiche di trading dal [_1].", "Aug": "Ago", "Dec": "Dic", "Exclude_time_cannot_be_less_than_6_months_": "Il periodo di esclusione non può essere inferiore a 6 mesi.", "Real_Account": "Account reale", "minutes": "minuti", "months": "mesi", "Your_account_has_no_trading_activity_": "Sul tuo account non c'è alcuna attività di trading.", "Virtual_Account": "Account virtuale", "Investment_Account": "Account d'investimento", "letters": "lettere", "Thursday": "Giovedì", "Should_be_a_valid_number": "Deve essere un numero valido", "Price": "Prezzo", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Come da tua richiesta, la cassa è bloccata. Per sbloccarla, inserisci la password.", "Open_a_Financial_Account": "Apri un account finanziario", "Main_password": "Password principale", "Sell_time": "Orario di vendita", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Convalida il tuo account[_2] ora per approfittare di tutte le opzioni di prelievo disponibili.", "Please_enter_a_number_between_[_1]_": "Inserisci un numero compreso tra [_1].", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Il tuo token è scaduto. Clicca [_1]qui[_2] per riavviare la procedura di verifica.", "year": "anno", "IP_Address": "Indirizzo IP", "Closes_early_(at_18:00)": "Chiude in anticipo (alle 18:00)", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transazione eseguita da [_1] (ID dell'app ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "Le due password inserite non combaciano.", "Note": "Nota", "Total_Profit/Loss": "Profitto/Perdita totale", "April": "Aprile", "Wednesday": "Mercoledì", "There_was_a_problem_accessing_the_server_during_purchase_": "Durante l'acquisto si è verificato un problema d'accesso al server.", "day": "giorno", "Walkthrough_Guide": "Guida dettagliata", "Invalid_amount,_minimum_is": "Importo non valido, il minimo è", "Statement": "Estratto", "Please_accept_the_terms_and_conditions_": "Accetta i termini e le condizioni.", "Not": "No", "Chart": "Grafico", "New_password": "Nuova password", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Hai già prelevato l'equivalente complessivo di [_1] [_2] negli ultimi [_3] giorni.", "March": "Marzo", "Closes_early_(at_21:00)": "Chiude in anticipo (alle 21:00)", "All_markets_are_closed_now__Please_try_again_later_": "Al momento tutti i mercati sono chiusi. Si prega di riprovare più tardi.", "Profit": "Profitto", "Su": "Dom", "Your_settings_have_been_updated_successfully_": "Le tue impostazioni sono state aggiornate con successo.", "Sell_at_market": "Vendi sul mercato", "Exit_spot": "Prezzo di uscita", "Over/Under": "Sopra/Sotto", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Il prelievo di [_1] dall'account numero [_2] su [_3] è stato eseguito. ID della transazione: [_4]", "email_address": "indirizzo email", "month": "mese", "Loss": "Perdita", "Monday": "Lunedì", "January": "Gennaio", "Ref_": "Rif.", "Sale_Date": "Data della vendita", "Please_select": "Seleziona", "Processing_your_request___": "Elaborazione in corso della tua richiesta...", "Next": "Successivo", "June": "Giugno", "Are_you_sure_that_you_want_to_permanently_delete_token": "Sei sicuro di voler eliminare definitivamente il token", "Your_transaction_reference_is": "Il tuo riferimento per le transazioni è", "This_contract_lost": "Questo contratto ha perso", "Settles": "Liquida", "Invalid_email_address": "Indirizzo email non valido", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Il deposito di [_1] da [_2] sul numero di account [_3] è stato effettuato. ID della transazione: [_4]", "hours": "ore", "Contract_Confirmation": "Conferma del contratto", "Time_is_in_the_wrong_format_": "L'orario è in un formato errato.", "Admin": "Amministratore", "Please_select_a_payment_agent": "Seleziona un agente di pagamento", "Major_Pairs": "Coppie principali", "Sorry,_an_error_occurred_while_processing_your_account_": "Siamo spiacenti, si è verificato un errore durante l'elaborazione del tuo account.", "Percentage": "Percentuale", "Password_is_not_strong_enough_": "La password non è sufficientemente forte.", "Barrier_([_1])": "Barriera ([_1])", "Payment_Agent": "Agente di pagamento", "Friday": "Venerdì", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Il tuo account è stato completamente convalidato e sono stati rimossi i tuoi limiti di prelievo.", "End_Time": "Orario di fine", "Last_Digit_Stats": "Statistiche sull'ultima cifra", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Può essere utilizzata una password aggiuntiva per limitare l'accesso alla cassa.", "Opens": "Apre", "Upgrade_to_a_Financial_Account": "Passa a un account finanziario", "Previous": "Precedente", "Today": "Oggi", "Update": "Aggiorna", "Questions": "Domande", "Current_Time": "Orario attuale", "Never_Used": "Mai utilizzato", "Explanation": "Spiegazione", "Please_enter_an_integer_value": "Inserisci un numero intero", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "La tua richiesta di trasferire [_1] [_2] da [_3] a [_4] è stata elaborata con successo.", "Tuesday": "Martedì", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Il limite di durata della sessione non può essere superiore a 6 settimane.", "Remaining_Time": "Tempo residuo", "Net_profit": "Profitto netto", "Now": "Adesso", "September": "Settembre", "You_should_enter_[_1]_characters_": "Dovresti inserire [_1] caratteri." };
+	texts_json['PL'] = { "verification_token": "token weryfikacyjny", "Ends_Between": "Kończy się pomiędzy", "Higher": "Wyższe", "Th": "Cz", "Saturday": "Sobota", "Old_password_is_wrong_": "Stare hasło jest nieprawidłowe.", "Spot_Time": "Czas spot", "Month": "Miesiąc", "Waiting_for_entry_tick_": "Oczekuje na pierwszą zmianę ceny.", "[_1]_and_[_2]_cannot_be_the_same_": "Wartości [_1] i [_2] nie mogą być takie same.", "space": "spacja", "Exclude_time_cannot_be_less_than_6_months_": "Czas wyłączenia nie może być krótszy niż 6 miesięcy.", "Real_Account": "Prawdziwe konto", "February": "Luty", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Twój wniosek o wypłatę [_2] [_1] z Twojego konta [_3] na konto pośrednika płatności [_4] został zrealizowany.", "Your_trading_statistics_since_[_1]_": "Twoje statystyki handlowe od [_1].", "Aug": "Sierpień", "Dec": "Grudzień", "minutes": "min", "months": "miesiące", "Your_account_has_no_trading_activity_": "NA Twoim koncie nie odnotowano żadnej aktywności handlowej.", "Nov": "Listopad", "Price": "Cena", "Should_be_a_valid_number": "Powinien to być prawidłowy numer", "Thursday": "Czwartek", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Sekcja Kasjer została zablokowana na Twoją prośbę - jeśli chcesz ją odblokować, prosimy o podanie hasła.", "Virtual_Account": "Konto wirtualne", "Target": "Cel", "Investment_Account": "Konto inwestycyjne", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "<a href=\"[_1]\">Zaloguj się</a>, aby wyświetlić tę stronę.", "letters": "litery", "Current": "Obecne", "Reference_ID": "ID referencyjne", "Description": "Opis", "Please_input_a_valid_date": "Wpisz poprawną datę", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Przepraszamy, Twoje konto nie ma uprawnień do kolejnych zakupów kontraktów.", "Even/Odd": "Parzysta/nieparzysta", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Przepraszamy, rejestracja konta nie jest dostępna w Twoim kraju. Proszę skontaktować się z <a href=\"[_1]\">>działem obsługi klienta</a>, aby uzyskać więcej informacji.", "Never": "Nigdy", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Dozwolone są wyłącznie litery, cyfry, znak spacji, myślnik, kropka i apostrof.", "numbers": "liczby", "You_have_already_withdrawn_[_1]_[_2]_": "Wypłacono już [_2] [_1].", "Sunday": "Niedziela", "Should_be_less_than_[_1]": "Wartość powinna być mniejsza niż [_1]", "Contract_is_not_started_yet": "Kontrakt jeszcze się nie rozpoczął", "Lock_Cashier": "Zablokuj sekcję Kasjer", "Contract_ID": "Identyfikator kontraktu", "Upgrade_to_a_Real_Account": "Uaktualnij do konta z prawdziwymi pieniędzmi", "Mo": "Pn", "Your_changes_have_been_updated_": "Twoje zmiany zostały wprowadzone.", "Deposit": "Wpłata", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Twój limit wypłat to [_2] [_1] (lub jego ekwiwalent w innej walucie).", "Start_Time": "Godzina rozpoczęcia", "Cashier": "Kasjer", "Sale_Price": "Cena sprzedaży", "Date": "Data", "Rise/Fall": "Wzrost/spadek", "This_contract_won": "Ten kontrakt wygrał", "Only_numbers,_space,_and_hyphen_are_allowed_": "Dozwolone są tylko liczby, spacje i myślnik.", "Revoke_access": "Zablokowanie dostępu", "End_time_must_be_after_start_time_": "Czas zakończenia musi być późniejszy niż czas rozpoczęcia.", "Withdraw": "Wypłata", "False": "Fałsz", "Goes_Outside": "Przekroczy", "Final_price": "Cena ostateczna", "Resources": "Środki", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] jest wartością wyższą niż wartość limitu lub równą tej wartości w momencie zamknięcia [_4].", "You_have_sold_this_contract_at_[_1]_[_2]": "Sprzedano ten kontrakt po cenie [_2] [_1]", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Usługi pośredników płatności są obecnie niedostępne w Twoim kraju.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Podany adres e-mail jest już w użyciu. Jeżeli nie pamiętasz hasła, skorzystaj z opcji <a href=\"[_1]\">odzyskiwania hasła</a> lub skontaktuj się z obsługą klienta.", "details": "szczegóły", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Przepraszamy, ta funkcja jest dostępna tylko dla kont wirtualnych.", "Successful": "Zakończono powodzeniem", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Hasło powinno zawierać wielkie i małe litery oraz cyfry.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Aby rozpocząć proces odzyskiwania hasła, kliknij na poniższy link. Jeśli potrzebujesz pomocy, skontaktuj się z naszym działem obsługi klienta.", "Entry_Spot": "Pozycja wejściowa", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Ta funkcja nie jest dostępna dla kont z wirtualnymi pieniędzmi.", "New_Year's_Day": "Nowy Rok", "Balance": "Saldo", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Twoje hasło zostało zresetowane. Zaloguj się na swoje konto, używając swojego nowego hasła.", "days": "dni", "Jan": "Styczeń", "Credit/Debit": "Winien/Ma", "There_was_an_error": "Wystąpił błąd", "Your_transaction_reference_number_is_[_1]": "Numer referencyjny Twojej transakcji to [_1]", "End_time": "Godzina zakończenia", "{JAPAN_ONLY}Please_complete_the_following_questions_": "Please complete the following questions.", "Only_numbers_and_spaces_are_allowed_": "Dozwolone są liczby i spacje.", "Time_out_must_be_after_today_": "Okres wyłączenia musi się rozpoczynać jutro lub później.", "Please_select_a_valid_date_": "Proszę wybrać poprawną datę.", "Please_submit_a_valid_verification_token_": "Proszę podać poprawny  token weryfikujący.", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Osiągnięto maksymalną liczbę żądań na sekundę. Spróbuj jeszcze raz.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] zatrzyma się pomiędzy dolną i górną wartością limitu w momencie zamknięcia [_4].", "Gaming_Account": "Konto gracza", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Sekcja Kasjer została zablokowana na Twoją prośbę - jeśli chcesz ją odblokować, prosimy kliknąć <a href=\"[_1]\">tutaj</a>.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Dozwolone są tylko litery, spacja, myślniki, kropki i apostrof.", "Touch/No_Touch": "Osiągnie", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Dodatkowe hasło może być wykorzystane do ograniczania dostępu do sekcji Kasjer.", "Last_Digit_Stats": "Statystyki ostatniej cyfry", "Opens": "Otwarcie", "Upgrade_to_a_Financial_Account": "Zmień na konto finansowe", "Friday": "piątek", "Barrier_([_1])": "Limit ([_1])", "Payment_Agent": "Pośrednik płatności", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Twoje konto jest w pełni zweryfikowane, a Twój limit wypłat został zwiększony.", "End_Time": "Zakończenie", "Update": "Aktualizuj", "Scopes": "Zakresy", "Questions": "Pytania", "Current_Time": "Obecny czas", "Real_Cent": "Prawdziwy cent", "Never_Used": "Nigdy nie użyte", "Explanation": "Wyjaśnienie", "Should_be_more_than_[_1]": "Wartość powinna być większa niż [_1]", "Previous": "Poprzedni", "Today": "Dziś", "Tuesday": "Wtorek", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Limit czasu sesji nie może przekroczyć 6 tygodni.", "Remaining_Time": "Pozostały czas", "Please_enter_an_integer_value": "Wpisz liczbę całkowitą", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Twój wniosek o przelanie [_2] [_1] z [_3] na [_4] został zrealizowany.", "You_should_enter_[_1]_characters_": "Proszę wprowadzić następującą liczbę znaków: [_1].", "Net_profit": "Zysk netto", "Now": "Teraz", "September": "Wrzesień", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Aby usunąć limity wpłat, proszę ustawić 30-dniowy limit obrotów w sekcji dot. [_1]samodzielnego wyłączenia[_2].", "Processing_your_request___": "Twa przetwarzanie Twojego żądania...", "Please_select": "Wybierz", "Next": "Następny", "June": "Czerwiec", "Sale_Date": "Data sprzedaży", "Settles": "Rozliczenie", "Are_you_sure_that_you_want_to_permanently_delete_token": "Czy na pewno chcesz trwale usunąć token", "Your_transaction_reference_is": "Kod referencyjny Twojej transakcji to", "This_contract_lost": "Ten kontrakt przegrał", "hours": "godziny", "Time_is_in_the_wrong_format_": "Czas został podany w nieprawidłowym formacie.", "Contract_Confirmation": "Potwierdzenie kontraktu", "Invalid_email_address": "Nieprawidłowy adres e-mail", "Equals": "Równa się", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Dokonano wpłaty [_1] na konto o numerze [_3]. Identyfikator transakcji: [_4]", "Sorry,_an_error_occurred_while_processing_your_account_": "Przepraszamy, wystąpił błąd podczas operacji na Twoim koncie.", "Percentage": "Procent", "Password_is_not_strong_enough_": "Hasło jest za słabe.", "Please_select_a_payment_agent": "Proszę wybrać pośrednika płatności", "min": "min.", "Major_Pairs": "Główne pary", "Walkthrough_Guide": "Przewodnik ogólny", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "Sorry, you have failed the test, please try again after 24 hours.", "day": "dzień", "Browser": "Przeglądarka", "Chart": "Wykres", "New_password": "Nowe hasło", "March": "Marzec", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Łączny ekwiwalent [_2] [_1] został już wypłacony w ciągu ostatnich [_3] dni.", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Na Twoje konto zostały nałożone ograniczenia. [_1]Skontaktuj się z obsługą klienta[_2], aby uzyskać pomoc.", "Invalid_amount,_minimum_is": "Nieprawidłowa kwota, minimum wynosi", "Please_accept_the_terms_and_conditions_": "Proszę zaakceptować regulamin.", "Statement": "Oświadczenie", "Not": "Nie", "Su": "Nd", "Your_settings_have_been_updated_successfully_": "Twoje ustawienia zostały pomyślnie zaktualizowane.", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść swoje limity wypłat i limity handlowe, wypełnij [_1]formularz oceny sytuacji finansowej[_2].", "Sell_at_market": "Sprzedawaj na rynku", "Exit_spot": "Punkt wyjściowy", "Over/Under": "Ponad/poniżej", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Dokonano wypłaty [_1] z konta o numerze [_2] na konto [_3]. Identyfikator transakcji: [_4]", "Closes_early_(at_21:00)": "Zamykane wcześnie (o 21:00)", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "The test is unavailable now, test can only be taken again on next business day with respect of most recent test.", "All_markets_are_closed_now__Please_try_again_later_": "Wszystkie rynki są obecnie zamknięte. Prosimy spróbować później.", "Profit": "Zysk", "Monday": "Poniedziałek", "Loss": "Strata", "January": "Styczeń", "Spot": "Cena aktualna", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] będzie wartością nie mieszczącą się w przedziale między dolną i górną wartością limitu do momentu zamknięcia [_4].", "month": "miesiąc", "email_address": "adres e-mail", "Main_password": "Hasło główne", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść wysokość limitów wypłat i limitów handlowych, [_1]uzupełnij swój profil[_1].", "Open_a_Financial_Account": "Otwórz konto finansowe", "Please_enter_a_number_between_[_1]_": "Proszę wpisać liczbę z przedziału [_1].", "Sell_time": "Godzina sprzedaży", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Zweryfikuj swoje konto[_2] już teraz, aby w pełni korzystać ze wszystkich dostępnych opcji wypłat.", "Trade": "Handluj", "Stays_Between": "Pozostaje pomiędzy", "Closes_early_(at_18:00)": "Zamykane wcześnie (o 18:00)", "IP_Address": "Adres IP", "Please_check_the_above_form_for_pending_errors_": "Zapoznaj się z listą nierozwiązanych błędów w powyższym formularzu.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transakcja dokonana przez [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "Wprowadzone hasła nie są identyczne.", "In/Out": "Zakłady w/poza", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Twój token wygasł. Kliknij [_1]tutaj[_2], aby rozpocząć proces weryfikacyjny ponownie.", "year": "rok", "April": "Kwiecień", "Wednesday": "Środa", "There_was_a_problem_accessing_the_server_during_purchase_": "Wystąpił błąd podczas uzyskiwania dostępu do serwera w trakcie zakupu.", "Note": "Uwaga", "Real_STP": "Prawdziwe konto STP", "Total_Profit/Loss": "Całkowity zysk/ całkowita strata", "Should_be_between_[_1]_and_[_2]": "Wartość powinna wynosić od [_1] do [_2]", "Contract": "Kontrakt", "Sorry,_an_error_occurred_while_processing_your_request_": "Przepraszamy, podczas przetwarzania Twojego żądania wystąpił błąd.", "Remaining_time": "Pozostały czas", "Account_balance:": "Saldo konta:", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Dlatego w chwili obecnej Twoja maksymalna natychmiastowa wypłata (o ile posiadasz na koncie wystarczające środki) wynosi [_2] [_1].", "Buy_price": "Cena kupna", "Please_select_a_valid_time_": "Proszę wybrać poprawny czas.", "Details": "Szczegóły", "Higher/Lower": "Wyższy/niższy", "Duration": "Czas trwania", "Barrier_Change": "Zmiana limitu", "week": "Tydzień", "Contract_Expiry": "Wygaśnięcie kontraktu", "Resale_not_offered": "Brak możliwości odsprzedaży", "Contract_Information": "Informacje o kontrakcie", "Jul": "Lipiec", "{JAPAN_ONLY}Take_knowledge_test": "Take knowledge test", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Dlatego w chwili obecnej Twoja maksymalna natychmiastowa wypłata (o ile posiadasz na koncie wystarczające środki) wynosi [_2] [_1] (lub równowartość tej kwoty w innej walucie).", "Please_log_in_": "Proszę się zalogować.", "Feb": "Luty", "Jun": "Czerwiec", "Open": "Otwarcie", "Current_password": "Aktualne hasło", "Sell": "Sprzedaj", "December": "Grudzień", "Payments": "Płatności", "October": "Październik", "August": "Sierpień", "Your_account_has_no_Login/Logout_activity_": "Na Twoim koncie nie odnotowano żadnej aktywności związanej z logowaniem/wylogowywaniem.", "All_barriers_in_this_trading_window_are_expired": "Wszystkie limity widoczne w tym oknie handlowania wygasły", "Investor_password": "Hasło inwestora", "h": "godz.", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_2] [_1] zostało odjęte z Twojego konta wirtualnego [_3]", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] jest wartością niższą niż wartość limitu w momencie zamknięcia [_4].", "{JAPAN_ONLY}Knowledge_Test": "Knowledge Test", "from_[_1]_to_[_2]": "od [_1] do [_2]", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Wypłaty środków z Twojego konta są w tym momencie niemożliwe. Skontaktuj się z [_1], aby je odblokować.", "Purchase_Time": "Godzina zakupu", "Christmas_Day": "Boże Narodzenie", "This_field_is_required_": "To pole jest wymagane.", "Name": "Nazwisko", "second": "sekunda", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Limit czasu sesji zakończy się za [_1] s.", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Dozwolone są tylko litery, cyfry i myślnik.", "Exit_Spot": "Pozycja wyjściowa", "Score": "Wynik", "Fr": "Pt", "You_did_not_change_anything_": "Nic nie zostało zmienione.", "You_need_to_finish_all_20_questions_": "Należy odpowiedzieć na wszystkie 20 pytań.", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Przed aktualizacją do konta z prawdziwymi pieniędzmi ustaw [_1]kraj zamieszkania[_2].", "This_symbol_is_not_active__Please_try_another_symbol_": "Ten symbol jest nieaktywny. Użyj innego symbolu.", "This_is_a_staging_server_-_For_testing_purposes_only": "To jest serwer testowy służący wyłącznie testowaniu", "Adjust_trade_parameters": "Dostosuj parametry handlowe", "Contract_Sold": "Kontrakt został sprzedany", "Stays_In/Goes_Out": "Pozostanie w/przekroczy", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Wpłaty środków na konto i ich wypłaty są w tym momencie niemożliwe. Skontaktuj się z [_1], aby je odblokować.", "Only_[_1]_are_allowed_": "Dozwolone są tylko [_1].", "True": "Prawda", "mins": "min.", "Step": "Krok", "Tick": "Zmiana ceny", "Stake": "Stawka", "Amount": "Kwota", "Ends_Outside": "Kończy się poza", "Japan": "Japonia", "Return": "Zwrot", "We": "Śr", "Barrier": "Limit", "High_Barrier_([_1])": "Górny limit ([_1])", "Predict_the_direction<br_/>and_purchase": "Oszacuj kierunek zmian<br />i kup", "Short": "Krótkie", "Purchase_Price": "Cena zakupu", "today": "dziś", "High_Barrier": "Górny limit", "Asset_Index": "Indeks kapitałowy", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] dni [_2] godz. [_3] min", "Action": "Czynności", "July": "Lipiec", "Potential_Profit": "Możliwy zysk", "seconds": "sekundy", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] będzie wartością w przedziale między dolną i górną wartością limitu w momencie zamknięcia [_4].", "View": "Widok", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] nie osiągnie limitu aż do zamknięcia [_4].", "Real_Standard": "Wysoki standard", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Twoje konto jest obecnie zawieszone. Dozwolone jest jedynie dokonywanie wypłat. Aby uzyskać więcej informacji, skontaktuj się z [_1].", "Hour": "Godzina", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Proszę zastosować schemat: 3 cyfry, myślnik, 4 cyfry.", "Select_market": "Wybierz rynek", "Day": "Dzień", "Trading_Times": "Godziny handlu", "Please_select_the_checkbox_": "Proszę zaznaczyć pole wyboru.", "Please_select_at_least_one_scope": "Proszę wybrać przynajmniej jeden zakres", "Your_Application_is_Being_Processed_": "Twój wniosek jest przetwarzany.", "Date_and_Time": "Data i godzina transakcji", "You_have_not_granted_access_to_any_applications_": "Nie przyznano Ci dostępu do żadnej aplikacji.", "Indicative": "Orientacyjny", "Profit_Table": "Tabela zysków", "Asset": "Kapitał", "Select_your_trade_type": "Wybierz rodzaj zakładu", "Insufficient_balance_": "Niewystarczające saldo.", "Oct": "Październik", "Start_time": "Godzina rozpoczęcia", "minute": "min", "Payout": "Wypłata", "November": "Listopad", "Year": "Rok", "Buy": "Kup", "Low_Barrier_([_1])": "Dolny limit ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "Czas wyłączenia nie może być dłuższy niż 5 lat.", "Read": "Odczyt", "{JAPAN_ONLY}Knowledge_Test_Result": "Knowledge Test Result", "The_main_password_of_account_number_[_1]_has_been_changed_": "Hasło główne do konta o numerze [_1] zostało zmienione.", "Minute": "Minuta", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] osiągnie wartość limitu do momentu zamknięcia [_4].", "Low_Barrier": "Dolny limit", "Verification_code_format_incorrect_": "Format kodu weryfikującego jest nieprawidłowy.", "Unlock_Cashier": "Odblokuj sekcję Kasjer", "Charting_for_this_underlying_is_delayed": "Dla tego rynku podstawowego wykresy są opóźnione", "Matches/Differs": "Zgadza się/Różni się", "Digit": "Cyfra", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Kontrakty będą sprzedawane po obowiązującej cenie rynkowej po dotarciu wniosku na nasze serwery. Cena może różnić się od podanej ceny.", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "Twoja przeglądarka internetowa ([_1]) jest nieaktualna, co może negatywnie wpływać na korzystanie z portalu handlowego. Przejdź dalej na własne ryzyko lub [_2]zaktualizuj przeglądarkę[_3]", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Twój token wygasł. Kliknij <a href=\"[_1]\">tutaj</a>, aby rozpocząć proces weryfikacyjny ponownie.", "Virtual_money_credit_to_account": "Wirtualne pieniądze zostały zaksięgowane na koncie", "Entry_spot": "Pozycja wejściowa", "Congratulations!_Your_[_1]_Account_has_been_created_": "Gratulacje! Twoje konto [_1] zostało utworzone.", "Closes": "Zamknięcie", "Weekday": "Dzień roboczy", "Apr": "Kwiecień", "Permissions": "Pozwolenia", "hour": "godzina", "Please_select_a_value": "Proszę wybrać wartość", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Przepraszamy, wpisano nieprawidłowe hasło do kasjera", "Profit/Loss": "Zysk/Strata", "Only_[_1]_decimal_points_are_allowed_": "Liczba dozwolonych miejsc po przecinku: [_1].", "Minimum_of_[_1]_characters_required_": "Minimalna liczba znaków: [_1].", "Your_withdrawal_limit_is_[_1]_[_2]_": "Twój limit wypłat wynosi [_2] [_1].", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Aby podnieść wysokość limitów wypłat i limitów handlowych, proszę [_1]zaakceptować zaktualizowany regulamin[_1].", "Last_Used": "Ostatnio używane", "New_token_created_": "Utworzono nowy token.", "There_was_a_problem_accessing_the_server_": "Wystąpił błąd podczas uzyskiwania dostępu do serwera.", "Select_your_market": "Wybierz rynek", "Does_Not_Touch": "Nie osiąga", "Change_Password": "Zmień hasło", "May": "Maj", "Real_Volatility": "Zmienność realna", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Twój [_1]-dniowy limit wypłat wynosi obecnie [_3] [_2] (lub jego równowartość w innej walucie).", "There_was_some_invalid_character_in_an_input_field_": "Nieprawidłowy znak w polu formularza.", "Shop": "Sklep", "Mar": "Marzec", "Select_your_underlying_asset": "Wybierz aktywa bazowe", "Tu": "Wt", "Exit_Spot_Time": "Czas punktu wyjściowego", "logout": "Wyloguj", "Invalid_amount,_maximum_is": "Nieprawidłowa kwota, maksimum wynosi", "Lower": "Niższe", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Wypłata w wysokości [_2] [_1], jeśli [_3] pozostanie w przedziale między dolną i górną wartością limitu w momencie zamknięcia [_4].", "Closed": "Zamknięte", "Potential_Payout": "Możliwa wypłata", "Total_Cost": "Całkowity koszt", "Finish": "Zakończ", "weeks": "tygodnie", "Ends_In/Out": "Zakończy się w/poza", "Long": "Długie", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Po kliknięciu przycisku „OK” handlowanie na portalu nie będzie możliwe aż do wybranej daty.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Już wypłaciłeś/aś ekwiwalent [_2] [_1].", "Market_is_closed__Please_try_again_later_": "Rynek jest zamknięty. Prosimy spróbować później.", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "<a href=\"[_1]\">Punkt końcowy</a> serwera to: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Maksymalna liczba tokenów ([_1]) została osiągnięta.", "Sorry,_this_feature_is_not_available_": "Przepraszamy, wybrana funkcja jest niedostępna.", "years": "lat(a)", "today,_Fridays": "dziś, piątki", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Czy na pewno chcesz na stałe wyłączyć dostęp do aplikacji na stałe?", "Up/Down": "Góra/dół", "Your_changes_have_been_updated_successfully_": "Zmiany zostały wprowadzone.", "Failed": "Zakończone niepowodzeniem", "Number_of_ticks": "Liczba najmniejszych przyrostów ceny", "Touches": "Osiąga", "Fridays": "piątki", "Sa": "So", "Waiting_for_exit_tick_": "Oczekuje na końcową zmianę ceny.", "Connection_error:_Please_check_your_internet_connection_": "Błąd połączenia: sprawdż połączenie internetowe", "Sep": "Wrzesień", "Create_Account": "Załóż konto", "Delete": "Usuń", "Upcoming_Events": "Nadchodzące wydarzenia" };
+	texts_json['PT'] = { "Low_Barrier": "Barreira Baixa", "Verification_code_format_incorrect_": "Formato incorreto de código de verificação.", "Read": "Ler", "Buy": "Comprar", "Exclude_time_cannot_be_for_more_than_5_years_": "O tempo de exclusão não pode ser superior a 5 anos.", "Low_Barrier_([_1])": "Barreira Baixa ([_1])", "November": "Novembro", "Year": "Ano", "minute": "minuto", "Payout": "Prêmio", "Select_your_trade_type": "Selecione o tipo de negociação", "Insufficient_balance_": "Saldo insuficiente.", "Start_time": "Hora de início", "Oct": "Out", "Change_Password": "Alterar Senha", "May": "Maio", "There_was_a_problem_accessing_the_server_": "Ocorreu um problema ao aceder ao servidor.", "Select_your_market": "Selecione o seu mercado", "Last_Used": "Última utilização", "Your_withdrawal_limit_is_[_1]_[_2]_": "O seu limite de retiradas é [_1] [_2].", "New_token_created_": "Novo token criado.", "Profit/Loss": "Lucro/Perda", "Minimum_of_[_1]_characters_required_": "Um mínimo de [_1] caracteres é necessário.", "Weekday": "Dia de semana", "Apr": "Abr", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Lamentamos, introduziu uma senha de caixa incorreta", "Permissions": "Permissões", "Please_select_a_value": "Selecione um valor", "hour": "hora", "Entry_spot": "Preço de entrada", "Status": "Estado", "Closes": "Fecha", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "O contrato será vendido ao preço prevalecente do mercado no momento em que o pedido for recebido pelos nossos servidores. Esse preço pode ser diferente do preço indicado.", "Virtual_money_credit_to_account": "Crédito de dinheiro virtual na conta", "Charting_for_this_underlying_is_delayed": "Os gráficos para esta base estão com atraso", "Unlock_Cashier": "Desbloquear o Caixa", "Matches/Differs": "Combina/Difere", "Market_is_closed__Please_try_again_later_": "O mercado está fechado. Tente novamente mais tarde.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Você já retirou o equivalente a [_1] [_2].", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "O terminal do <a href=\"[_1]\"> 1servidor</a> 2 é: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "O número máximo de tokens ([_1]) foi atingido.", "weeks": "semanas", "Finish": "Terminar", "Ends_In/Out": "Termina Dentro/Fora", "Long": "Longo", "Closed": "Fechado", "Potential_Payout": "Possível Prêmio", "Total_Cost": "Custo Total", "Invalid_amount,_maximum_is": "Valor inválido, o máximo é", "Exit_Spot_Time": "Hora do preço de saída", "Select_your_underlying_asset": "Selecione o ativo subjacente", "Tu": "Qui", "Shop": "Loja", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "O seu limite de retiradas de [_1] dia(s) é atualmente [_2] [_3] (ou equivalente em outra moeda).", "There_was_some_invalid_character_in_an_input_field_": "Houve algum caractere inválido no campo de entradas.", "Delete": "Excluir", "Upcoming_Events": "Próximos Eventos", "Sep": "Set", "Connection_error:_Please_check_your_internet_connection_": "Erro de conexão: verifique a sua conexão com a internet.", "Up/Down": "Acima/Abaixo", "Failed": "Falhou", "Number_of_ticks": "Número de tique-taques", "Fridays": "Sexta-feira", "Sa": "Sáb", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Tem certeza que deseja revogar permanentemente o acesso ao aplicativo", "Forex": "Forex (Mercado de Câmbio)", "years": "anos", "Sorry,_this_feature_is_not_available_": "Este recurso não está disponível.", "Contract_Information": "Informação do contrato", "Resale_not_offered": "A revenda não está disponivel", "Barrier_Change": "Alteração de barreira", "week": "semana", "Contract_Expiry": "Validade do contrato", "Higher/Lower": "Superior/Inferior", "Duration": "Duração", "Details": "Dados", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Portanto, a sua retirada máxima imediata atual (sujeita à existência de fundos suficientes na sua conta) é [_1] [_2].", "Contract": "Contrato", "Sorry,_an_error_occurred_while_processing_your_request_": "Lamentamos, ocorreu um erro durante o processamento do seu pedido.", "Remaining_time": "Tempo restante", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Apenas letras, números e o hífen são permitidos.", "Exit_Spot": "Preço de saída", "second": "segundo", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "O limite de duração da sua sessão terminará em [_1] segundos.", "Purchase_Time": "Hora da Compra", "Christmas_Day": "Dia de Natal", "This_field_is_required_": "Este campo é obrigatório.", "Name": "Nome", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Retiradas de sua conta não estão permitidas no momento. Por favor contate [_1] para desbloqueio.", "Portfolio": "Portfólio", "All_barriers_in_this_trading_window_are_expired": "Todas as barreiras nesta janela de negociação já expiraram", "Your_account_has_no_Login/Logout_activity_": "A sua conta não tem nenhuma atividade de login/sair.", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] foram creditados na sua conta de dinheiro Virtual [_3]", "December": "Dezembro", "Payments": "Pagamentos", "October": "Outubro", "August": "Agosto", "Open": "Abrir", "Sell": "Vender", "Current_password": "Senha atual", "Please_log_in_": "Por favor, conecte-se.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Portanto, a sua retirada máxima imediata atual (sujeito à existência de fundos suficientes na sua conta) é [_1] [_2] (ou equivalente em outra moeda).", "Feb": "Fev", "Japan": "Japão", "Return": "Prêmio", "Predict_the_direction<br_/>and_purchase": "Preveja a direção<br />e compre", "Barrier": "Barreira", "High_Barrier_([_1])": "Barreira Alta ([_1])", "We": "Qua", "Short": "Curto", "Amount": "Quantia", "Tick": "Tique-taque", "Stake": "Aposta", "Only_[_1]_are_allowed_": "Apenas [_1] são permitidos.", "mins": "minutos", "True": "Verdadeiro", "Step": "Etapa", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Depósitos e retiradas de sua conta não estão permitidos no momento. Por favor contate [_1] para o desbloqueio.", "Contract_Sold": "Contrato vendido", "Stays_In/Goes_Out": "Fica dentro/Sai fora", "You_need_to_finish_all_20_questions_": "É obrigatório completar as 20 perguntas.", "This_symbol_is_not_active__Please_try_another_symbol_": "Este símbolo não está ativo. Experimente outro símbolo.", "Adjust_trade_parameters": "Ajustar parâmetros de negociação", "This_is_a_staging_server_-_For_testing_purposes_only": "Este é um servidor temporário - apenas para testes", "Score": "Classificação", "Fr": "Sex", "You_did_not_change_anything_": "Você não alterou nada.", "You_have_not_granted_access_to_any_applications_": "Você não concedeu acesso a nenhum aplicativo.", "Indicative": "Indicativo", "Profit_Table": "Tabela de Lucros", "Asset": "Ativos", "Date_and_Time": "Data e hora", "Please_select_at_least_one_scope": "Selecione pelo menos um escopo", "Your_Application_is_Being_Processed_": "A sua inscrição está sendo processado.", "Trading_Times": "Horário de Negociação", "Day": "Dia", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Siga o padrão: 3 números, um hífen, seguidos por 4 números.", "Select_market": "Selecione o mercado", "View": "Ver", "Hour": "Hora", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Sua conta está atualmente suspensa e apenas saques estão permitidos. Para mais informações, por favor contacte [_1].", "seconds": "segundos", "Purchase_Price": "Preço de Compra", "High_Barrier": "Barreira Alta", "today": "hoje", "Asset_Index": "Índice de Ativos", "Action": "Ação", "July": "Julho", "Potential_Profit": "Lucro Potencial", "Net_profit": "Lucro líquido", "Now": "Agora", "September": "Setembro", "You_should_enter_[_1]_characters_": "Você dever inserir [_1] caracteres.", "Male": "Masculino", "Please_enter_an_integer_value": "Insira um valor inteiro", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "O seu pedido para transferir [_1] [_2] de [_3] para [_4] foi processado com sucesso.", "Tuesday": "Terça-feira", "Session_duration_limit_cannot_be_more_than_6_weeks_": "O limite de duração de sessões não pode ser superior a 6 semanas.", "Remaining_Time": "Tempo restante", "Previous": "Anterior", "Today": "Hoje", "Update": "Atualização", "Questions": "Perguntas", "Current_Time": "Hora atual", "Never_Used": "Nunca utilizado", "Explanation": "Explicação", "Barrier_([_1])": "Barreira ([_1])", "Payment_Agent": "Agente de pagamentos", "Friday": "Sexta-feira", "End_Time": "Hora final", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "A sua conta está totalmente autenticada e os seus limites de retirada de fundos foram aumentados.", "Opens": "Abre", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Uma senha adicional pode ser usada para restringir acesso ao caixa.", "Last_Digit_Stats": "Estatísticas do último dígito", "Upgrade_to_a_Financial_Account": "Faça a atualização para uma Conta Financeira", "Please_select_a_payment_agent": "Selecione um agente de pagamentos", "Admin": "Administração", "Major_Pairs": "Pares Principais", "Sorry,_an_error_occurred_while_processing_your_account_": "Lamentamos, ocorreu um erro durante o processamento da sua conta.", "Password_is_not_strong_enough_": "A senha não é forte o suficiente.", "Invalid_email_address": "Endereço de e-mail inválido", "hours": "horas", "Contract_Confirmation": "Confirmação de Contrato", "Are_you_sure_that_you_want_to_permanently_delete_token": "Tem certeza que deseja excluir permanentemente o token", "Your_transaction_reference_is": "A referência da sua transação é", "This_contract_lost": "Esse contrato perdeu", "Settles": "Liquida", "Sale_Date": "Data de Venda", "Processing_your_request___": "Processado o seu pedido...", "Next": "Próximo", "Please_select": "Selecione", "June": "Junho", "email_address": "endereço de e-mail", "month": "mês", "Loss": "Perda", "Monday": "Segunda-feira", "Spot": "Preço atual", "January": "Janeiro", "Closes_early_(at_21:00)": "Fecha cedo (às 21:00)", "All_markets_are_closed_now__Please_try_again_later_": "Todos os mercados estão agora fechados. Tente novamente mais tarde.", "Profit": "Lucro", "Su": "Dom", "Sell_at_market": "Venda no mercado", "Exit_spot": "Preço de saída", "Over/Under": "Acima/Abaixo", "Statement": "Extrato", "Invalid_amount,_minimum_is": "Valor inválido, o mínimo é", "Browser": "Navegador", "Chart": "Gráfico", "New_password": "Nova senha", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Você já retirou o equivalente a [_1] [_2] em agregado durante os últimos [_3] dias.", "March": "Março", "day": "dia", "Walkthrough_Guide": "Guia passo a passo", "Note": "Nota", "Total_Profit/Loss": "Lucro/Perda Total", "April": "Abril", "Wednesday": "Quarta-feira", "There_was_a_problem_accessing_the_server_during_purchase_": "Ocorreu um problema ao aceder ao servidor durante a aquisição.", "In/Out": "Dentro/Fora", "year": "ano", "IP_Address": "Endereço IP", "Please_check_the_above_form_for_pending_errors_": "Consulte o formulário acima para erros subsistentes.", "Closes_early_(at_18:00)": "Fecha cedo (às 18:00)", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Transação executada por [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "As palavras-chave que introduziu não coincidem.", "Sell_time": "Hora de venda", "Trade": "Negociar", "Please_enter_a_number_between_[_1]_": "Digite um número entre [_1].", "Open_a_Financial_Account": "Abrir uma conta financeira", "Virtual_Account": "Conta Virtual", "Target": "Alvo", "Investment_Account": "Conta de Investimento", "letters": "caracteres", "Thursday": "Quinta-feira", "Price": "Preço", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "O seu caixa está bloqueado conforme pedido - para desbloqueá-lo, digite a senha.", "minutes": "minutos", "months": "meses", "Your_account_has_no_trading_activity_": "A sua conta não tem nenhuma atividade de negociação.", "February": "Fevereiro", "Your_trading_statistics_since_[_1]_": "As suas estatísticas de negociação desde [_1].", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "O seu pedido para levantar [_1] [_2] da sua conta [_3] para a conta [_4] do Agente de Pagamentos foi processado com sucesso.", "Aug": "Ago", "Dec": "Dez", "Exclude_time_cannot_be_less_than_6_months_": "O tempo de exclusão não pode ser inferior a seis meses.", "Real_Account": "Conta Real", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] e [_2] não podem ser iguais.", "space": "espaço", "Th": "Qui", "verification_token": "token de verificação", "Saturday": "Sábado", "Old_password_is_wrong_": "A senha antiga está errada.", "Spot_Time": "Hora à vista", "Month": "Mês", "Waiting_for_entry_tick_": "Aguardando tick de entrada.", "Your_changes_have_been_updated_": "As suas alterações foram atualizadas.", "Upgrade_to_a_Real_Account": "Faça a atualização para uma Conta Real", "Mo": "Seg", "Lock_Cashier": "Bloquear Caixa", "Contract_ID": "ID de contrato", "Contract_is_not_started_yet": "O contrato ainda não foi iniciado", "numbers": "números", "You_have_already_withdrawn_[_1]_[_2]_": "Você já retirou [_1] [_2].", "Sunday": "Domingo", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Apenas letras, números, espaços, hífenes, pontos e apóstrofes são permitidos.", "Never": "Nunca", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Lamentamos, a sua conta não está autorizada a mais compras de contratos.", "Even/Odd": "Par/Ímpar", "Reference_ID": "ID de referência", "Please_input_a_valid_date": "Insira uma data válida", "Current": "Atual", "Description": "Descrição", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "A opção Agentes de Pagamentos não está atualmente disponível no seu país.", "details": "detalhes", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Lamentamos, este recurso está disponível somente para contas virtuais.", "Successful": "Bem-sucedido", "Resources": "Recursos", "You_have_sold_this_contract_at_[_1]_[_2]": "Você vendeu este contrato por [_1] [_2]", "Withdraw": "Retirar", "Revoke_access": "Revogar acesso", "End_time_must_be_after_start_time_": "A hora de fim tem de ser depois da hora de início.", "Rise/Fall": "Sobe/Desce", "This_contract_won": "Esse contrato ganhou", "Sale_Price": "Preço de venda", "Date": "Data", "Cashier": "Caixa", "Start_Time": "Hora de Início", "Deposit": "Depositar", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "O seu limite de retiradas é [_1] [_2] (ou equivalente em outra moeda).", "Touch/No_Touch": "Toca", "Gaming_Account": "Conta de Jogos", "Your_transaction_reference_number_is_[_1]": "O número de referência da sua transação é [_1]", "End_time": "Hora de fim", "There_was_an_error": "Houve um erro", "Credit/Debit": "Crédito/Débito", "Female": "Feminino", "New_Year's_Day": "Dia de Ano Novo", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "A sua senha foi redefinida com sucesso. Por favor, inicie sessão na sua conta, usando a sua nova senha.", "Balance": "Saldo", "days": "dias", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "A senha deve conter letras minúsculas, maiúsculas e números.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Clique no link abaixo para reiniciar o processo de recuperação de senha. Caso você necessite de assistência adicional, contate o Apoio ao Cliente.", "Entry_Spot": "Preço de entrada", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Este recurso não é relevante para as contas de dinheiro virtual." };
+	texts_json['RU'] = { "Minimum_of_[_1]_characters_required_": "Необходимо минимум [_1] знака(ов).", "Profit/Loss": "Плюс/Минус", "Only_[_1]_decimal_points_are_allowed_": "Разрешенное количество десятичных: [_1].", "New_token_created_": "Создан новый ключ.", "AM": "утра", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Пожалуйста, [_1]примите Правила и условия,[_2] чтобы снять ограничения на торговые лимиты и вывод средств.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Ваш лимит на вывод составляет [_1] [_2].", "Last_Used": "Последние", "Select_your_market": "Выбрать рынок", "There_was_a_problem_accessing_the_server_": "Возникла проблема с доступом к серверу.", "May": "Май", "Does_Not_Touch": "не коснется", "Token": "Ключ", "Change_Password": "Сменить пароль", "Digit": "Десятичн.", "Charting_for_this_underlying_is_delayed": "Графики для этого инструмента рисуются с задержкой", "Unlock_Cashier": "Открыть кассу", "Matches/Differs": "Совпадение/Отличие", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Срок действия Вашего ключа истёк. Пожалуйста, нажмите <a href=\"[_1]\">здесь,</a> чтобы повторно запустить процесс проверки.", "Virtual_money_credit_to_account": "Виртуальный кредит на счёт", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Контракт будет продан по цене, действующей на момент получения запроса нашими серверами. Эта цена может отличаться от указанной в настоящее время.", "Closes": "Закрывается", "Entry_spot": "Входная котировка", "Congratulations!_Your_[_1]_Account_has_been_created_": "Поздравляем! Ваш счёт [_1] успешно открыт.", "Status": "Статус", "Apr": "Апр", "hour": "час.", "Permissions": "Разрешения", "Please_select_a_value": "Пожалуйста, выберите значение", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Извините, Вы ввели неверный пароль для раздела Касса", "Weekday": "День недели", "The_main_password_of_account_number_[_1]_has_been_changed_": "Основной пароль для счёта [_1] был изменён.", "Minute": "Мин.", "Read": "Читать", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] коснётся заданного барьера к моменту закрытия [_4].", "Low_Barrier": "Нижний Барьер", "Verification_code_format_incorrect_": "Неправильный формат кода проверки личности.", "Insufficient_balance_": "Недостаточно средств на счете.", "Start_time": "Время начала", "Oct": "Окт", "Select_your_trade_type": "Выбрать тип контракта", "Payout": "Выплата", "minute": "минут(ы)", "November": "Ноябрь", "Year": "год", "Buy": "Покупка", "Exclude_time_cannot_be_for_more_than_5_years_": "Период ограничения не может быть больше 5 лет.", "Low_Barrier_([_1])": "Нижний Барьер ([_1])", "Sa": "Сб", "Fridays": "пятница", "Your_changes_have_been_updated_successfully_": "Ваши изменения успешно обновлены.", "Up/Down": "Вверх/Вниз", "Failed": "Возникла ошибка", "Touches": "Коснётся", "Number_of_ticks": "Кол-во тиков", "Connection_error:_Please_check_your_internet_connection_": "Проблема со связью: пожалуйста, проверьте Ваше подключение к интернету.", "Waiting_for_exit_tick_": "В ожидании выходного тика.", "Create_Account": "Открыть счёт", "Sep": "Сен", "Delete": "Удалить", "Upcoming_Events": "Ближайшие события", "Sorry,_this_feature_is_not_available_": "Извините, данная функция недоступна.", "years": "год(а)/лет", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Вы уверены, что хотите навсегда отказаться от доступа к приложению", "Forex": "Форекс", "today,_Fridays": "сегодня, по пятницам", "Lower": "Ниже", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] останется между заданным верхним и нижним барьером на момент закрытия [_4].", "Invalid_amount,_maximum_is": "Неправильная сумма. Максимум:", "Potential_Payout": "Потенциальная выплата", "Total_Cost": "Общая стоимость", "Closed": "Закрыто", "Ends_In/Out": "Закончится Внутри/Вне", "Long": "Длинная позиция", "weeks": "нед.", "Finish": "Завершить", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "<a href=\"[_1]\">Конечная точка</a> сервера: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Достигнуто максимальное число ключей ([_1]).", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Когда Вы нажмёте \"ОК\", Вы будете отстранены от работы на сайте до окончания выбранной даты.", "Market_is_closed__Please_try_again_later_": "В данное время рынок закрыт. Пожалуйста, попробуйте позже.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Вы уже вывели со счета сумму, эквивалентную [_1] [_2].", "There_was_some_invalid_character_in_an_input_field_": "Неразрешённый символ в поле ввода.", "Real_Volatility": "Реальный волатильный", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Ваш дневной [_1] лимит на вывод в настоящее время составляет [_2] [_3] (или эквивалентную сумму в другой валюте).", "Shop": "Магазин", "Mar": "Мар", "Tu": "Вт", "Select_your_underlying_asset": "Выбрать базовый актив", "logout": "выход", "Exit_Spot_Time": "Время выходной котировки", "from_[_1]_to_[_2]": "от [_1] до [_2]", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Вывод средств для Вашего счета в данный момент недоступен. Пожалуйста, свяжитесь с [_1] для разблокировки.", "Portfolio": "Портфель", "This_field_is_required_": "Данное поле является необходимым.", "Name": "Имя и фамилия", "Purchase_Time": "Время покупки", "Christmas_Day": "Рождество", "second": "секунд(ы)", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Ограничение на длительность сессии закончится через [_1] сек.", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Разрешены только буквы, цифры и дефис.", "Exit_Spot": "Выходная котировка", "Feb": "Фев", "Please_log_in_": "Пожалуйста, войдите в систему.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Поэтому максимально возможная сумма к выводу на данный момент (если на счету есть средства) составляет [_1] [_2] (или эквивалентную сумму в другой валюте).", "Current_password": "Текущий пароль", "Sell": "Продажа", "Jun": "Июн", "Open": "Значение при открытии", "October": "Октябрь", "August": "Август", "Payments": "Платежи", "December": "Декабрь", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] будет находиться строго ниже заданного ценового барьера на момент закрытия [_4].", "Your_account_has_no_Login/Logout_activity_": "На Вашем счету нет активности входов/выходов.", "All_barriers_in_this_trading_window_are_expired": "Все барьеры в данном торговом окне истекли", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] было зачислено на Ваш Демо-счет [_3]", "Investor_password": "Пароль инвестора", "h": "ч.", "Higher/Lower": "Выше/Ниже", "Duration": "Длительность", "week": "нед.", "Contract_Expiry": "Срок истечения контракта", "Barrier_Change": "Изменение барьера", "Resale_not_offered": "Продажа не предлагается", "Jul": "Июл", "Contract_Information": "Детали контракта", "Should_be_between_[_1]_and_[_2]": "Допустимые значения: от [_1] до [_2]", "Remaining_time": "Оставшееся время", "Contract": "Контракт", "Sorry,_an_error_occurred_while_processing_your_request_": "Извините, при обработке Вашего запроса произошла ошибка.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Следовательно, Ваш максимальный лимит на вывод на данный момент составляет [_1] [_2].", "Please_select_a_valid_time_": "Пожалуйста, выберите правильное время.", "Buy_price": "Цена покупки", "Account_balance:": "Баланс счета:", "Details": "Подробности", "Please_select_the_checkbox_": "Пожалуйста, выберите нужный ответ.", "Day": "День", "Trading_Times": "Время открытия рынков", "Your_Application_is_Being_Processed_": "Ваша заявка обрабатывается.", "Please_select_at_least_one_scope": "Пожалуйста, выберите минимум один параметр", "Date_and_Time": "Дата и время", "Indicative": "Ориентировочная цена", "Profit_Table": "Анализ счета", "Asset": "Актив", "You_have_not_granted_access_to_any_applications_": "У Вас нет доступа к приложениям.", "PM": "вечера", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] дн. [_2] ч. [_3] мин.", "Asset_Index": "Индекс активов", "Action": "Акт", "Potential_Profit": "Потенциальная прибыль", "July": "Июль", "Purchase_Price": "Цена покупки", "today": "сегодня", "High_Barrier": "Верхний барьер", "seconds": "секунд(ы)", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] завершит торговлю вне верхнего и нижнего барьера на момент закрытия [_4].", "View": "Просмотр", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] не коснётся заданного барьера на момент закрытия [_4].", "Hour": "Час.", "Real_Standard": "Реальный стандартный", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Ваш счет заблокирован. В данный момент Вам доступна только функция вывода средств. Для дальнейшей информации, пожалуйста, свяжитесь с [_1].", "Select_market": "Выбрать рынок", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Пожалуйста, следуйте данной схеме: 3 цифры, тире, а затем 4 цифры.", "Only_[_1]_are_allowed_": "Разрешены только [_1] и латинские буквы.", "Step": "Шаг", "mins": "мин.", "True": "Верно", "Stake": "Ставка", "Tick": "Тики", "Amount": "Количество", "Ends_Outside": "закончится вне", "Return": "Прибыль", "Predict_the_direction<br_/>and_purchase": "Предскажите направление движения<br />и купите", "Barrier": "Барьер", "High_Barrier_([_1])": "Верхний барьер ([_1])", "We": "Ср", "Short": "Короткая позиция", "Japan": "Япония", "You_did_not_change_anything_": "Вы не внесли никаких изменений.", "Fr": "Пт", "This_symbol_is_not_active__Please_try_another_symbol_": "Данный символ неактивен. Воспользуйтесь другим символом.", "This_is_a_staging_server_-_For_testing_purposes_only": "Это вспомогательный сервер, применяемый лишь для тестирования", "Adjust_trade_parameters": "Изменить параметры контракта", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "Пожалуйста, укажите [_1]страну проживания[_2] до перехода на реальный счёт.", "You_need_to_finish_all_20_questions_": "Вам необходимо ответить на 20 вопросов.", "Stays_In/Goes_Out": "Останется Внутри/Выйдет за пределы", "Contract_Sold": "Контракт продан", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Внесение и вывод средств для Вашего счета в данный момент невозможны. Пожалуйста, свяжитесь с [_1] для разблокировки.", "Time_is_in_the_wrong_format_": "Неправильный формат времени.", "Contract_Confirmation": "Подтверждение контракта", "hours": "час.", "Equals": "Равно", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "Вы успешно перевели средства [_1] со счёта [_2] на счёт [_3]. Номер транзакции: [_4]", "Invalid_email_address": "Недействительный e-mail", "Percentage": "Проценты", "Password_is_not_strong_enough_": "Пароль недостаточно надёжный.", "Sorry,_an_error_occurred_while_processing_your_account_": "Извините, произошла ошибка.", "Major_Pairs": "Основные пары", "Please_select_a_payment_agent": "Пожалуйста, выберите платежного агента", "Admin": "Администратор", "min": "мин.", "June": "Июнь", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "Пожалуйста, укажите 30-дневный лимит на объём покупок в настройках [_1]самоисключения,[_2] чтобы снять лимит на депозит.", "Processing_your_request___": "Обработка Вашего запроса...", "Please_select": "Выберите", "Next": "Далее", "Sale_Date": "Дата продажи", "Settles": "Заканчивается", "Your_transaction_reference_is": "Ссылка на Вашу сделку", "This_contract_lost": "Вы проиграли", "Are_you_sure_that_you_want_to_permanently_delete_token": "Вы уверены, что хотите навсегда удалить ключ?", "Remaining_Time": "Оставшееся время", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Лимит на длительность сессии не может превышать 6 недель.", "Tuesday": "Вторник", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Ваш запрос на перевод [_1] [_2] с [_3] на [_4] был выполнен успешно.", "Please_enter_an_integer_value": "Пожалуйста, введите целое число", "You_should_enter_[_1]_characters_": "Вы должны ввести [_1] символов.", "September": "Сентябрь", "Now": "Сейчас", "Net_profit": "Чистая прибыль", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Можно использовать дополнительный пароль для ограничения доступа к кассе.", "Last_Digit_Stats": "Статистика последних тиков", "Opens": "Открывается", "Upgrade_to_a_Financial_Account": "Обновите до финансового счета", "End_Time": "Окончание", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Ваш счет полностью авторизован, и лимит на вывод был снят.", "Barrier_([_1])": "Барьер ([_1])", "Friday": "пятница", "Payment_Agent": "Платежный агент", "Current_Time": "Текущее время", "Never_Used": "Никогда не использовался", "Real_Cent": "Реальный центовый", "Explanation": "Объяснение", "Update": "Обновить", "Questions": "Вопросы", "Scopes": "Сфера действия", "Today": "Cегодня", "Should_be_more_than_[_1]": "Значение должно быть больше [_1]", "Previous": "Предыдущ.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Транзакция проведена [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "Введенные пароли не совпадают.", "Stays_Between": "Останется между", "Please_check_the_above_form_for_pending_errors_": "Пожалуйста, исправьте указанные ошибки в форме выше.", "IP_Address": "IP-адрес", "Closes_early_(at_18:00)": "Закрывается рано (в 18:00)", "year": "год(а)/лет", "In/Out": "Внутри/Вне", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Срок действия Вашего ключа истёк. Пожалуйста, нажмите [_1]здесь[_2], чтобы повторно запустить процесс проверки.", "Wednesday": "Среда", "There_was_a_problem_accessing_the_server_during_purchase_": "Возникла проблема с доступом к серверу во время процесса покупки.", "April": "Апрель", "Note": "Примечание", "Total_Profit/Loss": "Общая прибыль/убыток", "Real_STP": "Реальный STP", "Main_password": "Основной пароль", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Пожалуйста, [_1]заполните свой профайл,[_2] чтобы снять торговые лимиты и ограничения на вывод.", "Open_a_Financial_Account": "Открыть финансовый счет", "Please_enter_a_number_between_[_1]_": "Пожалуйста, введите цифру между [_1].", "Trade": "Торговля", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "[_1]Пройдите аутентификацию счёта,[_2] чтобы снять торговые лимиты и ограничения на вывод.", "Sell_time": "Время продажи", "Exit_spot": "Выходная котировка", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "Вывод средств [_1] со счёта [_2] на счёт [_3] завершен. Номер транзакции: [_4]", "Over/Under": "Над/Под", "Su": "Вс", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Прежде, чем продолжить, пожалуйста, заполните следующую [_1]форму финансовой оценки[_2].", "Sell_at_market": "Продать по текущей цене", "Your_settings_have_been_updated_successfully_": "Ваши настройки обновлены успешно.", "Profit": "Прибыль", "Closes_early_(at_21:00)": "Закрывается рано (в 21:00)", "Demo": "Демо", "All_markets_are_closed_now__Please_try_again_later_": "В данное время все рынки закрыты. Пожалуйста, попробуйте позже.", "Spot": "Спот-котировка", "January": "Январь", "Ref_": "Номер", "Loss": "Потери", "Monday": "Понедельник", "email_address": "эл. адрес", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] выйдет за пределы верхнего и нижнего барьера на момент закрытия [_4].", "month": "мес.", "Walkthrough_Guide": "Краткий экскурс", "day": "дн.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Вы уже в целом вывели сумму, эквивалентную [_1] [_2] за последние [_3] суток.", "March": "Март", "Browser": "Браузер", "Chart": "График", "New_password": "Новый пароль", "Not": "Не", "Invalid_amount,_minimum_is": "Неправильная сумма. Минимум:", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Ваш счёт заблокирован. Пожалуйста, свяжитесь с нашей [_1]службой поддержки[_2] для получения дальнейшей помощи.", "Statement": "История счета", "Please_accept_the_terms_and_conditions_": "Пожалуйста, примите правила и условия.", "Contract_is_not_started_yet": "Контракт ещё не начался", "Should_be_less_than_[_1]": "Значение должно быть меньше [_1]", "Contract_ID": "ID контракта", "Lock_Cashier": "Закрыть кассу паролем", "Mo": "Пн", "Upgrade_to_a_Real_Account": "Открыть реальный счет", "Your_changes_have_been_updated_": "Ваши изменения внесены успешно.", "Description": "Описание", "Reference_ID": "Номер", "Current": "Текущие", "Please_input_a_valid_date": "Пожалуйста, введите правильную дату", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Извините, Ваш счет не авторизован для дальнейшей покупки контрактов.", "Even/Odd": "Чётное/Нечётное", "Never": "Никогда", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Разрешены только буквы, цифры, пробелы, дефис, точки и апостроф.", "Time_out_cannot_be_more_than_6_weeks_": "Перерыв не может превышать 6 недель.", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Извините, регистрация счёта недоступна для граждан Вашей страны. Пожалуйста, свяжитесь с отделом <a href=\"[_1]\">поддержки клиентов</a> для получения дополнительной информации.", "You_have_already_withdrawn_[_1]_[_2]_": "Вы уже вывели со счета [_1] [_2].", "Sunday": "Воскресенье", "numbers": "цифры", "Your_account_has_no_trading_activity_": "На Вашем счету нет торговой деятельности.", "months": "мес.", "minutes": "минут(ы)", "Nov": "Ноя", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Ваша касса закрыта по Вашему запросу – для открытия, пожалуйста, введите пароль.", "Thursday": "Четверг", "Should_be_a_valid_number": "Введите правильное число", "Price": "Цена", "Time_out_cannot_be_in_the_past_": "Перерыв не может быть в прошлом.", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Пожалуйста, <a href=\"[_1]\">войдите,</a> чтобы просмотреть данную страницу.", "letters": "буквы", "Virtual_Account": "Демо-счет", "Target": "Цель", "Investment_Account": "Инвестиционный счет", "Spot_Time": "Спот-время", "Month": "Месяц", "Waiting_for_entry_tick_": "В ожидании входного тика...", "Th": "Чт", "Ends_Between": "закончится между", "Higher": "Выше", "verification_token": "проверочный ключ", "Saturday": "Суббота", "Old_password_is_wrong_": "Старый пароль неверный.", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] и [_2] не могут совпадать.", "space": "пробел", "Real_Account": "Реальный счет", "Exclude_time_cannot_be_less_than_6_months_": "Период ограничения не может быть менее 6 месяцев.", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Ваш запрос на вывод [_1] [_2] с Вашего счета [_3] на счет платежного агента [_4] был выполнен успешно.", "Your_trading_statistics_since_[_1]_": "Ваша торговая статистика с [_1].", "Dec": "Дек", "Aug": "Авг", "February": "Февраль", "Please_select_a_valid_date_": "Пожалуйста, выберите правильную дату.", "Please_submit_a_valid_verification_token_": "Пожалуйста, введите правильный проверочный ключ.", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Вы достигли лимита курса или количества запросов в секунду. Пожалуйста, повторите попытку позже.", "Time_out_must_be_after_today_": "Перерыв должен быть позднее сегодняшней даты.", "Only_numbers_and_spaces_are_allowed_": "Разрешены только цифры и пробелы.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] завершит контракт на или между верхним или нижним барьером на момент закрытия [_4].", "Gaming_Account": "Игровой счет", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Допускаются только буквы латинского алфавита, пробелы, дефисы, точки или апострофы.", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Ваша касса закрыта по Вашему запросу - для открытия, пожалуйста, нажмите <a href=\"[_1]\">сюда</a>.", "Touch/No_Touch": "Касание/Нет касания", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Пожалуйста нажмите на ссылку ниже, чтобы повторно запустить процесс восстановления пароля. Если Вам нужна дополнительная помощь, пожалуйста, свяжитесь с нашей службой поддержки.", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Пароль должен содержать заглавные и строчные буквы и цифры.", "Entry_Spot": "Входная котировка", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Данная функция недоступна на демо-счетах.", "Jan": "Янв", "days": "дн.", "New_Year's_Day": "Новый год", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Ваш пароль был изменен. Пожалуйста, зайдите на счет, используя новый пароль.", "Balance": "Баланс", "There_was_an_error": "Произошла ошибка", "Credit/Debit": "Кредит/Дебет", "Your_transaction_reference_number_is_[_1]": "Номер Вашей сделки [_1]", "End_time": "Окончание", "End_time_must_be_after_start_time_": "Время окончания должно быть позднее времени начала.", "Revoke_access": "Отмена доступа", "Final_price": "Итоговая цена", "Withdraw": "Вывод", "Goes_Outside": "выйдет за пределы", "Resources": "Полезное", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "Получите выплату [_1] [_2], если [_3] будет находиться строго выше или на заданном барьере на момент окончания [_4].", "You_have_sold_this_contract_at_[_1]_[_2]": "Вы продали данный контракт по цене [_1] [_2]", "details": "подробности", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Извините, эта опция доступна только для демо-счетов.", "Successful": "Успешно", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Оплата через платежного агента в данный момент недоступна для Вашей страны.", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Указанный Вами электронный адрес уже используется для другого счёта. Если Вы забыли пароль к своему счету, пожалуйста, воспользуйтесь <a href=\"[_1]\">инструментом восстановления пароля</a> или свяжитесь с нашей службой поддержки.", "Deposit": "Пополнение", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Ваш лимит на вывод составляет [_1] [_2] (или эквивалентную сумму в другой валюте).", "Start_Time": "Время начала", "Cashier": "Касса", "Sale_Price": "Цена продажи", "Date": "Дата", "This_contract_won": "Вы выиграли", "Only_numbers,_space,_and_hyphen_are_allowed_": "Разрешены только цифры, пробелы и дефисы.", "Rise/Fall": "Повышение/Падение" };
+	texts_json['TH'] = { "seconds": "วินาที", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] สิ้นสุดนอกขอบเขต Barrier ต่ำสุดและสูงสุดและสิ้นสุดที่ [_4]", "Action": "การกระทำ", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] วัน [_2] ชั่วโมง [_3] นาที", "Asset_Index": "ดัชนีสินทรัพย์", "Potential_Profit": "ประมาณการกำไร", "July": "กรกฎาคม", "Purchase_Price": "ราคาซื้อ", "High_Barrier": "Barrier สูง", "today": "วันนี้", "Select_market": "กำหนด ตลาด", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "โปรดป้อนข้อมูลในรูปแบบ ตัวเลข 3 หลัก ขีดกลาง และตามด้วย ตัวเลข 4 หลักสุดท้าย", "View": "ดู", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] ไม่แตะ Barrier กระทั่งสิ้นสุดที่ [_4]", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "ในขณะนี้บัญชีของท่านถูกพักชั่วคราว ท่านสามารถทำรายการถอนได้เท่านั้น หากต้องการข้อมูล โปรดติดต่อ [_1]", "Real_Standard": "มาตรฐานจริง", "Hour": "ชั่วโมง", "Your_Application_is_Being_Processed_": "ใบสมัครของท่านอยู่ในกระบวนการพิจารณา", "Please_select_at_least_one_scope": "โปรดระบุค่าอย่างน้อยหนึ่งขอบเขต", "Please_select_the_checkbox_": "โปรดระบุค่าจากตัวเลือก", "Day": "วัน", "Trading_Times": "เวลาซื้อขาย", "Indicative": "บ่งชี้", "Profit_Table": "ตารางกำไร", "Asset": "สินทรัพย์", "You_have_not_granted_access_to_any_applications_": "ท่านไม่ได้รับอนุญาตให้เข้าใช้งานระบบใดๆ", "PM": "น.", "Date_and_Time": "วันที่และเวลา", "This_symbol_is_not_active__Please_try_another_symbol_": "ไม่มีสัญลักษณ์นี้ โปรดลองสัญลักษณ์อื่น", "Adjust_trade_parameters": "ปรับแต่งตัวแปรของการเทรด", "This_is_a_staging_server_-_For_testing_purposes_only": "นี่คือ เซิร์ฟเวอร์สำหรับพัก เพื่อใช้ในการทดสอบเท่านั้น", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "โปรดตั้งค่า [_1]ประเทศที่พำนัก[_2] ก่อนอัพเกรดเป็นบัญชีจริง", "You_need_to_finish_all_20_questions_": "ท่านต้องตอบคำถาม 20 ข้อ ทุกข้อ", "You_did_not_change_anything_": "ท่านไม่ได้แก้ไขค่าใดๆ", "Score": "คะแนน", "Fr": "ศ", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "ท่านไม่ได้รับอนุญาตในการดำเนินการฝากเงินและการถอนเงินในบัญชีของท่านในขณะนี้ โปรดติดต่อ [_1] เพื่อปลดล็อค", "Contract_Sold": "สัญญาที่ถูกจำหน่าย", "Stake": "วางเงิน", "Only_[_1]_are_allowed_": "มีเพียง [_1] ที่จัดให้", "mins": "นาที", "Step": "ขั้น", "True": "จริง", "Return": "ผลตอบแทน", "We": "พวกเรา", "High_Barrier_([_1])": "Barrier สูง ([_1])", "Predict_the_direction<br_/>and_purchase": "พยากรณ์ทิศทาง<br />และซื้อ", "Japan": "ประเทศญี่ปุ่น", "Amount": "จำนวน", "Ends_Outside": "สิ้นสุดภายนอก", "Sell": "ขาย", "Current_password": "รหัสผ่านปัจจุบัน", "Jun": "มิ.ย.", "Open": "เปิด", "Feb": "ก.พ.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "ดังนั้น วงเงินการถอนมากที่สุดของท่านขณะนี้ (หากบัญชีท่านมีวงเงินเพียงพอ) คือ [_1] [_2] (หรือเทียบเท่าในสกุลเงินอื่น)", "Please_log_in_": "โปรดเข้าสู่ระบบ", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] มีมูลค่าเท่ากันหรือต่ำกว่า Barrier ที่สิ้นสุด ณ [_4]", "Your_account_has_no_Login/Logout_activity_": "บัญชีของท่านไม่มีประวัติ การเข้าใช้งานระบบ/การออกจากระบบ", "All_barriers_in_this_trading_window_are_expired": "รายการ Barrier ทั้งหมดในหน้าต่างซื้อขายนี้หมดอายุ", "Investor_password": "รหัสผ่านของผู้ลงทุน", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] ถูกเพิ่มแล้วที่บัญชีเสมือนของท่าน [_3]", "h": "ชม.", "October": "ตุลาคม", "August": "สิงหาคม", "Payments": "การชำระเงิน", "December": "ธันวาคม", "Name": "ชื่อ", "This_field_is_required_": "ข้อมูลในช่องนี้จำเป็นต้องมี", "Christmas_Day": "วันคริสต์มาส", "Purchase_Time": "เวลาซื้อ", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "ในขณะนี้ บัญชีของท่านไม่ได้รับอนุญาตให้ดำเนินการถอนเงิน โปรดติดต่อ [_1] เพื่อปลดล็อค", "from_[_1]_to_[_2]": "จาก [_1] ถึง [_2]", "Portfolio": "พอร์ตโฟลิโอ", "Only_letters,_numbers,_and_hyphen_are_allowed_": "ตัวอักษร ตัวเลข และเครื่องหมายขีดกลางเท่านั้นที่อนุญาต", "Exit_Spot": "สปอตสิ้นสุด", "second": "วินาที", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "เวลาการซื้อขายของท่านจะสิ้นสุดภายใน [_1] วินาที", "Remaining_time": "เวลาที่เหลืออยู่", "Contract": "สัญญา", "Sorry,_an_error_occurred_while_processing_your_request_": "ขออภัย มีความผิดพลาดเกิดขึ้นขณะที่ประมวลผลความประสงค์ของท่าน", "Should_be_between_[_1]_and_[_2]": "ต้องมีค่าระหว่าง [_1] และ [_2]", "Details": "รายละเอียด", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "ดังนั้น วงเงินการถอนมากที่สุดของท่านขณะนี้ (หากบัญชีท่านมีวงเงินเพียงพอ) คือ [_1] [_2]", "Please_select_a_valid_time_": "โปรดระบุเวลาที่ถูกต้อง", "Buy_price": "ราคาซื้อ", "Account_balance:": "ยอดคงเหลือในบัญชี:", "week": "สัปดาห์", "Contract_Expiry": "วันหมดอายุสัญญา", "Barrier_Change": "ค่า Barrier เปลี่ยนแปลง", "Higher/Lower": "สูงกว่า/ต่ำกว่า", "Duration": "ระยะเวลา", "Jul": "ก.ค.", "Contract_Information": "ข้อมูลสัญญา", "Resale_not_offered": "การขายสัญญาไม่ได้ถูกนำเสนอ", "Sorry,_this_feature_is_not_available_": "ขออภัย ไม่สามารถใช้งานฟังก์ชันนี้ได้", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "ท่านแน่ใจใช่ไหมที่จะยกเลิกการเข้าใช้ระบบถาวร", "Forex": "ฟอเร็กซ์", "today,_Fridays": "วันนี้วันศุกร์", "years": "ปี", "Connection_error:_Please_check_your_internet_connection_": "การเชื่อมต่อมีความผิดพลาด: โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของท่าน", "Waiting_for_exit_tick_": "กำลังรอช่วงราคาสุดท้าย", "Fridays": "วันศุกร์", "Sa": "ส", "Your_changes_have_been_updated_successfully_": "การแก้ไขของท่านถูกดำเนินการเรียบร้อยแล้ว", "Failed": "ล้มเหลว", "Touches": "แตะ", "Number_of_ticks": "จำนวนของช่วงราคา", "Delete": "ลบ", "Upcoming_Events": "กิจกรรมในอนาคต", "Create_Account": "สร้างบัญชี", "Sep": "ก.ย.", "Shop": "ร้าน", "Mar": "มี.ค.", "There_was_some_invalid_character_in_an_input_field_": "มีบางอักขระไม่ถูกต้องจากข้อมูลที่ป้อนเข้ามา", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "วงเงินการถอนเงินต่อวันของท่าน [_1] ในปัจจุบัน คือ [_2] [_3] (หรือเทียบเท่าในสกุลเงินอื่น)", "Real_Volatility": "ความผันผวนจริง", "logout": "ออกจากระบบ", "Exit_Spot_Time": "เวลาที่สปอตสิ้นสุด", "Tu": "อัง", "Select_your_underlying_asset": "กำหนด ผลิตภัณฑ์อ้างอิงของท่าน", "Potential_Payout": "ประมาณการจำนวนเงินที่ชำระ", "Total_Cost": "ราคารวม", "Closed": "ปิด", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] อยู่ระหว่างค่าต่ำและสูงของ Barrier กระทั่งสิ้นสุดเมื่อ [_4]", "Lower": "ต่ำกว่า", "Invalid_amount,_maximum_is": "จำนวนไม่ถูกต้อง ค่าสูงสุด คือ", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "เซิร์ฟเวอร์ <a href=\"[_1]\">จุดสิ้นสุด</a> คือ: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "จำนวนมากที่สุดของโทเค่น ([_1]) ถูกใช้หมดแล้ว", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "เมื่อท่านเลือก \"OK\" ท่านจะถูกพักจากระบบซื้อขายกระทั่งวันที่ที่ท่านระบุ", "Market_is_closed__Please_try_again_later_": "ตลาดได้ปิดทำการแล้ว กรุณาทำรายการใหม่ภายหลัง", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "ท่านได้ถอน [_1] [_2] หรือเทียบเท่า", "weeks": "สัปดาห์", "Finish": "เสร็จสิ้น", "Virtual_money_credit_to_account": "เครดิตเงินเสมือนไปยังบัญชี", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "โทเค่นของท่านหมดอายุแล้ว โปรดคลิก<a href=\"[_1]\">ที่นี่</a> เพื่อดำเนินกระบวนการตรวจสอบ", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "สัญญาจะถูกจำหน่ายที่ราคาทั่วไปของตลาดเมื่อระบบซื้อขายได้รับการแจ้งความจำนง ราคานี้อาจจะแตกต่างจากราคาที่ระบุ", "Digit": "ตัวเลข", "Unlock_Cashier": "ปลดล็อกแคชเชียร์", "Charting_for_this_underlying_is_delayed": "กราฟของผลิตภัณฑ์อ้างอิงนี้ล่าช้า", "Apr": "เม.ย.", "Permissions": "สิทธิ์", "Please_select_a_value": "โปรดระบุค่า", "hour": "ชั่วโมง", "Sorry,_you_have_entered_an_incorrect_cashier_password": "ขออภัยค่ะ ท่านป้อนรหัสผ่านแคชเชียร์ไม่ถูกต้อง", "Weekday": "วันธรรมดาที่ไม่ใช่วันเสาร์อาทิตย์", "Closes": "ปิด", "Entry_spot": "สปอตเริ่มต้น", "Congratulations!_Your_[_1]_Account_has_been_created_": "ขอแสดงความยินดี! บัญชีของท่าน [_1] ได้ถูกสร้างเรียบร้อยแล้ว", "Status": "สถานะ", "New_token_created_": "สร้างโทเค่นใหม่แล้ว", "AM": "น.", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรด [_1]ยอมรับข้อตกลงและเงื่อนไข[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "Your_withdrawal_limit_is_[_1]_[_2]_": "วงเงินการถอนของท่าน คือ [_1] [_2]", "Last_Used": "ใช้ครั้งสุดท้าย", "Minimum_of_[_1]_characters_required_": "จำนวนตัวอักขระน้อยที่สุดที่ต้องการ คือ [_1]", "Only_[_1]_decimal_points_are_allowed_": "ทศนิยม [_1] หลัก เท่านั้น", "Profit/Loss": "กำไร/ขาดทุน", "May": "พ.ค.", "Does_Not_Touch": "ไม่แตะ", "Token": "โทเค่น", "Change_Password": "เปลี่ยนรหัสผ่าน", "Select_your_market": "กำหนด ตลาดของท่าน", "There_was_a_problem_accessing_the_server_": "มีปัญหาในการเข้าถึงเครื่องแม่ข่าย", "Payout": "การชำระเงิน", "minute": "นาที", "Insufficient_balance_": "ยอดคงเหลือไม่เพียงพอ", "Oct": "ต.ค.", "Start_time": "เวลาเริ่ม", "Select_your_trade_type": "กำหนด ประเภทการเทรดของท่าน", "Buy": "ซื้อ", "Low_Barrier_([_1])": "Barrier ต่ำ ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "เวลาพักไม่เกิน 5 ปี", "November": "พฤศจิกายน", "Year": "ปี", "The_main_password_of_account_number_[_1]_has_been_changed_": "รหัสผ่านหลักของเลขที่บัญชี [_1] ได้มีการเปลี่ยนแปลงแล้ว", "Minute": "นาที", "Read": "อ่าน", "Low_Barrier": "Barrier ต่ำ", "Verification_code_format_incorrect_": "รูปแบบของรหัสตรวจสอบไม่ถูกต้อง", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] แตะ Barrier กระทั่งสิ้นสุดที่ [_4]", "Jan": "ม.ค.", "days": "วัน", "New_Year's_Day": "วันปีใหม่", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "รหัสผ่านของท่านได้ถูกกำหนดใหม่เรียบร้อยแล้ว โปรดเข้าสู่ระบบโดยการใช้รหัสผ่านใหม่ของท่าน", "Balance": "คงเหลือ", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] โปรดคลิกที่ลิงค์ด้านล่างเพื่อเริ่มกระบวนการกู้คืนรหัสผ่าน หากท่านต้องการความช่วยเหลือ โปรดติดต่อฝ่ายบริการลูกค้าของเรา", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "รหัสผ่านควรประกอบด้วยอักษรตัวเล็ก อักษรตัวใหญ่ และตัวเลข", "Entry_Spot": "สปอตเริ่มต้น", "This_feature_is_not_relevant_to_virtual-money_accounts_": "ฟังก์ชันนี้ไม่สัมพันธ์กับบัญชีเงินเสมือน", "Your_transaction_reference_number_is_[_1]": "หมายเลขอ้างอิงของธุรกรรมของท่าน คือ [_1]", "End_time": "เวลาสิ้นสุด", "There_was_an_error": "มีความผิดพลาดเกิดขึ้น", "Credit/Debit": "เครดิต/เดบิต", "Female": "เพศหญิง", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] สิ้นสุดหรืออยู่ระหว่างค่าต่ำสุดและค่าสูงสุดของ Barrier ณ เวลาปิดที่ [_4]", "Gaming_Account": "บัญชีการพนัน", "Please_select_a_valid_date_": "โปรดระบุวันที่ที่ถูกต้อง", "Please_submit_a_valid_verification_token_": "โปรดส่งโทเค่นที่ถูกต้องเพื่อการตรวจสอบ", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "ท่านได้ใช้อัตราการส่งคำสั่งต่อวินาทีเกินที่กำหนด กรุณาลองใหม่ภายหลัง", "Only_numbers_and_spaces_are_allowed_": "ตัวเลข และช่องว่างเท่านั้นที่อนุญาต", "Time_out_must_be_after_today_": "ช่วงเวลาอ้างอิงต้องเริ่มในวันพรุ่งนี้", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "ตัวอักษร ช่องว่าง ขีดกลาง จุด และ เครื่องหมายวรรคตอน ( ' ) เท่านั้น ที่สามารถใช้ได้", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "การรับ/ชำระเงินของท่านถูกล็อก - หากประสงค์ปลดล็อก โปรดคลิก <a href=\"[_1]\">ที่นี่</a>", "Cashier": "แคชเชียร์", "Start_Time": "เวลาเริ่ม", "Deposit": "ฝาก", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "วงเงินการถอนของท่าน คือ [_1] [_2] (หรือเทียบเท่าในสกุลเงินอื่น)", "This_contract_won": "สัญญานี้กำไร", "Only_numbers,_space,_and_hyphen_are_allowed_": "ตัวเลข ช่องว่าง และเครื่องหมายขีดกลางเท่านั้นที่อนุญาต", "Sale_Price": "ราคาขาย", "Date": "วันที่", "Final_price": "ราคาสุดท้าย", "False": "ผิด", "Withdraw": "ถอนเงิน", "Goes_Outside": "ออกนอกขอบเขต", "End_time_must_be_after_start_time_": "เวลาสิ้นสุดต้องเป็นเวลาภายหลังเวลาเริ่มต้น", "Revoke_access": "การเพิกถอนการเข้าถึง", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "ขออภัย ฟังก์ชันนี้มีให้ใช้งานเฉพาะบัญชีทดลองใช้เท่านั้น", "details": "รายละเอียด", "Successful": "เรียบร้อยแล้ว", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "ขณะนี้ไม่มีบริการตัวแทนรับชำระเงินในประเทศของท่าน", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "อีเมล์ของท่านถูกลงทะเบียนไว้กับผู้ใช้งานอีกบัญชีหนึ่ง หากท่านลืมรหัสผ่านของบัญชีที่ท่านมีอยู่ โปรด <a href=\"[_1]\">เรียกใช้การกู้คืนรหัสผ่าน</a> หรือ ติดต่อเจ้าหน้าที่บริการลูกค้า", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] มีมูลค่าเท่ากันหรือสูงกว่า Barrier ที่สิ้นสุดเมื่อ [_4]", "Resources": "แหล่งข้อมูล", "You_have_sold_this_contract_at_[_1]_[_2]": "ท่าได้ขายสัญญานี้ที่ [_1] [_2]", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "ขออภัย บัญชีของท่านไม่ได้รับอนุญาตในการซื้อสัญญาเพิ่ม", "Even/Odd": "คู่/คี่", "Current": "ปัจจุบัน", "Reference_ID": "หมายเลขอ้างอิง", "Description": "รายละเอียด", "Please_input_a_valid_date": "โปรดป้อนวันที่ที่ถูกต้อง", "Sunday": "วันอาทิตย์", "You_have_already_withdrawn_[_1]_[_2]_": "ท่านได้ถอน [_1] [_2]", "numbers": "ตัวเลข", "Never": "ไม่เคย", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "ตัวอักษร ตัวเลข ช่องว่าง ขีดกลาง จุด และ เครื่องหมายวรรคตอน ( ' ) เท่านั้น ที่สามารถใช้ได้", "Time_out_cannot_be_more_than_6_weeks_": "ช่วงระยะเวลาอ้างอิงไม่สามารถมากกว่า 6 สัปดาห์", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "ขออภัย ยังไม่มีการบริการบัญชีในประเทศของท่าน โปรดติดต่อ <a href=\"[_1]\">ฝ่ายลูกค้าสัมพันธ์</a> สำหรับข้อมูลเพิ่มเติม", "Contract_ID": "หมายเลขสัญญา", "Contract_is_not_started_yet": "สัญญายังไม่เริ่ม", "Should_be_less_than_[_1]": "ควรมีค่าน้อยกว่า [_1]", "Your_changes_have_been_updated_": "การเปลี่ยนแปลงของท่านได้ถูกดำเนินการแล้ว", "Mo": "จ", "Upgrade_to_a_Real_Account": "อัพเกรดเป็นบัญชีจริง", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] และ [_2] ไม่สามารถเป็นค่าเดียวกัน", "space": "ช่องว่าง", "Spot_Time": "เวลาสปอต", "Month": "เดือน", "Waiting_for_entry_tick_": "กำลังรองช่วงราคาเริ่มต้น", "Th": "พฤ", "Ends_Between": "สิ้นสุดระหว่าง", "Higher": "สูงกว่า", "verification_token": "โทเค่นเพื่อการตรวจสอบ", "Saturday": "วันเสาร์", "Old_password_is_wrong_": "รหัสผ่านเก่าไม่ถูกต้อง", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "คำสั่งของท่านเพื่อถอน [_1] [_2] จากบัญชีของท่าน [_3] ให้ตัวแทนรับชำระเงิน [_4] บัญชีได้รับการประมวลผลสำเร็จ", "Your_trading_statistics_since_[_1]_": "สถิติการซื้อขายของท่านตั้งแต่ [_1]", "Dec": "ธ.ค.", "Aug": "ส.ค.", "February": "กุมภาพันธ์", "Real_Account": "บัญชีจริง", "Exclude_time_cannot_be_less_than_6_months_": "เวลาพักไม่น้อยกว่า 6 เดือน", "Nov": "พ.ย.", "months": "เดือน", "Your_account_has_no_trading_activity_": "บัญชีของท่านไม่มีประวัติการซื้อขาย", "minutes": "นาที", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "โปรด <a href=\"[_1]\">เข้าสู่ระบบ</a> เพื่อเรียกดูหน้านี้", "letters": "ตัวอักษร", "Target": "เป้าหมาย", "Investment_Account": "บัญชีเพื่อการลงทุน", "Virtual_Account": "บัญชีทดลองใช้", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "การรับ/ชำระเงินของท่านถูกล็อกตามความประสงค์ของท่าน - หากประสงค์ปลดล็อก โปรดป้อนรหัสผ่าน", "Thursday": "วันพฤหัสบดี", "Should_be_a_valid_number": "ควรเป็นตัวเลขที่ถูกต้อง", "Price": "ราคา", "Time_out_cannot_be_in_the_past_": "ช่วงเวลาที่ใช้อ้างอิงไม่สามารถเป็นเวลาในอดีต", "Open_a_Financial_Account": "เปิดบัญชีทางการเงิน 1 บัญชี", "Main_password": "รหัสผ่านหลัก", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรด [_1]ปรับปรุงประวัติของท่าน[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "Trade": "เทรด", "Sell_time": "เวลาที่ขาย", "Please_enter_a_number_between_[_1]_": "โปรดป้อนตัวเลขระหว่าง [_1]", "year": "ปี", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "โทเค่นของท่านหมดอายุแล้ว โปรดคลิก [_1]ที่นี่[_2] เพื่อดำเนินกระบวนการตรวจสอบ", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "ดำเนินธุรกรรมโดย [_1] (App ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "รหัสผ่านที่ท่านป้อนสองครั้งไม่เหมือนกัน", "Stays_Between": "อยู่ระหว่าง", "Please_check_the_above_form_for_pending_errors_": "โปรดตรวจสอบแบบฟอร์มข้างต้นสำหรับรายการข้อผิดพลาด", "Closes_early_(at_18:00)": "ปิดก่อนเวลา (เมื่อเวลา 18.00 น.)", "Note": "บันทึก", "Real_STP": "STP จริง", "Total_Profit/Loss": "รวมกำไร/ขาดทุน", "Wednesday": "วันพุธ", "There_was_a_problem_accessing_the_server_during_purchase_": "มีปัญหาเกิดขึ้นในการเข้าถึงเซิร์ฟเวอร์ขณะส่งคำสั่งซื้อ", "April": "เมษายน", "day": "วัน", "Walkthrough_Guide": "คู่มือแนะนำการใช้งาน", "Not": "ไม่", "Please_accept_the_terms_and_conditions_": "โปรดยอมรับข้อตกลงและเงื่อนไข", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "บัญชีของท่านถูกระงับ โปรด [_1]ติดต่อฝ่ายลูกค้าสัมพันธ์[_2] เพื่อดำเนินการต่อไป", "Invalid_amount,_minimum_is": "จำนวนไม่ถูกต้อง ค่าต่ำสุด คือ", "Statement": "รายงานทางการเงิน", "March": "มีนาคม", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "ท่านได้ถอน [_1] [_2] หรือเทียบเท่า ในช่วง [_3] วันที่ผ่านมา", "Browser": "เบราเซอร์", "New_password": "รหัสผ่านใหม่", "Chart": "แผนภูมิ", "Profit": "กำไร", "Closes_early_(at_21:00)": "ปิดก่อนเวลา (เมื่อเวลา 21.00 น.)", "All_markets_are_closed_now__Please_try_again_later_": "ตลาดได้ปิดทำการแล้ว กรุณาทำรายการใหม่ภายหลัง", "Demo": "สาธิต", "Exit_spot": "สปอตสิ้นสุด", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "[_1] ได้ถอนเงินจากเลขที่บัญชี [_2] ไปยัง [_3] เรียบร้อยแล้ว หมายเลขอ้างอิงธุรกรรม: [_4]", "Over/Under": "สูงกว่า/ต่ำกว่า", "Su": "อา", "Your_settings_have_been_updated_successfully_": "การตั้งค่าของท่านถูกดำเนินการเรียบร้อยแล้ว", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "โปรดบันทึกผล [_1]แบบฟอร์มการประเมินทางการเงิน[_2] เพื่อเพิ่มวงเงินการซื้อขายและการถอนเงินของท่าน", "Sell_at_market": "ขาย ณ ตลาด", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] ชำระเงิน เมื่อ [_3] ออกนอกขอบเขตของ Barrier ต่ำและสูง กระทั่งสิ้นสุดที่ [_4]", "month": "เดือน", "email_address": "อีเมล์", "Spot": "สปอต", "January": "มกราคม", "Ref_": "อ้างอิง", "Loss": "เสีย", "Monday": "วันจันทร์", "Sale_Date": "วันที่ขาย", "June": "มิถุนายน", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "โปรดตั้งค่าวงเงินการซื้อขาย 30 วันของท่านจาก [_1]ตัวเลือกพักการซื้อขาย[_2] เพื่อลบวงเงินการฝากเงิน", "Processing_your_request___": "กำลังดำเนินการตามความประสงค์ของท่าน", "Next": "ถัดไป", "Please_select": "โปรดระบุ", "This_contract_lost": "สัญญานี้ขาดทุน", "Your_transaction_reference_is": "เลขที่อ้างอิงของธุรกรรมของท่าน คือ", "Are_you_sure_that_you_want_to_permanently_delete_token": "ท่านแน่ใจใช่ไหมที่จะลบโทเค่นถาวร", "Settles": "ชำระเงิน", "Equals": "เท่ากับ", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_1] ได้ฝากเงินจาก [_2] ไปยังเลขที่บัญชี [_3] เรียบร้อยแล้ว หมายเลขอ้างอิงธุรกรรม: [_4]", "Invalid_email_address": "อีเมล์ไม่ถูกต้อง", "Time_is_in_the_wrong_format_": "เวลาอยู่ในรูปแบบที่ไม่ถูกต้อง", "Contract_Confirmation": "การยืนยันสัญญา", "hours": "ชั่วโมง", "Major_Pairs": "คู่หลัก", "Admin": "แอดมิน", "Please_select_a_payment_agent": "โปรดระบุตัวแทนรับชำระเงิน", "min": "ค่าต่ำสุด", "Percentage": "ร้อยละ", "Password_is_not_strong_enough_": "รหัสผ่านไม่ปลอดภัยเท่าที่ควร", "Sorry,_an_error_occurred_while_processing_your_account_": "ขออภัย มีความผิดพลาดเกิดขึ้นขณะที่ประมวลผลบัญชีของท่าน", "End_Time": "เวลาสิ้นสุด", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "บัญชีของท่านได้รับการยืนยันตัวตนอย่างสมบูรณ์แล้ว และวงเงินการถอนเงินของท่านได้รับการยกระดับโดยการเพิ่มวงเงินแล้ว", "Friday": "วันศุกร์", "Payment_Agent": "ตัวแทนรับชำระเงิน", "Opens": "เปิด", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "รหัสผ่านเพิ่มนี้สามารถใช้เพื่อเข้าถึงส่วนของแคชเชียร์", "Last_Digit_Stats": "สถิติตัวเลขสุดท้าย", "Upgrade_to_a_Financial_Account": "อัพเกรดเป็นบัญชีทางการเงิน", "Today": "วันนี้", "Should_be_more_than_[_1]": "ควรมีค่ามากกว่า [_1]", "Previous": "ก่อนหน้า", "Current_Time": "เวลาปัจจุบัน:", "Real_Cent": "เงินจริง", "Explanation": "คำอธิบาย", "Never_Used": "ไม่เคยใช้", "Update": "การปรับปรุง", "Scopes": "ขอบเขต", "Questions": "คำถาม", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "คำสั่งของท่านในการโอน [_1] [_2] จาก [_3] ไป [_4] ได้ดำเนินการสำเร็จแล้ว", "Please_enter_an_integer_value": "โปรดป้อนจำนวนเต็ม", "Remaining_Time": "เวลาที่เหลืออยู่", "Tuesday": "วันอังคาร", "Session_duration_limit_cannot_be_more_than_6_weeks_": "รอบระยะเวลาการซื้อขายไม่สามารถมากกว่า 6 สัปดาห์", "September": "กันยายน", "Now": "ขณะนี้", "Net_profit": "กำไรสุทธิ", "You_should_enter_[_1]_characters_": "ท่านควรป้อนข้อมูล [_1] อักขระ", "Male": "เพศชาย" };
+	texts_json['VI'] = { "Details": "Chi tiết", "Account_balance:": "Số dư tài khoản:", "Please_select_a_valid_time_": "Vui lòng chọn một thời gian hợp lệ.", "Buy_price": "Giá mua", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "Vì vậy khoản tiền rút tối đa hiện giờ của bạn (nói tới tài khoản đang có tiền được rút) là [_1] [_2].", "Sorry,_an_error_occurred_while_processing_your_request_": "Rất tiếc, đã xảy ra lỗi khi đang xử lý yêu cầu của bạn.", "Contract": "Hợp đồng", "Remaining_time": "Thời gian còn lại", "Should_be_between_[_1]_and_[_2]": "Nên ở giữa [_1] và [_2]", "Contract_Information": "Thông tin của Hợp đồng", "Jul": "Tháng Bảy", "Resale_not_offered": "Bán lại không được cho phép", "Barrier_Change": "Giới hạn Thay đổi", "Contract_Expiry": "Hợp đồng đã hết hạn", "week": "tuần", "Duration": "Khoảng thời gian", "Higher/Lower": "Cao hơn/Thấp hơn", "Investor_password": "Mật khẩu của nhà đầu tư", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] vừa được cộng thêm vào tài khoản tiền Ảo [_3] của bạn", "All_barriers_in_this_trading_window_are_expired": "Tất cả các rào cản trong cửa sổ giao dịch này đã hết hạn", "Your_account_has_no_Login/Logout_activity_": "Không có hoạt động Đăng nhập/Đăng xuất nào trên tài khoản của bạn.", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] là nghiêm thấp hơn so với các rào cản lúc gần với [_4].", "Payments": "Thanh toán", "December": "Tháng 12", "August": "Tháng 8", "October": "Tháng Mười", "Open": "Mở", "Jun": "Tháng Sáu", "Current_password": "Mật khẩu hiện tại", "Sell": "Bán", "Please_log_in_": "Vui lòng đăng nhập.", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Vì vậy khoản tiền rút tối đa hiện giờ của bạn (tài khoản đang có tiền được rút) là [_1] [_2] (hoặc đồng tiền khác có giá trị tương đương).", "Feb": "Tháng Hai", "Exit_Spot": "Giá Giao ngay thoát ra", "Only_letters,_numbers,_and_hyphen_are_allowed_": "Chỉ các chữ cái, số và dấu nối là được phép.", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "Giới hạn phiên giao dịch của bạn sẽ kết thúc trong [_1] giây nữa.", "second": "giây", "Christmas_Day": "Lễ Giáng Sinh", "Purchase_Time": "Thời gian Mua", "This_field_is_required_": "Lĩnh vực này được yêu cầu.", "Name": "Tên", "Portfolio": "Hồ sơ", "from_[_1]_to_[_2]": "từ [_1] đến [_2]", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Rút tiền tại tài khoản của bạn không được phép tại thời điểm này. Xin vui lòng liên hệ với [_1] để mở khóa.", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "Chức năng gửi tiền và rút tiền tại tài khoản của bạn không được phép tại thời điểm này. Xin vui lòng liên hệ với [_1] để mở khóa.", "Contract_Sold": "Hợp đồng đã được bán", "Stays_In/Goes_Out": "Vẫn ở trong /Đi ra Ngoài", "You_need_to_finish_all_20_questions_": "Bạn phải hoàn thành toàn bộ 20 câu hỏi.", "Adjust_trade_parameters": "Điều giới hạn giao dịch", "This_is_a_staging_server_-_For_testing_purposes_only": "Đây là một máy chủ dàn dựng - chỉ cho mục đích chỉ thử nghiệm", "This_symbol_is_not_active__Please_try_another_symbol_": "Biểu tượng này là không hoạt động. Hãy thử một biểu tượng khác.", "Fr": "Thứ 6", "Score": "Điểm số", "You_did_not_change_anything_": "Bạn chưa thay đổi bất cứ nội dung nào.", "Japan": "Nhật Bản", "Predict_the_direction<br_/>and_purchase": "Dự đoán khuynh hướng<br />và trả giá", "Barrier": "Rào cản", "High_Barrier_([_1])": "Rào cản Cao ([_1])", "Short": "Ngắn", "We": "Chúng tôi", "Return": "Lợi nhuận", "Ends_Outside": "Kết thúc bên ngoài", "Amount": "Số tiền", "Tick": "Giây", "Stake": "Đơn vị vốn, cổ phiếu", "True": "Đúng", "mins": "phút", "Step": "Bước", "Only_[_1]_are_allowed_": "Chỉ có [_1] được cho phép.", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "Vui lòng tuân theo cấu trúc 3 số, dấu gạch ngang, tiếp theo là 4 số.", "Select_market": "Chọn thị trường", "Hour": "Giờ", "Real_Standard": "Tiêu chuẩn thực", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "Tài khoản của bạn hiện đang bị khóa. Chỉ tính năng rút tiền được cho phép. Để biết thêm chi tiết, xin vui lòng liên hệ với [_1].", "View": "Xem", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] không chạm vào các rào cản thông qua đóng trên [_4].", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] kết thúc bên ngoài thấp và cao giá trị của các hàng rào tại đóng trên [_4].", "seconds": "giây", "today": "hôm nay", "High_Barrier": "Rào cản Cao", "Purchase_Price": "Giá Mua", "July": "Tháng Bảy", "Potential_Profit": "Lợi nhuận Tiềm năng", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] ngày [_2] giờ [_3] phút", "Asset_Index": "Chỉ số tài sản", "Action": "Hành động", "You_have_not_granted_access_to_any_applications_": "Bạn không được phép truy cập bất kỳ một ứng dụng nào.", "Asset": "Tài sản", "Profit_Table": "Bảng Lợi nhuận", "Indicative": "Chỉ thị", "Date_and_Time": "Ngày và Thời gian", "Please_select_at_least_one_scope": "Vui lòng chọn ít nhất một phạm vi", "Your_Application_is_Being_Processed_": "Ứng dụng của bạn đang được xử lý.", "Day": "Ngày", "Trading_Times": "Thời gian Giao dịch", "Please_select_the_checkbox_": "Vui lòng chọn hộp tích.", "Low_Barrier_([_1])": "Rào cản Thấp ([_1])", "Exclude_time_cannot_be_for_more_than_5_years_": "Thời gian loại trừ không thể nhiều hơn 5 năm.", "Buy": "Mua", "Year": "Năm", "November": "Tháng Mười một", "minute": "phút", "Payout": "Tiền thưởng", "Select_your_trade_type": "Chọn loại giao dịch của bạn", "Oct": "Tháng Mười", "Start_time": "Thời gian bắt đầu", "Insufficient_balance_": "Số dư tài khoản không đủ.", "Verification_code_format_incorrect_": "Định dạng của mã xác thực không chính xác.", "Low_Barrier": "Rào cản Thấp", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] chạm hàng rào thông qua gần với [_4].", "Read": "Đọc", "Minute": "Phút", "The_main_password_of_account_number_[_1]_has_been_changed_": "Mật khẩu chính của tài khoản số [_1] đã bị thay đổi.", "{JAPAN_ONLY}Knowledge_Test_Result": "{CHỈ DÀNH CHO THỊ TRƯỜNG NHẬT BẢN}Kết quả Bài Kiểm tra Kiến thức", "Weekday": "Ngày trong tuần", "Permissions": "Quyền hạn", "hour": "giờ", "Please_select_a_value": "Vui lòng chọn một giá trị", "Sorry,_you_have_entered_an_incorrect_cashier_password": "Xin lỗi, bạn đã nhập sai mật khẩu thu ngân", "Apr": "Tháng 4", "Status": "Tình trạng", "Congratulations!_Your_[_1]_Account_has_been_created_": "Xin chúc mừng! Tài khoản [_1] của bạn đã được tạo.", "Entry_spot": "Giá khởi điểm", "Closes": "Kết thúc", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "Hợp đồng sẽ được bán ở giá thị trường hiện hành khi máy chủ nhận được yêu cầu. Giá này có thể khác với giá đã được chỉ định.", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "Chuỗi xác nhận của bạn đã hết hiệu lực. Xin vui lòng nhấp chuột vào <a chref=\"[_1]\">đây</a> để khởi động lại quá trình xác minh.", "Virtual_money_credit_to_account": "Tín dụng tiền ảo cho tài khoản", "Matches/Differs": "Phù hợp/Khác", "Charting_for_this_underlying_is_delayed": "Biểu đồ cho tài sản cơ sở này bị hoãn", "Unlock_Cashier": "Mở khóa Thu ngân", "Digit": "Chữ số", "Change_Password": "Thay đổi Mật khẩu", "Token": "Mã Token", "Does_Not_Touch": "Không được chạm", "May": "Tháng Năm", "There_was_a_problem_accessing_the_server_": "Có lỗi khi truy cập máy chủ.", "Select_your_market": "Chọn thị trường của bạn", "Last_Used": "Lần sử dụng cuối cùng", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin [_1] vui lòng chấp nhận cập nhật các điều khoản và điều kiện [_2] để nâng mức tiền rút và giới hạn giao dịch.", "Your_withdrawal_limit_is_[_1]_[_2]_": "Giới hạn rút tiền của bạn là [_1] [_2].", "New_token_created_": "Token mới đã được tạo.", "Profit/Loss": "Lợi nhuận/Thua lỗ", "Only_[_1]_decimal_points_are_allowed_": "Chỉ cho phép [_1] số thập phân sau dấu phẩy.", "Minimum_of_[_1]_characters_required_": "Tối thiểu [_1] các kí tự cần thiết.", "Exit_Spot_Time": "Giá Giao ngay Thoát ra", "Select_your_underlying_asset": "Chọn tài sản cơ sở của bạn", "Mar": "Tháng Ba", "Shop": "Cửa hàng", "Real_Volatility": "Biến động thực", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "Hạn mức rút tiền ngày [_1] của bạn hiện là [_2] [_3] (hoặc tương đương với đồng tiền khác).", "There_was_some_invalid_character_in_an_input_field_": "Có một vài ký tự không hợp lệ với dữ liệu nhập vào.", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "Bạn đã rút số tiền tương đương [_1] [_2].", "Market_is_closed__Please_try_again_later_": "Thị trường đã đóng cửa. Vui lòng thử lại sau.", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "Khi bạn nhấp vào \"OK\" bạn sẽ bị loại bỏ khỏi giao dịch trên trang web tới ngày được chọn.", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "Đã đạt đến độ dài tối đa của mã token ([_1]).", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "Máy chủ <a href=\"[_1]\">điểm cuối</a> là: [_2]", "weeks": "tuần", "Finish": "Kết thúc", "Long": "Dài", "Ends_In/Out": "Kết thúc Trong/Ngoài", "Closed": "Đã đóng", "Total_Cost": "Tổng Chi phí", "Potential_Payout": "Tiền thưởng Tiềm năng", "Invalid_amount,_maximum_is": "Số tiền không hợp lệ, tối đa là", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] vẫn giữa cao và thấp giá trị của các rào cản thông qua gần với [_4].", "Lower": "Thấp hơn", "today,_Fridays": "hôm nay, Thứ Sáu", "Forex": "Thị trường ngoại hối", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "Bạn có chắc chắn muốn thu hồi quyền truy cập vào ứng dụng vĩnh viễn", "years": "năm", "Sorry,_this_feature_is_not_available_": "Xin lỗi, đặc tính này không có.", "Upcoming_Events": "Sự kiện sắp diễn ra", "Delete": "Xóa", "Sep": "Tháng Chín", "Create_Account": "Tạo Tài khoản", "Waiting_for_exit_tick_": "Vui lòng đợi cho dấu tích thoát.", "Connection_error:_Please_check_your_internet_connection_": "Lỗi kết nối: xin vui lòng kiểm tra kết nối internet của bạn.", "Failed": "Thất bại", "Touches": "Chạm", "Number_of_ticks": "Số điểm", "Up/Down": "Lên/Xuống", "Your_changes_have_been_updated_successfully_": "Các thay đổi của bạn đã được cập nhật thành công.", "Fridays": "Thứ Sáu", "February": "Tháng Hai", "Dec": "Tháng 12", "Your_trading_statistics_since_[_1]_": "Số liệu thống kê giao dịch của bạn kể từ [_1].", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "Yêu cầu rút tiền [_1] [_2] từ tài khoản [_3] của bạn và chuyển tới tài khoản Đại lý Thanh toán [_4] đã được xử lý thành công.", "Aug": "Tháng 8", "Exclude_time_cannot_be_less_than_6_months_": "Thời gian loại trừ không thể ít hơn 6 tháng.", "Real_Account": "Tài khoản Thực", "space": "khoảng cách", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] và [_2] không thể giống nhau.", "Old_password_is_wrong_": "Mật khẩu cũ không đúng.", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "{CHỈ ĐỐI VỚI NHẬT BẢN} Ứng dụng của bạn đã xử lý. Xin vui lòng đăng nhập lại để truy cập vào tài khoản tiền thực của bạn.", "Ends_Between": "Kết thúc giữa", "Higher": "Cao hơn", "Saturday": "Thứ Bảy", "verification_token": "chuỗi số xác minh", "Month": "Tháng", "Waiting_for_entry_tick_": "Vui lòng đợi cho đến phiên gia nhập.", "Spot_Time": "Thời điểm làm giá", "Investment_Account": "Tài khoản Đầu tư", "Target": "Mục tiêu", "Virtual_Account": "Tài khoản Ảo", "letters": "các ký tự", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "Xin <a href=\"[_1]\"> vui lòng đăng nhập</a> để xem trang này.", "Time_out_cannot_be_in_the_past_": "Thời hạn kết thúc không thể tồn tại trong quá khứ.", "Should_be_a_valid_number": "Nên là một số hợp lệ", "Price": "Giá", "Thursday": "Thứ Năm", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "Quỹ đã được khóa theo yêu cầu của bạn - để mở khóa, vui lòng điền mật khẩu.", "Nov": "Tháng Mười một", "minutes": "phút", "months": "tháng", "Your_account_has_no_trading_activity_": "Không có hoạt động giao dịch nào trên tài khoản của bạn.", "numbers": "các số", "Sunday": "Chủ nhật", "You_have_already_withdrawn_[_1]_[_2]_": "Bạn vừa rút [_1] [_2].", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "Xin lỗi, tài khoản đăng ký là không có sẵn ở quốc gia của bạn. Xin vui lòng liên hệ với <a href=\"[_1]\"> hỗ trợ khách hàng</a> để biết thêm thông tin.", "Time_out_cannot_be_more_than_6_weeks_": "Thời hạn kết thúc không thể lớn hơn 6 tuần.", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Chỉ chữ cái, số, khoảng trắng, dấu gạch nối, dấu chấm, và dấu gạch ngang được cho phép.", "Never": "Chưa bao giờ", "Even/Odd": "Hòa vốn/ Số dư", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "Xin lỗi, tài khoản của bạn không có quyền mua thêm hợp đồng.", "Current": "Tiền tệ", "Reference_ID": "Tài khoản tham khảo", "Description": "Mô tả", "Please_input_a_valid_date": "Vui lòng nhập ngày hợp lệ", "Your_changes_have_been_updated_": "Những thay đổi của bạn đã được cập nhật.", "Upgrade_to_a_Real_Account": "Nâng cấp lên Tài khoản Thực", "Lock_Cashier": "Khóa quầy Thu ngân", "Contract_ID": "Mã Hợp đồng", "Should_be_less_than_[_1]": "Nên là ít hơn so với [_1]", "Contract_is_not_started_yet": "Hợp đồng chưa được bắt đầu", "Rise/Fall": "Tăng/Giảm", "Only_numbers,_space,_and_hyphen_are_allowed_": "Chỉ số, khoảng trắng và dấu nối là được phép.", "This_contract_won": "Hợp đồng này đã thắng", "Date": "Ngày", "Sale_Price": "Giá Bán hàng", "Start_Time": "Thời gian bắt đầu", "Cashier": "Thu ngân", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "Giới hạn rút tiền của bạn là [_1] [_2] (hoặc tương đương với đồng tiền khác).", "Deposit": "Gửi tiền", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "Địa chỉ thư điện tử cung cấp đang được sử dụng. Nếu bạn quên mật khẩu của bạn, hãy thử <a href=\"[_1]\"> công cụ phục hồi mật khẩu của chúng tôi</a> hoặc liên hệ với dịch vụ khách hàng của chúng tôi.", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "Các cơ sở đại lý thanh toán hiện không có trong đất nước của bạn.", "Successful": "Thành công", "details": "chi tiết", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "Rất tiếc, tính năng này chỉ khả dụng với tài khoản tiền ảo.", "You_have_sold_this_contract_at_[_1]_[_2]": "Bạn đã bán hợp đồng này với mức [_1] [_2]", "Resources": "Nguồn", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] là nghiêm chỉnh cao hơn hoặc bằng hàng rào tại gần với [_4].", "Goes_Outside": "Đi ra ngoài", "False": "Sai", "Withdraw": "Rút tiền", "Final_price": "Giá cuối cùng", "Revoke_access": "Hủy bỏ truy cập", "End_time_must_be_after_start_time_": "Thời gian kết thúc phải sau thời gian bắt đầu.", "End_time": "Thời gian Kết thúc", "{JAPAN_ONLY}Please_complete_the_following_questions_": "{CHỈ DÀNH CHO THỊ TRƯỜNG NHẬT BẢN}Vui lòng hoàn thành những câu hỏi sau đây.", "Your_transaction_reference_number_is_[_1]": "Số tham chiếu giao dịch của bạn là [_1]", "Female": "Nữ", "There_was_an_error": "Đã có lỗi xảy ra", "Credit/Debit": "Tín dụng/Ghi nợ", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "Mật khẩu của bạn đã được thiết lập lại thành công. Vui lòng dùng mật khẩu mới đăng nhập vào tài khoản của bạn.", "Balance": "Số dư tài khoản", "New_Year's_Day": "Ngày của năm mới", "days": "ngày", "Jan": "Tháng Một", "This_feature_is_not_relevant_to_virtual-money_accounts_": "Đặc điểm này không liên quan tới tài khoản tiền ảo.", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] Vui lòng nhấn vào đường dẫn dưới đây để bắt đầu lại quá trình khôi phục mật khẩu. Nếu bạn cần thêm trợ giúp, vui lòng liên hệ với Trung tâm hỗ trợ khách hàng của chúng tôi.", "Entry_Spot": "Giá khởi điểm", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "Mật khẩu nên bao gồm cả chữ hoa, chữ thường và con số.", "Touch/No_Touch": "Chạm/Không Chạm", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "Quỹ đã bị khóa theo yêu cầu của bạn - để mở khóa, vui lòng nhấn <a href=\"[_1]\">vào đây </a>.", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "Chỉ chữ cái, khoảng trống, dấu nối, thời gian và dấu nháy đơn được cho phép.", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] kết thúc vào hoặc giữa cao và thấp giá trị của các rào cản lúc đóng trên [_4].", "Gaming_Account": "Tài khoản Cá cược", "Only_numbers_and_spaces_are_allowed_": "Chỉ số và khoảng trắng là được phép.", "Time_out_must_be_after_today_": "Thời hạn kết thúc phải sau hôm nay.", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "Bạn đã đạt đến giới hạn số lượng lệnh có thể mỗi giây. Xin vui lòng thử lại sau.", "Please_submit_a_valid_verification_token_": "Vui lòng nhập một mã thông báo xác nhận hợp lệ.", "Please_select_a_valid_date_": "Vui lòng chọn một ngày hợp lệ.", "Previous": "Trước", "Should_be_more_than_[_1]": "Nên là nhiều hơn so với [_1]", "Today": "Hôm nay", "Questions": "Câu hỏi", "Update": "Cập nhật", "Real_Cent": "Xu thật", "Explanation": "Giải thích", "Never_Used": "Chưa bao giờ Sử dụng", "Current_Time": "Thời gian hiện tại", "Friday": "Thứ Sáu", "Barrier_([_1])": "Rào cản ([_1])", "Payment_Agent": "Đại lý Thanh toán", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "Tài khoản của bạn được xác thực đầy đủ và mức giới hạn rút tiền của bạn đã được nâng lên.", "End_Time": "Thời gian Kết thúc", "Upgrade_to_a_Financial_Account": "Nâng cấp lên Tài khoản Tài chính", "Last_Digit_Stats": "Dữ liệu Chữ số Cuối cùng", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "Mật khẩu phụ có thể dùng để hạn chế truy cập vào khu thu ngân.", "Opens": "Mở", "Net_profit": "Lợi nhuận thuần", "Now": "Bây giờ", "September": "Tháng Chín", "You_should_enter_[_1]_characters_": "Bạn nên nhập vào [_1] ký tự.", "Please_enter_an_integer_value": "Vui lòng nhập giá trị số nguyên", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "Yêu cầu chuyển [_1] [_2] từ [_3] sang [_4] đã được xử lý thành công.", "Session_duration_limit_cannot_be_more_than_6_weeks_": "Giới hạn thời hạn phiên không thể nhiều hơn 6 tuần.", "Tuesday": "Thứ Ba", "Remaining_Time": "Thời gian còn lại", "Are_you_sure_that_you_want_to_permanently_delete_token": "Bạn có chắc chắn muốn xóa vĩnh viễn token", "This_contract_lost": "Hợp đồng này đã bị lỗ", "Your_transaction_reference_is": "Tham chiếu giao dịch của bạn là", "Settles": "Quyết toán", "Sale_Date": "Ngày Bán hàng", "Next": "Tiếp theo", "Processing_your_request___": "Đang xử lý yêu cầu của bạn...", "Please_select": "Vui lòng chọn", "June": "Tháng Sáu", "min": "tối thiểu", "Admin": "Quản trị viên", "Please_select_a_payment_agent": "Vui lòng chọn một đại lý thanh toán", "Major_Pairs": "Cặp tiền tệ chính", "Sorry,_an_error_occurred_while_processing_your_account_": "Xin lỗi, Lỗi xảy ra trong khi đang xử lý tài khoản của bạn.", "Password_is_not_strong_enough_": "Mật khẩu không đủ mạnh.", "Invalid_email_address": "Địa chỉ email không hợp lệ", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "tiền gửi [_1] từ [_2] đến tài khoản số [_3] được thực hiện. Giao dịch ID: [_4]", "Equals": "Tương đương", "hours": "giờ", "Contract_Confirmation": "Xác nhận Hợp đồng", "Time_is_in_the_wrong_format_": "Thời gian ở sai định dạng.", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "Tài khoản của bạn bị hạn chế. [_1] vui lòng liên hệ hỗ trợ khách hàng [_2] để được hỗ trợ.", "Invalid_amount,_minimum_is": "Số tiền không hợp lệ, tối thiểu là", "Statement": "Tuyên bố", "Please_accept_the_terms_and_conditions_": "Xin vui lòng chấp nhận các điều khoản và điều kiện.", "Not": "Không", "New_password": "Mật khẩu mới", "Chart": "Biểu đồ", "Browser": "Duyệt tìm", "March": "Tháng Ba", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "Bạn đã rút số tiền tương đương với [_1] [_2] trong tổng số hơn [_3] ngày qua.", "day": "ngày", "Walkthrough_Guide": "Hướng dẫn tổng quan", "email_address": "địa chỉ hòm thư", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_1] [_2] thanh toán nếu [_3] đi bên ngoài thấp và cao các giá trị của các rào cản thông qua gần với [_4].", "month": "tháng", "Monday": "Thứ Hai", "Loss": "Thất thoát", "Ref_": "Tham khảo.", "Spot": "Giao ngay", "January": "Tháng Một", "Demo": "Thử nghiệm", "All_markets_are_closed_now__Please_try_again_later_": "Tất cả các thị trường đều đã đóng cửa. Vui lòng thử lại sau.", "Closes_early_(at_21:00)": "Kết thúc sớm (lúc 21:00)", "Profit": "Lợi nhuận", "Sell_at_market": "Bán tại thị trường", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin vui lòng hoàn tất mẫu đánh giá tài chính [_1] [_2] để nâng rút tiền của bạn và kinh doanh các giới hạn.", "Your_settings_have_been_updated_successfully_": "Thiết lập của bạn đã được cập nhật thành công.", "Over/Under": "Trên/Dưới", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "% 1 rút khỏi số tài khoản% 2 đến% 3 được thực hiện. ID giao dịch:% 4", "Exit_spot": "Giá giao ngay thoát ra", "Sell_time": "Thời gian Bán", "Trade": "Giao dịch", "Please_enter_a_number_between_[_1]_": "Vui lòng nhập một số giữa [_1].", "Open_a_Financial_Account": "Mở một Tài khoản Tài chính", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "Xin [_1] vui lòng hoàn thành hồ sơ tài khoản [_2] của bạn để nâng mức rút tiền và các giới hạn giao dịch.", "Main_password": "Mật khẩu chính", "Real_STP": "STP thực", "Total_Profit/Loss": "Tổng Lợi nhuận/Thua lỗ", "Note": "Chú ý", "April": "Tháng 4", "There_was_a_problem_accessing_the_server_during_purchase_": "Có lỗi trung cập vào máy chủ khi mua.", "Wednesday": "Thứ Tư", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "Chuỗi xác nhận của bạn đã hết hiệu lực. Xin vui lòng nhấp chuột vào [_1]đây[_2] để khởi động lại quá trình xác minh.", "In/Out": "Trong/Ngoài", "year": "năm", "IP_Address": "Địa chỉ IP", "Please_check_the_above_form_for_pending_errors_": "Vui lòng kiểm tra các mục nêu trên cho những lỗi đang chờ xử lý.", "Closes_early_(at_18:00)": "Kết thúc sớm (tại 18:00)", "Stays_Between": "Nằm giữa", "The_two_passwords_that_you_entered_do_not_match_": "Hai mật khẩu bạn vừa nhập không khớp với nhau.", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "Giao dịch thực hiện bởi [_1] (ID ứng dụng: [_2])" };
+	texts_json['JA'] = { "Only_[_1]_are_allowed_": "[_1]のみご利用いただけます。", "Step": "ステップ", "mins": "分", "True": "正", "Stake": "購入価格", "Amount": "金額", "Ends_Outside": "END-OUT", "Return": "リターン率", "Barrier": "バリア価格", "We": "水", "High_Barrier_([_1])": "上限バリア", "Predict_the_direction<br_/>and_purchase": "方向性<br />を予測して購入", "Short": "ショート", "Japan": "日本", "You_did_not_change_anything_": "変更はありません。", "Score": "スコア", "Fr": "金", "This_symbol_is_not_active__Please_try_another_symbol_": "このシンボルは現在ご利用いただけません。他のシンボルでお試しください。", "Adjust_trade_parameters": "取引期間を選択して頂き購入希望ロット数を入力して下さい。", "This_is_a_staging_server_-_For_testing_purposes_only": "これはテストを目的としたステージングサーバーです", "You_need_to_finish_all_20_questions_": "まだ、無解答の問題があります。", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "リアル口座へアップグレードされる前に%居住国[_2]を設定してください。", "Stays_In/Goes_Out": "STAY-IN/BREAK-OUT", "Contract_Sold": "売却", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "お客様の口座への入出金手続きは、現在許可されていません。解除するには[_1]までご連絡ください。", "Please_select_the_checkbox_": "チェックボックスを選択してください", "Trading_Times": "トレード対応時間", "{JAPAN_ONLY}Dear_customer,_you_are_not_allowed_to_take_knowledge_test_until_[_1]__Last_test_taken_at_[_2]_": "お客さまへ\n\n現在、知識確認テストの受験を行うことができません。[_1]以降に再受験してください。前回受験日[_2]", "Day": "日", "Your_Application_is_Being_Processed_": "お客さまの口座開設申込書類の処理中です。", "Please_select_at_least_one_scope": "範囲を1つ以上選択してください", "Date_and_Time": "日時", "Profit_Table": "取引明細", "Indicative": "参考売却金額", "Asset": "取引対象", "You_have_not_granted_access_to_any_applications_": "アプリケーションへのアクセス権限がありません。", "PM": "午後", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1]日 [_2]時間 [_3]分", "Action": "売買", "Asset_Index": "取引期間データ", "Potential_Profit": "期待利益", "July": "７月", "Purchase_Price": "購入金額", "High_Barrier": "上限バリア", "today": "本日", "seconds": "秒", "{JAPAN_ONLY}Dear_customer,_you've_already_completed_the_knowledge_test,_please_proceed_to_next_step_": "お客さまへ\n\n既に知識確認テストは完了しています。送信済みのメールを確認の上、口座開設の手続きを進めてください。", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_3]のEND-OUTは、判定時刻([_4])の時点で上限バリア以上もしくは下限バリア未満であるとを予測", "View": "表示", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_3]のNO-TOUCHは、取引期間([_4])が終了するまでにバリア価格に達しないと予測", "Real_Standard": "リアル スタンダード", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "現在お客様の口座は、一時的にご利用いただけません。詳細は、[_1]までご連絡ください。", "Hour": "時間", "Select_market": "取引市場を選択", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "ハイフンを入れて半角で入力してください", "Higher/Lower": "ラダーLOW/ラダーHIGH", "Duration": "取引期間", "week": "週間", "Contract_Expiry": "取引終了", "Barrier_Change": "バリア値の変更", "Resale_not_offered": "満期までの2分は売却取引不可", "Jul": "7", "Contract_Information": "約定済み通知", "Should_be_between_[_1]_and_[_2]": "投資は、[_1]から[_2]の間である必要があります。", "Remaining_time": "満期までの残り時間", "Contract": "トレード", "Sorry,_an_error_occurred_while_processing_your_request_": "通信エラーが発生しましたので、再度ページの読み込みをしてください", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "現在、出金可能な限度額（口座残高が不足していない場合）は¥ [_2]となります。", "Please_select_a_valid_time_": "有効な時間を選択してください", "Buy_price": "購入金額（単価）", "Account_balance:": "口座残高：", "Details": "お客さま基本情報", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "お客様の口座の出金手続きは現在許可されていません。解除するには[_1]までご連絡ください。", "from_[_1]_to_[_2]": "[_1]から[_2]まで", "{JAPAN_ONLY}Knowledge_Test": "知識確認テスト", "Portfolio": "ポジション一覧", "Name": "お名前", "This_field_is_required_": "この項目は必須です。", "Purchase_Time": "購入時間", "Christmas_Day": "クリスマス", "second": "秒", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "お客様の取引継続時間制限は[_1]秒後に終了します。", "Only_letters,_numbers,_and_hyphen_are_allowed_": "文字、数字、ハイフンのみご利用いただけます。", "Exit_Spot": "判定レート", "Feb": "2", "{JAPAN_ONLY}Take_knowledge_test": "知識確認テストを受ける", "Please_log_in_": "ログインをしてください。", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "そのため、現在即座にご出金いただける限度金額（ただし、ご口座残高が不足していない場合）は[_1] [_2]までです。", "Sell": "売却", "Current_password": "現在のパスワード", "Jun": "6", "August": "８月", "October": "１０月", "Payments": "アフィリエイト報酬の支払いについて", "December": "１２月", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_3]のラダーLOWは、判定時刻([_4])の時点でバリア価格未満であると予測", "Your_account_has_no_Login/Logout_activity_": "お客さまのご口座はログイン/ログアウトのアクティビティはございません。", "All_barriers_in_this_trading_window_are_expired": "すべてのバリア価格は権利行使済みです", "Investor_password": "トレーダーパスワード", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2]をデモ口座[_3]に付与されました", "h": "時間", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_3]のSTAY-INは取引期間中([_4])に上限バリア未満かつ下限バリア超過を維持すると予測", "Lower": "LOW", "Invalid_amount,_maximum_is": "無効な値です。最大はXXXです。", "Potential_Payout": "ペイアウト", "Total_Cost": "合計投資額", "Closed": "終了", "Ends_In/Out": "END-IN/END-OUT", "Long": "ロング", "weeks": "週間", "Finish": "完了", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "サーバーの <a href=\"[_1]\">エンドポイント</a> : [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "トークンの最大数([_1]) に達しました。", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "\"Ok\"をクリックすると、選択した日付までこのサイトでのトレードができなくなります。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "[_1] [_2] と同等の金額を既に出金されています。", "Market_is_closed__Please_try_again_later_": "営業時間外のためご利用になれません。", "There_was_some_invalid_character_in_an_input_field_": "入力された文字に使用できない文字が含まれています。", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "お客さまの[_1]日の出金限度額は現在[_2] [_3]です。限度額以上の出金額をご希望される場合、本人確認が必要となります。", "Real_Volatility": "リアル ボラティリティ", "Shop": "ショップ", "Mar": "3", "Tu": "火", "Select_your_underlying_asset": "原資産を選択して下さい", "logout": "ログアウト", "Exit_Spot_Time": "売却/判定時刻", "Sa": "土", "Fridays": "金曜日", "Up/Down": "ラダー", "Your_changes_have_been_updated_successfully_": "設定が正しく更新されました。", "Number_of_ticks": "Tickの総数", "Failed": "失敗しました", "Touches": "TOUCH", "Connection_error:_Please_check_your_internet_connection_": "接続エラー：インターネット接続状況をご確認ください。", "Waiting_for_exit_tick_": "イグジットTickを検出中です・・・", "Create_Account": "デモ口座開設", "Sep": "9", "Delete": "消去", "Upcoming_Events": "取引時間短縮日及び祝日", "Sorry,_this_feature_is_not_available_": "申し訳ございませんが、この機能はご利用いただけません。", "years": "年", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "アプリケーションへのアクセスを完全に削除してもよろしいですか？", "Forex": "外国為替", "today,_Fridays": "本日：金曜日", "The_main_password_of_account_number_[_1]_has_been_changed_": "口座番号 [_1]のメインパスワード変更を承りました。", "{JAPAN_ONLY}Knowledge_Test_Result": "知識確認テスト結果", "Minute": "分", "Read": "読む", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_3]のTOUCHは、取引期間([_4])が終了するまでバリア価格に達すると予測", "Low_Barrier": "下限バリア", "Verification_code_format_incorrect_": "ワンタイムパスワードの形式が不適切です。", "Insufficient_balance_": "口座残高が不足しています", "Start_time": "開始時間", "Oct": "10", "Select_your_trade_type": "取引タイプを選択して下さい", "Payout": "ペイアウト", "minute": "分", "November": "１１月", "Year": "年", "Buy": "購入", "Exclude_time_cannot_be_for_more_than_5_years_": "6年以上の除外期間は設定することはできません。", "Low_Barrier_([_1])": "下限バリア", "Minimum_of_[_1]_characters_required_": "[_1]文字以上でご入力ください。", "Profit/Loss": "損益", "Only_[_1]_decimal_points_are_allowed_": "小数点以下[_1]桁のみご利用いただけます。", "New_token_created_": "新しいトークンが作成されました。", "AM": "午前", "Your_withdrawal_limit_is_[_1]_[_2]_": "お客さまの出金限度額は[_1] [_2]です。限度額以上の出金額をご希望される場合は、本人確認が必要となりますので\nカスタマーサポートへご連絡ください。", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "出金制限及び取引制限を解除するには、[_1]改訂版利用規約に同意[_2]いただく必要があります。", "Last_Used": "最後に使用したもの", "Select_your_market": "取引市場を選択", "There_was_a_problem_accessing_the_server_": "サーバーアクセスにエラーが発生しました。", "May": "5", "Does_Not_Touch": "NO-TOUCH", "Change_Password": "パスワード変更", "Token": "トークン", "Digit": "数字", "Unlock_Cashier": "入出金ロック解除", "Charting_for_this_underlying_is_delayed": "この対象のチャート表示は不可能です", "Matches/Differs": "MATCH/DIFFER", "{JAPAN_ONLY}Congratulations,_you_have_pass_the_test,_our_Customer_Support_will_contact_you_shortly_": "おめでとうございます。テストに合格されましたので、カスタマーサポートよりメールにて口座開設の次のステップについてご連絡させていただきます。", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "ワンタイムパスワードの有効期限が切れています。再度、<a href=\"[_1]\">「最初からやり直し」</a> をクリックしてワンタイムパスワードを発行して下さい。", "Virtual_money_credit_to_account": "バーチャルマネーを入金", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "当社のサーバがリクエストを受理した時点での市場価格で売却取引が成立します。実際の約定価格と注文時の表示価格と異なる場合があります。", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "お使いのブラウザ ([_1]) はこのサイトではサポートしていません。お手数ですが、他のブラウザのご利用ください。[_2]他のブラウザを確認する[_3]", "Closes": "取引終了時間", "Entry_spot": "取引時刻直後のティック", "Congratulations!_Your_[_1]_Account_has_been_created_": "おめでとうございます！[_1]口座の作成が完了しました。", "Status": "金融資産", "Apr": "4", "Permissions": "アクセス許可", "Please_select_a_value": "値を選択してください。", "hour": "時間", "Sorry,_you_have_entered_an_incorrect_cashier_password": "申し訳ございませんが、ご入力頂いた入出金パスワードに誤りがあります", "Weekday": "平日", "End_time_must_be_after_start_time_": "取引終了時間は明日以降として設定して下さい。", "Revoke_access": "アクセス権の取消", "Final_price": "最終価格", "False": "誤", "Withdraw": "出金", "Goes_Outside": "BREAK-OUT", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_3]のラダーHIGHは、判定時刻([_4])の時点でバリア価格以上であると予測", "Resources": "取引参考情報", "You_have_sold_this_contract_at_[_1]_[_2]": "[_1] [_2]でこのトレードを売却しました", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "申し訳ございません。この機能はデモ口座のみでご利用頂けます。", "details": "詳細", "Successful": "成功しました", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "ご入力いただいたメールアドレスは既に他のログインIDで使用されています。パスワードをお忘れの場合は、<a href=\"[_1]\">こちら</a>からパスワードを再発行して頂くか、カスタマーサポートまでご連絡下さい。", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "その決済サービスは、お客さまのお住まいの国では現在ご利用いただけません。", "Deposit": "入金", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "お客さまの出金限度額は ¥ [_2] です。限度額以上の出金額をご希望される場合は、本人確認が必要となりますのでカスタマーサポートへご連絡ください。", "Cashier": "入出金", "Start_Time": "取引開始時刻", "Sale_Price": "売却 / ペイアウト金額", "Date": "日付", "This_contract_won": "このトレードは勝ち判定", "Only_numbers,_space,_and_hyphen_are_allowed_": "数字、スペース、ハイフンのみご利用いただけます。", "Rise/Fall": "ラダー", "Please_submit_a_valid_verification_token_": "有効なワンタイムパスワードを送信してください。", "Please_select_a_valid_date_": "有効な日付を選択してください", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "ページを更新して頂くか、もう一度お試しください。", "Time_out_must_be_after_today_": "終了時間は明日以降として設定して下さい。", "Only_numbers_and_spaces_are_allowed_": "数字とスペースのみご利用いただけます。", "Gaming_Account": "ゲームアカウント", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_3]のEND-INは、判定時刻([_4])の時点で上限バリア未満かつ下限バリア以上であると予測", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "文字、スペース、ハイフン、ピリオド、アポストロフィのみご利用いただけます。", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "お客様の入出金はリクエストによりロックしました。 - 解除するには<a href=\"[_1]\">こちらをクリック</a>してください。", "Touch/No_Touch": "TOUCH/NO-TOUCH", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1]下記リンクをクリックしてパスワードの再設定を再度お試しください。サポートが必要な場合は、 カスタマーサポートまでご連絡ください。", "Entry_Spot": "取引開始時刻直後のティック", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "大文字と小文字を含む英字と数字を組み合わせる必要があります", "This_feature_is_not_relevant_to_virtual-money_accounts_": "この機能は、デモ口座ではご利用頂けません。", "Jan": "1", "days": "日", "New_Year's_Day": "元旦", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "パスワードの再設定を完了しました。新しいパスワードでログインしてください。", "Balance": "口座残高", "Credit/Debit": "支払/受取", "There_was_an_error": "エラーが発生しました", "Female": "女性", "Your_transaction_reference_number_is_[_1]": "決済の参照番号は[_1]です", "End_time": "終了時間", "{JAPAN_ONLY}Please_complete_the_following_questions_": "知識確認テスト用ディスクレーマー", "months": "ヶ月", "Your_account_has_no_trading_activity_": "取引履歴はありません", "minutes": "分", "Nov": "11", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "お客様のキャッシャーはリクエストにより、ロックされました。 - 解除するにはパスワードをご入力ください。", "Should_be_a_valid_number": "有効な数字を入力してください", "Time_out_cannot_be_in_the_past_": "終了時間を過去の時間に設定することはできません。", "Price": "売却/ペイアウト金額", "Thursday": "木", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "現在、ログアウトの状態です。ご利用頂くためには再度<a href=\"[_1]\">ログイン</a>をしてください。", "letters": "文字", "Virtual_Account": "デモ口座番号", "Target": "ターゲット", "Investment_Account": "投資口座", "Spot_Time": "スポットタイム", "Waiting_for_entry_tick_": "エントリーTickを検出中です・・・", "Month": "月", "Higher": "HIGH", "Ends_Between": "END-IN", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "リアル口座開設は完了致しました。使用するには再度ログインが必要となります。", "Saturday": "土", "verification_token": "ワンタイムパスワード", "Th": "木", "Old_password_is_wrong_": "旧パスワードの値が不正です。", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] と [_2]を同じ内容にすることはできません。", "space": "スペース", "Real_Account": "リアル口座番号", "Exclude_time_cannot_be_less_than_6_months_": "5ヶ月以下の除外時間を設定することはできません。", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "お客さまのご口座[_3]から決済サービス[_4]口座へ[_1] [_2]の出金リクエストが正常に処理されました。", "Your_trading_statistics_since_[_1]_": "[_1]からのお取引統計情報", "Dec": "12", "Aug": "8", "February": "２月", "Contract_is_not_started_yet": "トレードはまだ開始していません", "Should_be_less_than_[_1]": "[_1]より低い必要があります。", "Contract_ID": "トレード ID", "Lock_Cashier": "入出金をロック", "Mo": "月", "Upgrade_to_a_Real_Account": "リアル口座へアップグレード", "Your_changes_have_been_updated_": "変更が更新されました。", "Reference_ID": "約定番号", "Current": "現在", "Description": "取引内容", "Please_input_a_valid_date": "有効な日にちを入力して下さい。", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "申し訳ございませんが、これ以上のトレードの購入を可能にする権限がお客さまのご口座に存在しておりません。", "Even/Odd": "偶数/奇数", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "文字、数字、スペース、ハイフン(-)、ピリオド(.)、アポストロフィ(')のみご利用いただけます。", "Never": "決してありません", "Time_out_cannot_be_more_than_6_weeks_": "終了時間を6週間以上先には設定できません。", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "申し訳ございませんが、お客様の国では口座の開設ができません。詳細については<a href=\"[_1]\">カスタマーサポート</a>までお問い合わせください。", "Sunday": "日", "You_have_already_withdrawn_[_1]_[_2]_": "現在までの出金額は[_1] [_2]です。", "numbers": "数字", "Exit_spot": "判定レート", "Over/Under": "以上/以下", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "口座番号[_2]から[_3]へのご出金が完了しました。取引参照ID：[_4]", "Su": "日", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "取引上限と出金限度額を引き上げるには下記財務評価書にご記入をお願いします。", "Your_settings_have_been_updated_successfully_": "設定は正しく更新されました。", "Sell_at_market": "売却", "Profit": "利益", "Closes_early_(at_21:00)": "判定時刻:21:00", "Demo": "デモ", "All_markets_are_closed_now__Please_try_again_later_": "営業時間外のためご利用になれません。", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "現在テストを受験いただけません。前回のテストの翌営業日に再度受験いただけます。", "January": "１月", "Spot": "スポットレート", "Ref_": "約定番号", "Loss": "損益", "Monday": "月", "email_address": "メールアドレス", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_3]のBREAK-OUTは、取引期間中([_4])に上限バリア以上もしくは下限バリア以下になると予測", "month": "ヶ月", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "残念ながら、合格点に達しませんでした。24時間以降（週末を除く）に再受験してください。", "Walkthrough_Guide": "チュートリアルガイド", "day": "日", "March": "３月", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "直近[_3]日間に累計[_1] [_2] と同等の金額を既に出金されています。", "Browser": "ブラウザ", "New_password": "新しいパスワード", "Chart": "チャート", "Not": "ない", "Statement": "口座残高", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "お客さまの口座は、現在ご利用制限が掛っております。<a href=\"[_1]\">カスタマーサポート</a>までご連絡下さい。", "Invalid_amount,_minimum_is": "無効な値です。最小", "Please_accept_the_terms_and_conditions_": "利用規約に同意していただく必要があります。", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "[_1](App ID:[_2])によって取引が実行されました", "The_two_passwords_that_you_entered_do_not_match_": "入力頂いたパスワードと一致しません。", "Stays_Between": "STAY-IN", "Closes_early_(at_18:00)": "判定時刻:18:00", "IP_Address": "IPアドレス", "Please_check_the_above_form_for_pending_errors_": "未入力の項目がありますのでご確認ください", "year": "年", "In/Out": "レンジ", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "ワンタイムパスワードの有効期限が切れています。再度、[_1]「最初からやり直し」[_2] をクリックしてワンタイムパスワードを発行して下さい。", "Wednesday": "水", "There_was_a_problem_accessing_the_server_during_purchase_": "購入時にサーバーアクセスのエラーが発生がしました。", "April": "４月", "Note": "注意", "Real_STP": "リアルSTP", "Total_Profit/Loss": "合計　損益", "Main_password": "メインパスワード", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "出金制限及び取引制限を解除するには、[_1]口座情報の入力を完了[_2]していただく必要があります。", "Open_a_Financial_Account": "金融口座の開設", "Please_enter_a_number_between_[_1]_": "[_1]の間の数字を入力してください。", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "出金制限及び取引制限を解除するには、[_1]口座認証[_2]をしていただく必要があります。", "Trade": "トレード", "Sell_time": "売却時間", "Remaining_Time": "満期までの残り時間", "Session_duration_limit_cannot_be_more_than_6_weeks_": "セッション期間制限は7週間以上に設定できません。", "Tuesday": "火", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "[_3]から[_4]へのご送金[_1] [_2]リクエストが正常に処理されました。", "Please_enter_an_integer_value": "半角で数値をご入力して下さい", "You_should_enter_[_1]_characters_": "[_1]文字でご入力ください", "Male": "男性", "September": "９月", "Net_profit": "純利益", "Last_Digit_Stats": "下一桁ステータス", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "入出金へのアクセスを制限するために、追加パスワードを使用することができます。", "Opens": "取引開始時間", "Upgrade_to_a_Financial_Account": "金融口座へアップグレード", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "お客さまのご口座はアップグレード済みですので、ご出金制限が引き上げられました。", "End_Time": "判定時刻", "Friday": "金曜日", "Barrier_([_1])": "バリア価格", "Payment_Agent": "決済サービス", "Current_Time": "現在時刻：", "Explanation": "取引概要", "Real_Cent": "リアルセント", "Never_Used": "使用されることはありません。", "Update": "更新", "Questions": "問題", "Scopes": "範囲", "Today": "本日", "Should_be_more_than_[_1]": "[_1]を上回る必要があります", "Previous": "戻る", "Time_is_in_the_wrong_format_": "開始時間に間違った値になっております", "Contract_Confirmation": "トレード確定", "hours": "時間", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "[_2]から口座番号[_3]への入金が完了しました。取引参照ID：[_4]", "Equals": "等しい", "Invalid_email_address": "無効なEメールアドレス", "Password_is_not_strong_enough_": "パスワード強度が十分ではありません。", "Percentage": "割合", "Sorry,_an_error_occurred_while_processing_your_account_": "通信エラーが発生しましたので、再度ページの読み込みをしてください", "Major_Pairs": "1日あたりに購入できる限度額", "Admin": "管理者", "Please_select_a_payment_agent": "決済サービスを選択してください。", "min": "最小値", "June": "６月", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "入金制限を解除するには、[_1]自己制限[_2]から30日間の取引限度額を設定してください。", "Processing_your_request___": "ただいま処理中です。しばらくお待ち下さい。", "Next": "次", "Please_select": "選択して下さい", "Sale_Date": "売却/判定時刻", "Settles": "決済時間", "Your_transaction_reference_is": "トレード参照番号：", "This_contract_lost": "このトレードは負け判定", "Are_you_sure_that_you_want_to_permanently_delete_token": "トークンを完全に削除してもよろしいですか？" };
+	texts_json['ZH_CN'] = { "Closes_early_(at_21:00)": "收盘提前（至21:00）", "All_markets_are_closed_now__Please_try_again_later_": "所有市场现已关闭。请稍后重试。", "Demo": "演示", "Profit": "利润", "Su": "星期日", "Sell_at_market": "按市价卖出", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "请完成[_1]财务评估表格[_2]，以便提升您的取款和交易限额 。", "Your_settings_have_been_updated_successfully_": "您的设置已成功更新。", "Exit_spot": "退市现价", "Over/Under": "大于/小于", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "已完成从账号[_2]至[_3]的[_1]提款。交易编号: [_4]交易编号：[_4]", "month": "月份", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]价在障碍价格最低和最高价位范围外，可获取[_1] [_2] 赔付额。", "email_address": "电子邮件地址", "Monday": "星期一", "Loss": "亏损", "Spot": "现价", "Ref_": "参考", "January": "一月", "day": "天", "Walkthrough_Guide": "攻略指南", "Invalid_amount,_minimum_is": "无效金额，最小金额是", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "您的账户已被限制。请[_1]联系客服部[_2]，以获得帮助。", "Statement": "账单", "Please_accept_the_terms_and_conditions_": "请接受条款和条件。", "Not": "不", "Browser": "浏览器", "New_password": "新密码", "Chart": "图表", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "过去 [_3] 天里您已累计提取 [_1] [_2] 的等值。", "March": "三月", "In/Out": "“范围之内/之外”", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "您的令牌已过期。请点击[_1]此处[_2]重启验证程序。", "year": "年", "Stays_Between": "位于区间之内", "Closes_early_(at_18:00)": "收盘提前（至18:00）", "IP_Address": "IP 地址", "Please_check_the_above_form_for_pending_errors_": "请检查以上表格是否有待定错误。", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "交易执行者为[_1] (应用程序 ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "两次输入的密码不一致。", "Note": "附注", "Real_STP": "真实STP", "Total_Profit/Loss": "利润/亏损合计", "April": "四月", "Wednesday": "星期三", "There_was_a_problem_accessing_the_server_during_purchase_": "买入时服务器访问发生问题。", "Open_a_Financial_Account": "开设金融账户", "Main_password": "主密码", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "请[_1]完成账户资料[_2]，以提高取款和交易限额。", "Sell_time": "卖出时间", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "立刻进行[_1]账户验证[_2]，以获得取款选项的所有优惠。", "Trade": "交易", "Please_enter_a_number_between_[_1]_": "请输入[_1]之间的数字。", "Please_enter_an_integer_value": "请输入整数", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "您从 [_3] 转账 [_1][_2] 到 [_4] 的请求已成功处理。", "Session_duration_limit_cannot_be_more_than_6_weeks_": "交易期持续时间限制不能大于 6周。", "Tuesday": "星期二", "Remaining_Time": "剩余时间", "Net_profit": "净收益", "Now": "现在", "September": "九月", "You_should_enter_[_1]_characters_": "您必须输入[_1]个字符。", "Barrier_([_1])": "障碍([_1])", "Payment_Agent": "付款代理", "Friday": "星期五", "End_Time": "结束时间", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "您的账户已经得到完全验证，且您的取款限额已经取消。", "Last_Digit_Stats": "最后数字的统计数据", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "可使用额外密码来限制对收银台的访问。", "Opens": "开盘", "Upgrade_to_a_Financial_Account": "升级到金融账户", "Should_be_more_than_[_1]": "必须大于 [_1]", "Previous": "之前", "Today": "今天", "Update": "更新", "Scopes": "范围", "Questions": "问题", "Current_Time": "当前时间", "Explanation": "说明", "Real_Cent": "真实美分", "Never_Used": "从未使用过", "Invalid_email_address": "无效的电子邮件地址", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "已完成从[_2]至账号[_3]的[_1]存款。交易编号: [_4]", "Equals": "相等于", "hours": "小时", "Time_is_in_the_wrong_format_": "时间格式错误。", "Contract_Confirmation": "合约确认", "Admin": "管理中心", "Please_select_a_payment_agent": "请选择支付代理", "min": "最小", "Major_Pairs": "主要货币对", "Sorry,_an_error_occurred_while_processing_your_account_": "对不起，您的账户处理发生错误。", "Percentage": "百分比", "Password_is_not_strong_enough_": "密码安全度不够。", "Sale_Date": "卖出日期", "Processing_your_request___": "您的请求在处理中...", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "请到[_1]自我禁止工具[_2]设置30天交易限额，以移除存款限额。", "Next": "下一页", "Please_select": "请选择", "June": "六月", "Are_you_sure_that_you_want_to_permanently_delete_token": "确定要永久删除令牌吗", "This_contract_lost": "此合约亏损", "Your_transaction_reference_is": "您的交易参考号是", "Settles": "结算", "Withdraw": "取款", "Goes_Outside": "处于区间之外", "Final_price": "最终价格", "Revoke_access": "撤销访问权限", "End_time_must_be_after_start_time_": "结束时间必须在开始时间之后。", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "您的国家无可用支付代理设施。", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "所提供的电子邮件地址已经在使用。如果忘了密码，请尝试使用我们的<a href=\"[_1]\">密码恢复工具</a>或联系客服部。", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "对不起，此功能仅适用虚拟账户。", "details": "详情", "Successful": "成功", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]严格高于或相等于障碍价格，可获取[_1] [_2] 赔付额。", "Resources": "资源", "You_have_sold_this_contract_at_[_1]_[_2]": "您已经以 [_1] [_2] 卖出此合约", "Cashier": "收银台", "Start_Time": "开始时间", "Deposit": "存款", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "您的取款限额为 [_1] [_2] (或其他货币的等值 ）。", "Rise/Fall": "上涨/下跌", "This_contract_won": "此合约获利", "Only_numbers,_space,_and_hyphen_are_allowed_": "只允许数字、空格和连字符。", "Sale_Price": "卖出价格", "Date": "日期", "Gaming_Account": "博彩账户", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]平仓价相等于或介于障碍价格最低和最高价位间，可获取[_1] [_2] 赔付额。", "Only_numbers_and_spaces_are_allowed_": "只允许数字和空格。", "Time_out_must_be_after_today_": "到期时间必须在今日之后。", "Please_submit_a_valid_verification_token_": "请提交有效的验证令牌。", "Please_select_a_valid_date_": "请选择ั有效日期。", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "您已达每秒钟提呈请求的最高限率。请稍后重试。", "Touch/No_Touch": "触及/未触及", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "根据您的请求，您的收银台已被锁定 - 如需解除锁定，请点击<a href=\"[_1]\">此处</a>。", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允许字母、空格、连字符、句号和省略号。", "New_Year's_Day": "元旦", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "您的密码已成功重置。请用新密码登录您的账户。", "Balance": "余额", "days": "天", "Jan": "一月", "Entry_Spot": "入市现价", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] 请点击以下链接重启密码恢复过程。如果需要帮助，请联系客服部。", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "密码须包含大小写字母与数字。", "This_feature_is_not_relevant_to_virtual-money_accounts_": "此功能不适用于虚拟资金账户。", "Your_transaction_reference_number_is_[_1]": "您的交易参考号是 [_1]", "End_time": "结束时间", "There_was_an_error": "出现错误", "Credit/Debit": "借方/贷方", "Female": "女", "Nov": "十一月", "minutes": "分钟", "Your_account_has_no_trading_activity_": "您的账户无交易活动。", "months": "月份", "Target": "目标", "Investment_Account": "投资账户", "Virtual_Account": "虚拟账户", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "要查看此页面请先<a href=\"[_1]\">登录</a>。", "letters": "信件", "Time_out_cannot_be_in_the_past_": "到期时间不可为过去式。", "Should_be_a_valid_number": "必须是有效号码", "Price": "价格", "Thursday": "星期四", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "根据您的请求，您的收银台已被锁定 - 如需解除锁定，请输入密码。", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] 和 [_2] 不可相同。", "space": "空间", "Ends_Between": "区间之内结束", "Higher": "高于", "Saturday": "周六", "verification_token": "验证令牌", "Th": "星期四", "Old_password_is_wrong_": "旧密码不正确。", "Spot_Time": "现货时间", "Waiting_for_entry_tick_": "正在等待进场跳动点。", "Month": "月份", "February": "二月", "Your_trading_statistics_since_[_1]_": "您自 [_1] 至今的交易统计。", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "您从 [_3] 账户提取 [_1] [_2] 到支付代理 [_4]账户的请求已成功处理。", "Aug": "八月", "Dec": "十二月", "Exclude_time_cannot_be_less_than_6_months_": "禁止时间不能少于6个月。", "Real_Account": "真实账户", "Lock_Cashier": "锁定收银台", "Contract_ID": "合约编号", "Should_be_less_than_[_1]": "必须少于[_1]", "Contract_is_not_started_yet": "合约还未开始", "Your_changes_have_been_updated_": "您的更改已成功更新。", "Upgrade_to_a_Real_Account": "升级到真实账户", "Mo": "星期一", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "对不起，您的账户无权进一步买入任何合约。", "Even/Odd": "偶/奇", "Reference_ID": "参考编号", "Current": "当前", "Description": "说明", "Please_input_a_valid_date": "请输入有效日期", "numbers": "号码", "You_have_already_withdrawn_[_1]_[_2]_": "您已提取[_1] [_2]。", "Sunday": "周日", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "对不起，您的国家不可注册账户。欲知详情，请联系<a href=\"[_1]\">客服部</a>。", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允许使用字母、数字、空格、连字符、句点和省略号。", "Never": "从未", "Time_out_cannot_be_more_than_6_weeks_": "到期时间不能大于 6周。", "Closed": "收盘", "Potential_Payout": "可能的赔付额", "Total_Cost": "成本总计", "Invalid_amount,_maximum_is": "无效金额，最大金额是", "Lower": "低于", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]在障碍价格最低和最高价位范围内，可获取[_1] [_2] 赔付额。", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "当您点选“OK”后，您将被禁止在此网站交易，直到选定期限结束为止。", "Market_is_closed__Please_try_again_later_": "市场已关闭。请稍后重试。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "您已提取 [_1] [_2] 的等值。", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "服务器<a href=\"[_1]\">终端</a>是: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "已达令牌 ([_1]) 最大限数。", "Finish": "完成", "weeks": "周", "Ends_In/Out": "“范围之内/之外”收盘", "Long": "长仓", "Shop": "商店", "Mar": "三月", "Real_Volatility": "真实波动率", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "您的 [_1] 天取款限额目前为 [_2] [_3] （或其他货币的等值）。", "There_was_some_invalid_character_in_an_input_field_": "某字段的输入字符无效。", "Exit_Spot_Time": "退市现价时间", "logout": "注销", "Select_your_underlying_asset": "选择基础资产", "Tu": "星期二", "Waiting_for_exit_tick_": "正在等待退场跳动点。", "Connection_error:_Please_check_your_internet_connection_": "连接错误：请检查您网络连接。", "Your_changes_have_been_updated_successfully_": "您的更改已成功更新。", "Up/Down": "涨/跌", "Failed": "失败", "Touches": "触及", "Number_of_ticks": "跳动点数目", "Fridays": "星期五", "Sa": "星期六", "Delete": "删除", "Upcoming_Events": "未来事件", "Sep": "九月", "Create_Account": "开立账户", "Sorry,_this_feature_is_not_available_": "对不起，此功能不可用。", "today,_Fridays": "今天、周五", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "确定要永久废除应用程序访问权限吗", "Forex": "外汇", "years": "年", "Read": "阅读", "The_main_password_of_account_number_[_1]_has_been_changed_": "[_1]账号的主密码已更改。", "Minute": "分钟", "Low_Barrier": "低障碍", "Verification_code_format_incorrect_": "验证码格式不正确。", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]触及障碍价格，可获取[_1] [_2] 赔付额。", "minute": "分钟", "Payout": "赔付", "Select_your_trade_type": "选择交易类型", "Insufficient_balance_": "余额不足。", "Oct": "十月", "Start_time": "开始时间", "Buy": "买入", "Exclude_time_cannot_be_for_more_than_5_years_": "禁止时间不能超过5年。", "Low_Barrier_([_1])": "低障碍([_1])", "November": "十一月", "Year": "年", "AM": "上午", "Your_withdrawal_limit_is_[_1]_[_2]_": "您的取款限额是 [_1] [_2]。", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "请[_1]接受更新条款和条件[_2]，以提高存取款限额。", "Last_Used": "上一次使用", "New_token_created_": "已创建新口令牌。", "Profit/Loss": "利润/亏损", "Only_[_1]_decimal_points_are_allowed_": "只允许 % 个小数位。", "Minimum_of_[_1]_characters_required_": "需至少[_1] 个字符。", "Does_Not_Touch": "未触及", "Change_Password": "更改密码", "Token": "令牌", "May": "五月", "There_was_a_problem_accessing_the_server_": "服务器访问发生问题。", "Select_your_market": "选择市场", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "合约将在我们服务器收到请求时，以当时的市场价格卖出。此价格可能与报价有差异。", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "您的网络浏览器 ([_1]) 已过时，并可能会影响您的交易操作。继续操作须自行承担风险。[_2]更新浏览器[_3]", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "您的令牌已过期。请点击<a href=\"[_1]\">此处</a>重启验证程序。", "Virtual_money_credit_to_account": "虚拟资金进入账户", "Unlock_Cashier": "解锁收银台", "Charting_for_this_underlying_is_delayed": "此标的资产的图表数据存在延迟", "Matches/Differs": "符合/相差", "Digit": "数字期权", "Weekday": "交易日", "Apr": "四月", "Permissions": "权限", "hour": "小时", "Please_select_a_value": "请选择一个数值", "Sorry,_you_have_entered_an_incorrect_cashier_password": "对不起，您输入的收银台密码不正确", "Entry_spot": "入市现价", "Status": "统计", "Congratulations!_Your_[_1]_Account_has_been_created_": "恭喜! 您已成功开立[_1]账户。", "Closes": "收盘", "Tick": "跳动点", "Stake": "投注资金", "Only_[_1]_are_allowed_": "只允许 [_1] 。", "Step": "步骤", "mins": "分钟", "Japan": "日本", "Return": "回报", "High_Barrier_([_1])": "高障碍([_1])", "Barrier": "障碍", "Short": "短仓", "Predict_the_direction<br_/>and_purchase": "预测价格走向<br />并购入", "We": "星期三", "Amount": "金额", "Ends_Outside": "区间之外结束", "You_need_to_finish_all_20_questions_": "必须答复全部20个问题。", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "升级到真实资金账户前请先设置[_1]居住国[_2]。", "This_symbol_is_not_active__Please_try_another_symbol_": "这是个非活跃符号。请试另一符号。", "Adjust_trade_parameters": "调整交易参数", "This_is_a_staging_server_-_For_testing_purposes_only": "这是分期服务器 -仅用于测试目的", "Fr": "星期五", "You_did_not_change_anything_": "您没作任何更改。", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的账户现时无法存取款。请联系[_1]进行解锁。", "Contract_Sold": "售出合约", "Stays_In/Goes_Out": "“保持在范围之内/超出范围之外”", "Please_select_at_least_one_scope": "请选择至少一个范围", "Your_Application_is_Being_Processed_": "您的申请已经处理完成。", "Day": "天", "Trading_Times": "交易时间", "Please_select_the_checkbox_": "请选择复选框。", "PM": "下午", "You_have_not_granted_access_to_any_applications_": "您没有访问任何应用程序的权限。", "Indicative": "指示性", "Profit_Table": "利润表", "Asset": "资产", "Date_and_Time": "日期和时间", "seconds": "秒", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]平仓价在障碍价格最低和最高价位范围外，可获取[_1] [_2] 赔付额。", "Purchase_Price": "买入价格", "today": "今天", "High_Barrier": "高障碍", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] 天 [_2] 小时 [_3] 分钟", "Asset_Index": "资产指数", "Action": "操作", "July": "七月", "Potential_Profit": "潜在利润", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "请按照以下格式填写：3个数字，1个短划线，加上4个数字。", "Select_market": "选择市场", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_4]闭市时如果[_3]未触及障碍价格，可获取[_1] [_2]的赔付额。", "View": "查看", "Real_Standard": "真实标准", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "您的账户已被暂时禁用，现仅允许取款。欲知详情，请联系 [_1]。", "Hour": "小时", "Barrier_Change": "障碍变更", "week": "周", "Contract_Expiry": "合约到期日", "Higher/Lower": "“高于/低于”", "Duration": "期限", "Contract_Information": "合约信息", "Jul": "七月", "Resale_not_offered": "不提供转售", "Contract": "合约", "Sorry,_an_error_occurred_while_processing_your_request_": "对不起，您的请求处理发生错误。", "Remaining_time": "剩余时间", "Should_be_between_[_1]_and_[_2]": "须在[_1] 与 [_2]之间", "Details": "详情", "Account_balance:": "账户余额：", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "因此，您当前可即时提取的最大金额（要求您的帐户有足够资金）为 [_1] [_2]。", "Buy_price": "买入价", "Please_select_a_valid_time_": "请选择ั有效时间。", "Christmas_Day": "圣诞节", "Purchase_Time": "买入时间", "Name": "姓名", "This_field_is_required_": "此字段为必填项。", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的账户现时无法取款。请联系[_1]进行解锁。", "from_[_1]_to_[_2]": "从[_1]到[_2]", "Portfolio": "投资组合", "Only_letters,_numbers,_and_hyphen_are_allowed_": "只允许字母、数字和连字符。", "Exit_Spot": "退市现价", "second": "秒", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "交易期持续时间限制将于[_1]秒内结束。", "Jun": "六月", "Open": "开盘", "Sell": "卖出", "Current_password": "当前密码", "Please_log_in_": "请登录。", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "因此您当前的即时最高取款额（要求您的账户有充足资金）为[_1] [_2]（或其他等值货币）。", "Feb": "二月", "All_barriers_in_this_trading_window_are_expired": "此交易窗口的所有障碍已过期", "Your_account_has_no_Login/Logout_activity_": "您的账户无交易活动。", "Investor_password": "投资者密码", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "[_1] [_2] 已记入您的虚拟资金账户[_3]", "h": "小时", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_4]闭市时如果[_3]严格低于障碍价格，可获取[_1] [_2] 赔付额。", "Payments": "支付", "December": "十二月", "August": "八月", "October": "十月" };
+	texts_json['ZH_TW'] = { "Real_Volatility": "真實波動性", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "您的 [_1] 天取款限額目前為 [_2] [_3]（或其他貨幣的等值）。", "There_was_some_invalid_character_in_an_input_field_": "某字欄的輸入字元無效。", "Shop": "商店", "Mar": "三月", "Select_your_underlying_asset": "選擇標的資產", "Tu": "星期二", "Exit_Spot_Time": "退市現價時間", "logout": "登出", "Invalid_amount,_maximum_is": "無效金額，最大是", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]在障礙價格最低和最高價位範圍內，可獲取[_1] [_2] 賠付額。", "Lower": "低於", "Closed": "已收盤", "Potential_Payout": "可能的賠付額", "Total_Cost": "成本總計", "Finish": "完成", "weeks": "週", "Ends_In/Out": "收盤價在「範圍之內/之外」", "Long": "長倉", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "當您點選「OK」後，您將被禁止在此網站交易，直到選定期限結束為止。", "Market_is_closed__Please_try_again_later_": "市場已關閉。請稍後重試。", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "您已提取 [_1] [_2] 的等值。", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "伺服器<a href=\"[_1]\">終端</a>是: [_2]", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "已達權杖 ([_1]) 最大限數。", "Sorry,_this_feature_is_not_available_": "對不起，此功能不可用。", "years": "年", "today,_Fridays": "今天、週五", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "確定要永久廢除應用程式存取權限嗎", "Forex": "外匯", "Up/Down": "漲/跌", "Your_changes_have_been_updated_successfully_": "您的更改已成功更新。", "Number_of_ticks": "跳動點數目", "Failed": "失敗", "Touches": "觸及", "Fridays": "星期五", "Sa": "星期六", "Waiting_for_exit_tick_": "等待賣出價跳動。", "Connection_error:_Please_check_your_internet_connection_": "連接錯誤:請檢查您的網絡連接。", "Sep": "九月", "Create_Account": "開立帳戶", "Delete": "刪除", "Upcoming_Events": "未來事件", "Select_your_trade_type": "選取交易類型", "Insufficient_balance_": "餘額不足。", "Start_time": "開始時間", "Oct": "十月", "minute": "分鐘", "Payout": "賠付", "November": "十一月", "Year": "年", "Buy": "買入", "Exclude_time_cannot_be_for_more_than_5_years_": "禁止時間不能超過5年。", "Low_Barrier_([_1])": "低障礙 ([_1])", "Read": "閱讀", "The_main_password_of_account_number_[_1]_has_been_changed_": "[_1]帳號的主密碼已更改。", "Minute": "分鐘", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]觸及障礙價格，可獲取[_1] [_2] 賠付額。", "Low_Barrier": "低障礙", "Verification_code_format_incorrect_": "驗證碼格式不正確。", "Unlock_Cashier": "解鎖收銀台", "Charting_for_this_underlying_is_delayed": "此標的資產的圖表資料已延遲", "Matches/Differs": "相符/差異", "Digit": "數字期權", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "合約將在我們伺服器收到要求時以當時的市場價格賣出。此價格可能會與報價有差異。", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "您的網絡瀏覽器 ([_1]) 已過時，並可能會影響您的交易操作。繼續操作須自行承擔風險。[_2]更新瀏覽器[_3]", "Virtual_money_credit_to_account": "虛擬資金存入帳戶", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "您的權杖已過期。請點選<a href=\"[_1]\">此處</a>重啟驗證程序。", "Entry_spot": "入市現價", "Congratulations!_Your_[_1]_Account_has_been_created_": "恭喜! 您已成功開立[_1]帳戶。", "Status": "狀況", "Closes": "收盤", "Weekday": "交易日", "Apr": "四月", "hour": "小時", "Permissions": "權限", "Please_select_a_value": "請選擇一個數值", "Sorry,_you_have_entered_an_incorrect_cashier_password": "對不起，您輸入的收銀台密碼不正確", "Profit/Loss": "利潤/虧損", "Only_[_1]_decimal_points_are_allowed_": "只允許小數點后%位。", "Minimum_of_[_1]_characters_required_": "需至少[_1] 個字元。", "AM": "上午", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "請[_1]接受條款和條件[_2]，以提高存取款限額。", "Your_withdrawal_limit_is_[_1]_[_2]_": "您的取款限額是[_1] [_2]。", "Last_Used": "最近一次使用", "New_token_created_": "已建立新權杖。", "There_was_a_problem_accessing_the_server_": "伺服器存取出了問題。", "Select_your_market": "選擇您的市場", "Does_Not_Touch": "未觸及", "Token": "權杖", "Change_Password": "更改密碼", "May": "五月", "Fr": "星期五", "You_did_not_change_anything_": "您沒做任何更改。", "You_need_to_finish_all_20_questions_": "必須答覆全部20個問題。", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "升級到真實資金帳戶前請先設定[_1]居住國[_2]。", "This_symbol_is_not_active__Please_try_another_symbol_": "這是個非活躍符號。請試用另一符號。", "Adjust_trade_parameters": "調整交易參數", "This_is_a_staging_server_-_For_testing_purposes_only": "這是分期伺服器，僅用於測試目的", "Contract_Sold": "售出合約", "Stays_In/Goes_Out": "「保持在範圍之內/超出範圍之外」", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的帳戶現時無法存取款。請聯繫 [_1]進行解鎖。", "Only_[_1]_are_allowed_": "只允許 [_1] 。", "Step": "步驟", "mins": "分鐘", "Tick": "跳動點", "Stake": "投注資金", "Ends_Outside": "區間之外結束", "Amount": "金額", "Japan": "日本", "Return": "回報", "Barrier": "障礙", "We": "星期三", "High_Barrier_([_1])": "高障礙([_1])", "Predict_the_direction<br_/>and_purchase": "預測價格走向<br />並購入", "Short": "短倉", "Purchase_Price": "買入價格", "High_Barrier": "高障礙", "today": "今天", "Action": "動作", "[_1]_days_[_2]_hours_[_3]_minutes": "[_1] 天 [_2] 小時 [_3] 分鐘", "Asset_Index": "資產指數", "July": "七月", "Potential_Profit": "潛在利潤", "seconds": "秒", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]平倉價在障礙價格最低和最高價位範圍外，可獲取[_1] [_2] 賠付額。", "View": "檢視", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]未觸及障礙價格，可獲取[_1] [_2]的賠付額。", "Hour": "小時", "Real_Standard": "真實標準", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "您的帳戶已被暫時禁用。現僅允許取款。欲知詳情，請聯繫[_1]。", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "請依照此模式:3個數字，一破折號，接着是4個數字。", "Select_market": "選擇市場", "Trading_Times": "交易時間", "Day": "天", "Please_select_the_checkbox_": "請選擇核取方塊。", "Please_select_at_least_one_scope": "請選擇至少一個範圍", "Your_Application_is_Being_Processed_": "您的申請已經處理完成。", "Date_and_Time": "日期和時間", "PM": "下午", "You_have_not_granted_access_to_any_applications_": "您未獲權限存取任何應用程式。", "Indicative": "指示性", "Profit_Table": "利潤表", "Asset": "資產", "Should_be_between_[_1]_and_[_2]": "須在[_1] 與 [_2]之間", "Contract": "合約", "Sorry,_an_error_occurred_while_processing_your_request_": "對不起，在處理您的請求時發生錯誤。", "Remaining_time": "剩餘時間", "Account_balance:": "帳戶餘額：", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "因此您目前的即時最高取款額（要求您的帳戶有充足資金）為[_1] [_2]。", "Please_select_a_valid_time_": "請選擇有效時間。", "Buy_price": "買入價", "Details": "詳細資料", "Higher/Lower": "「高於/低於」", "Duration": "期限", "Barrier_Change": "障礙變更", "week": "週", "Contract_Expiry": "合約已到期", "Resale_not_offered": "不提供轉售", "Contract_Information": "合約確認", "Jul": "七月", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "因此您目前的即時最高取款額（要求您的帳戶有充足資金）為 [_1] [_2]（或其他等值貨幣)。", "Please_log_in_": "請登入。", "Feb": "二月", "Jun": "六月", "Open": "開盤", "Sell": "賣出", "Current_password": "目前密碼", "Payments": "支付", "December": "十二月", "August": "八月", "October": "十月", "Your_account_has_no_Login/Logout_activity_": "您的帳戶沒有登入/登出活動。", "All_barriers_in_this_trading_window_are_expired": "此交易窗口的所有障礙已過期", "h": "小時", "Investor_password": "投資者密碼", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": " [_1] [_2]已記入您的虛擬資金帳戶 [_3]", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]嚴格低於障礙價格，可獲取[_1] [_2] 賠付額。", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "您的帳戶現時無法取款。請聯繫 [_1]進行解鎖。", "from_[_1]_to_[_2]": "從[_1]到[_2]", "Portfolio": "投資組合", "Christmas_Day": "聖誕節", "Purchase_Time": "買入時間", "Name": "姓名", "This_field_is_required_": "此為必填欄位。", "second": "秒", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "交易期持續時間限制將於[_1]秒內結束。", "Only_letters,_numbers,_and_hyphen_are_allowed_": "只允許字母、數字和連字符。", "Exit_Spot": "退市現價", "Walkthrough_Guide": "攻略指南", "day": "天", "Browser": "瀏覽", "Chart": "圖表", "New_password": "新密碼", "March": "三月", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "過去 [_3] 天裡您已累計提取 [_1] [_2] 的等值。", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "您的帳戶已被限制交易。請[_1]聯繫客服部[_2]，以取得協助。", "Invalid_amount,_minimum_is": "無效金額，最小是", "Statement": "帳單", "Please_accept_the_terms_and_conditions_": "請接受條款和條件。", "Not": "不", "Su": "星期日", "Sell_at_market": "按市價賣出", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "請完成[_1]財務評估表格[_2]，以便提升您的取款和交易限額。", "Your_settings_have_been_updated_successfully_": "您的設定已成功更新。", "Exit_spot": "退市現價", "Over/Under": "大於/小於", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "已完成從賬號[_2]至[_3]的[_1]提款。交易編號: [_4]", "Closes_early_(at_21:00)": "收盤提前（至21:00）", "All_markets_are_closed_now__Please_try_again_later_": "所有市場現已關閉。請稍後重試。", "Demo": "展示", "Profit": "利潤", "Monday": "星期一", "Loss": "虧損", "January": "一月", "Spot": "現價", "Ref_": "參考", "month": "月份", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "[_4]閉市時如果[_3]價在障礙價格最低和最高價位範圍外，可獲取[_1] [_2] 賠付額。", "email_address": "電子郵件地址", "Main_password": "主密碼", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "請[_1]完成帳戶資料[_2]，以提高取款和交易限額。", "Open_a_Financial_Account": "開設金融帳戶", "Please_enter_a_number_between_[_1]_": "請輸入[_1]之間的數字。", "Sell_time": "賣出時間", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "立刻進行[_1]帳戶驗證[_2]，以獲得取款選項的所有優惠。", "Trade": "交易", "Stays_Between": "位於區間之內", "Please_check_the_above_form_for_pending_errors_": "請檢查以上表格是否有待定錯誤。", "IP_Address": "IP地址", "Closes_early_(at_18:00)": "收盤提前（至18:00）", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "交易執行者為[_1] (應用程式 ID: [_2])", "The_two_passwords_that_you_entered_do_not_match_": "兩次輸入的密碼不相符。", "In/Out": "「範圍之內/之外」", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "您的權杖已過期。請點選[_1]此處[_2]重啟驗證程序。", "year": "年", "April": "四月", "Wednesday": "星期三", "There_was_a_problem_accessing_the_server_during_purchase_": "買入時伺服器存取出了問題。", "Note": "備註", "Total_Profit/Loss": "利潤/虧損合計", "Real_STP": "真實STP", "Last_Digit_Stats": "最後數字的統計資料", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "可使用額外密碼來限制對收銀台的存取。", "Opens": "開盤", "Upgrade_to_a_Financial_Account": "升級到金融帳戶", "Barrier_([_1])": "障礙 ([_1])", "Payment_Agent": "付款代理", "Friday": "星期五", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "您的帳戶已經得到完全驗證，且您的取款限額已經取消。", "End_Time": "結束時間", "Update": "更新", "Scopes": "範圍", "Questions": "問題", "Current_Time": "目前時間", "Never_Used": "從未使用過", "Real_Cent": "真實美分", "Explanation": "說明", "Should_be_more_than_[_1]": "必須大於[_1]", "Previous": "之前", "Today": "今天", "Session_duration_limit_cannot_be_more_than_6_weeks_": "交易期持續時間限制不能大於6週。", "Tuesday": "星期二", "Remaining_Time": "剩餘時間", "Please_enter_an_integer_value": "請輸入整數", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "您從[_3] 轉帳[_1][_2] 到[_4] 的要求已成功處理。", "You_should_enter_[_1]_characters_": "您必須輸入[_1]個字元。", "Net_profit": "淨收益", "Now": "現在", "September": "九月", "Please_select": "請選擇", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "請到[_1]自我限制工具[_2]設定30天交易限額，以移除存款限額。", "Processing_your_request___": "您的要求在處理中...", "Next": "下一頁", "June": "六月", "Sale_Date": "賣出日期", "Settles": "結算", "Are_you_sure_that_you_want_to_permanently_delete_token": "確定要永久刪除權杖嗎", "This_contract_lost": "此合約虧損", "Your_transaction_reference_is": "您的交易參考號是", "hours": "小時", "Time_is_in_the_wrong_format_": "時間格式錯誤。", "Contract_Confirmation": "合約確認", "Invalid_email_address": "無效的電子郵件地址", "Equals": "等於", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "已完成從[_2]至帳號[_3]的[_1]存款。交易編號: [_4]", "Sorry,_an_error_occurred_while_processing_your_account_": "對不起，在處理您的帳戶時出錯。", "Percentage": "百分比", "Password_is_not_strong_enough_": "密碼安全度不夠。", "Please_select_a_payment_agent": "請選擇付款代理", "Admin": "管理中心", "min": "最小", "Major_Pairs": "主要貨幣對", "Deposit": "存款", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "您的取款限額為 [_1] [_2]（或其他貨幣的等值）。", "Start_Time": "開始時間", "Cashier": "收銀台", "Sale_Price": "賣出價格", "Date": "日期", "Rise/Fall": "「上漲/下跌」合約", "This_contract_won": "此合約獲利", "Only_numbers,_space,_and_hyphen_are_allowed_": "只允許數字、空格和連字符。", "Revoke_access": "撤銷存取權限", "End_time_must_be_after_start_time_": "結束時間必須開始時間之後。", "Withdraw": "取款", "Goes_Outside": "處於區間之外", "Final_price": "最終價格", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]嚴格高於或相等於障礙價格，可獲取[_1] [_2] 賠付額。", "Resources": "資源", "You_have_sold_this_contract_at_[_1]_[_2]": "您已經以 [_1] [_2] 賣出此合約", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "目前您的國家無可用付款代理設施。", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "所提供的電子郵件地址已經在使用。如果忘了密碼，請嘗試使用我們的<a href=\"[_1]\">密碼恢復工具</a>或聯繫客服部。", "details": "詳細資料", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "對不起，此功能僅適用虛擬帳戶。", "Successful": "成功", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "[_1] 請點選以下連結重啟密碼恢復過程。如需要幫助，請聯繫我們的客服部。", "Entry_Spot": "入市現價", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "密碼須包含大小寫字母與數字。", "This_feature_is_not_relevant_to_virtual-money_accounts_": "此功能不適用於虛擬資金帳戶。", "New_Year's_Day": "新年", "Balance": "餘額", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "您的密碼已成功重設。請用新密碼登入您的帳戶。", "Jan": "一月", "days": "天", "There_was_an_error": "出現錯誤", "Credit/Debit": "借記/貸記", "Your_transaction_reference_number_is_[_1]": "您的交易號是 [_1]", "End_time": "結束時間", "Time_out_must_be_after_today_": "到期時間必須在今日之後。", "Only_numbers_and_spaces_are_allowed_": "只允許數字和空格。", "Please_select_a_valid_date_": "請選擇有效日期。", "Please_submit_a_valid_verification_token_": "請提交有效的驗證權杖。", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "您已達每秒鐘提呈請求的最高限率。請稍後重試。", "Gaming_Account": "博彩帳戶", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "[_4]閉市時如果[_3]平倉價相等於或介於障礙價格最低和最高價位間，可獲取[_1] [_2] 賠付額。", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "根據您的要求，您的收銀台已被鎖定- 如需解除鎖定，請點選<a href=\"[_1]\">此處</a>。", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允許字母、空格、連字號、句號和所有格號。", "Touch/No_Touch": "觸及/未觸及", "Ends_Between": "區間之內結束", "verification_token": "驗證權杖", "Higher": "高於", "Th": "星期四", "Saturday": "星期六", "Old_password_is_wrong_": "舊密碼不正確。", "Spot_Time": "現貨時間", "Waiting_for_entry_tick_": "等待買入價跳動。", "Month": "月份", "[_1]_and_[_2]_cannot_be_the_same_": "[_1] 和 [_2] 不可相同。", "space": "空間", "Exclude_time_cannot_be_less_than_6_months_": "禁止時間不能少於6個月。", "Real_Account": "真實帳戶", "February": "二月", "Your_trading_statistics_since_[_1]_": "您自 [_1] 至今的交易統計。", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "您從 [_3] 帳戶提取[_1] [_2] 到付款代理 [_4] 帳戶的要求已成功處理。", "Aug": "八月", "Dec": "十二月", "minutes": "分鐘", "months": "月份", "Your_account_has_no_trading_activity_": "您的帳號沒有交易活動。", "Nov": "十一月", "Time_out_cannot_be_in_the_past_": "到期時間不可為過去式。", "Should_be_a_valid_number": "必須是有效號碼", "Price": "價格", "Thursday": "星期四", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "根據您的請求，您的收銀台已被鎖定- 如需解除鎖定，請輸入密碼。", "Target": "目標", "Investment_Account": "投資帳戶", "Virtual_Account": "虛擬帳戶", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "要查看此頁面，請先<a href=\"[_1]\">登入</a>。", "letters": "字母", "Current": "目前", "Reference_ID": "身份參考號", "Description": "描述", "Please_input_a_valid_date": "請輸入有效日期", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "對不起，您的帳戶沒有進一步買入任何合約的權限。", "Even/Odd": "偶/奇", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "對不起，您的國家不能註冊帳戶。欲知詳細資訊，請聯繫<a href=\"[_1]\">客服部</a>。", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "只允許使用字母、數字、空格、連字號、句號和所有格號。", "Never": "從未", "Time_out_cannot_be_more_than_6_weeks_": "到期時間不能大於6週。", "numbers": "號碼", "You_have_already_withdrawn_[_1]_[_2]_": "您已提取 [_1] [_2]。", "Sunday": "星期日", "Should_be_less_than_[_1]": "必須大於[_1]", "Contract_is_not_started_yet": "合約尚未開始", "Lock_Cashier": "鎖定收銀台", "Contract_ID": "合約編號", "Upgrade_to_a_Real_Account": "升級到真實帳戶", "Mo": "星期一", "Your_changes_have_been_updated_": "您的更改已成功更新。" };
+	texts_json['ACH'] = { "Exit_Spot": "crwdns21368:0crwdne21368:0", "Only_letters,_numbers,_and_hyphen_are_allowed_": "crwdns22223:0crwdne22223:0", "Your_session_duration_limit_will_end_in_[_1]_seconds_": "crwdns23560:0[_1]crwdne23560:0", "second": "crwdns23624:0crwdne23624:0", "This_field_is_required_": "crwdns23015:0crwdne23015:0", "Name": "crwdns22142:0crwdne22142:0", "Purchase_Time": "crwdns22468:0crwdne22468:0", "Christmas_Day": "crwdns21019:0crwdne21019:0", "Portfolio": "crwdns22399:0crwdne22399:0", "from_[_1]_to_[_2]": "crwdns23599:0[_1]crwdnd23599:0[_2]crwdne23599:0", "{JAPAN_ONLY}Knowledge_Test": "crwdns23939:0{JAPAN ONLY}crwdne23939:0", "Withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "crwdns23389:0[_1]crwdne23389:0", "[_1]_[_2]_payout_if_[_3]_is_strictly_lower_than_Barrier_at_close_on_[_4]_": "crwdns20473:0[_1]crwdnd20473:0[_2]crwdnd20473:0[_3]crwdnd20473:0[_4]crwdne20473:0", "[_1]_[_2]_has_been_credited_to_your_Virtual_money_account_[_3]": "crwdns20467:0[_1]crwdnd20467:0[_2]crwdnd20467:0[_3]crwdne20467:0", "Investor_password": "crwdns21760:0crwdne21760:0", "h": "crwdns23601:0crwdne23601:0", "Your_account_has_no_Login/Logout_activity_": "crwdns23532:0crwdne23532:0", "All_barriers_in_this_trading_window_are_expired": "crwdns20728:0crwdne20728:0", "August": "crwdns20837:0crwdne20837:0", "October": "crwdns22204:0crwdne22204:0", "December": "crwdns21188:0crwdne21188:0", "Payments": "crwdns22327:0crwdne22327:0", "Sell": "crwdns22617:0crwdne22617:0", "Current_password": "crwdns21167:0crwdne21167:0", "Jun": "crwdns21942:0crwdne21942:0", "Open": "crwdns22230:0crwdne22230:0", "Feb": "crwdns21411:0crwdne21411:0", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "crwdns22982:0[_1]crwdnd22982:0[_2]crwdne22982:0", "Please_log_in_": "crwdns22372:0crwdne22372:0", "{JAPAN_ONLY}Take_knowledge_test": "crwdns24116:0{JAPAN ONLY}crwdne24116:0", "Jul": "crwdns21940:0crwdne21940:0", "Contract_Information": "crwdns21111:0crwdne21111:0", "Resale_not_offered": "crwdns22537:0crwdne22537:0", "week": "crwdns23645:0crwdne23645:0", "Contract_Expiry": "crwdns21109:0crwdne21109:0", "Barrier_Change": "crwdns20869:0crwdne20869:0", "Duration": "crwdns21260:0crwdne21260:0", "Higher/Lower": "crwdns21544:0crwdne21544:0", "Details": "crwdns21217:0crwdne21217:0", "Buy_price": "crwdns20956:0crwdne20956:0", "Please_select_a_valid_time_": "crwdns22385:0crwdne22385:0", "Therefore_your_current_immediate_maximum_withdrawal_(subject_to_your_account_having_sufficient_funds)_is_[_1]_[_2]_": "crwdns22983:0[_1]crwdnd22983:0[_2]crwdne22983:0", "Account_balance:": "crwdns20688:0crwdne20688:0", "Remaining_time": "crwdns22532:0crwdne22532:0", "Sorry,_an_error_occurred_while_processing_your_request_": "crwdns22680:0crwdne22680:0", "Contract": "crwdns21105:0crwdne21105:0", "Should_be_between_[_1]_and_[_2]": "crwdns22654:0[_1]crwdnd22654:0[_2]crwdne22654:0", "Asset": "crwdns20825:0crwdne20825:0", "Profit_Table": "crwdns22452:0crwdne22452:0", "Indicative": "crwdns21724:0crwdne21724:0", "You_have_not_granted_access_to_any_applications_": "crwdns23454:0crwdne23454:0", "PM": "crwdns22307:0crwdne22307:0", "Date_and_Time": "crwdns21182:0crwdne21182:0", "Your_Application_is_Being_Processed_": "crwdns23525:0crwdne23525:0", "Please_select_at_least_one_scope": "crwdns22387:0crwdne22387:0", "Please_select_the_checkbox_": "crwdns22388:0crwdne22388:0", "{JAPAN_ONLY}Dear_customer,_you_are_not_allowed_to_take_knowledge_test_until_[_1]__Last_test_taken_at_[_2]_": "crwdns23834:0{JAPAN ONLY}crwdnd23834:0[_1]crwdnd23834:0[_2]crwdne23834:0", "Day": "crwdns21185:0crwdne21185:0", "Trading_Times": "crwdns23109:0crwdne23109:0", "Select_market": "crwdns22607:0crwdne22607:0", "Please_follow_the_pattern_3_numbers,_a_dash,_followed_by_4_numbers_": "crwdns22370:0crwdne22370:0", "Real_Standard": "crwdns22498:0crwdne22498:0", "Your_account_is_currently_suspended__Only_withdrawals_are_now_permitted__For_further_information,_please_contact_[_1]_": "crwdns23534:0[_1]crwdne23534:0", "Hour": "crwdns21550:0crwdne21550:0", "View": "crwdns23202:0crwdne23202:0", "[_1]_[_2]_payout_if_[_3]_does_not_touch_Barrier_through_close_on_[_4]_": "crwdns20468:0[_1]crwdnd20468:0[_2]crwdnd20468:0[_3]crwdnd20468:0[_4]crwdne20468:0", "[_1]_[_2]_payout_if_[_3]_ends_outside_low_and_high_values_of_Barrier_at_close_on_[_4]_": "crwdns20470:0[_1]crwdnd20470:0[_2]crwdnd20470:0[_3]crwdnd20470:0[_4]crwdne20470:0", "{JAPAN_ONLY}Dear_customer,_you've_already_completed_the_knowledge_test,_please_proceed_to_next_step_": "crwdns23835:0{JAPAN ONLY}crwdne23835:0", "seconds": "crwdns23625:0crwdne23625:0", "Potential_Profit": "crwdns22406:0crwdne22406:0", "July": "crwdns21941:0crwdne21941:0", "[_1]_days_[_2]_hours_[_3]_minutes": "crwdns20492:0[_1]crwdnd20492:0[_2]crwdnd20492:0[_3]crwdne20492:0", "Action": "crwdns20699:0crwdne20699:0", "Asset_Index": "crwdns20826:0crwdne20826:0", "today": "crwdns23638:0crwdne23638:0", "High_Barrier": "crwdns21537:0crwdne21537:0", "Purchase_Price": "crwdns22467:0crwdne22467:0", "Predict_the_direction<br_/>and_purchase": "crwdns22411:0crwdne22411:0", "Barrier": "crwdns20867:0crwdne20867:0", "High_Barrier_([_1])": "crwdns21538:0[_1]crwdne21538:0", "Short": "crwdns22647:0crwdne22647:0", "We": "crwdns23234:0crwdne23234:0", "Return": "crwdns22553:0crwdne22553:0", "Japan": "crwdns21784:0crwdne21784:0", "Amount": "crwdns20751:0crwdne20751:0", "Ends_Outside": "crwdns21319:0crwdne21319:0", "Stake": "crwdns22696:0crwdne22696:0", "Tick": "crwdns23034:0crwdne23034:0", "mins": "crwdns23614:0crwdne23614:0", "Step": "crwdns22714:0crwdne22714:0", "True": "crwdns23134:0crwdne23134:0", "Only_[_1]_are_allowed_": "crwdns22220:0[_1]crwdne22220:0", "Deposits_and_withdrawal_for_your_account_is_not_allowed_at_this_moment__Please_contact_[_1]_to_unlock_it_": "crwdns21210:0[_1]crwdne21210:0", "Stays_In/Goes_Out": "crwdns22711:0crwdne22711:0", "Contract_Sold": "crwdns21114:0crwdne21114:0", "This_is_a_staging_server_-_For_testing_purposes_only": "crwdns23016:0crwdne23016:0", "Adjust_trade_parameters": "crwdns20706:0crwdne20706:0", "This_symbol_is_not_active__Please_try_another_symbol_": "crwdns23026:0crwdne23026:0", "Please_set_[_1]country_of_residence[_2]_before_upgrading_to_a_real-money_account_": "crwdns22389:0[_1]ccrwdnd22389:0[_2]crwdne22389:0", "You_need_to_finish_all_20_questions_": "crwdns23483:0crwdne23483:0", "You_did_not_change_anything_": "crwdns23446:0crwdne23446:0", "Fr": "crwdns21461:0crwdne21461:0", "Score": "crwdns22589:0crwdne22589:0", "May": "crwdns22096:0crwdne22096:0", "Change_Password": "crwdns20987:0crwdne20987:0", "Token": "crwdns23066:0crwdne23066:0", "Does_Not_Touch": "crwdns21251:0crwdne21251:0", "Select_your_market": "crwdns22610:0crwdne22610:0", "There_was_a_problem_accessing_the_server_": "crwdns22977:0crwdne22977:0", "New_token_created_": "crwdns22162:0crwdne22162:0", "Last_Used": "crwdns21965:0crwdne21965:0", "Please_[_1]accept_the_updated_Terms_and_Conditions[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22351:0[_1]acrwdnd22351:0[_2]crwdne22351:0", "Your_withdrawal_limit_is_[_1]_[_2]_": "crwdns23573:0[_1]crwdnd23573:0[_2]crwdne23573:0", "AM": "crwdns20658:0crwdne20658:0", "Minimum_of_[_1]_characters_required_": "crwdns22112:0[_1]crwdne22112:0", "Only_[_1]_decimal_points_are_allowed_": "crwdns22221:0[_1]crwdne22221:0", "Profit/Loss": "crwdns22453:0crwdne22453:0", "Permissions": "crwdns22334:0crwdne22334:0", "Please_select_a_value": "crwdns22386:0crwdne22386:0", "Sorry,_you_have_entered_an_incorrect_cashier_password": "crwdns22683:0crwdne22683:0", "hour": "crwdns23602:0crwdne23602:0", "Apr": "crwdns20796:0crwdne20796:0", "Weekday": "crwdns23306:0crwdne23306:0", "Closes": "crwdns21058:0crwdne21058:0", "Status": "crwdns22707:0crwdne22707:0", "Congratulations!_Your_[_1]_Account_has_been_created_": "crwdns21095:0[_1]crwdne21095:0", "Entry_spot": "crwdns21332:0crwdne21332:0", "Your_token_has_expired__Please_click_<a_href=\"[_1]\">here</a>_to_restart_the_verification_process_": "crwdns23563:0[_1]crwdne23563:0", "Virtual_money_credit_to_account": "crwdns23218:0crwdne23218:0", "Your_web_browser_([_1])_is_out_of_date_and_may_affect_your_trading_experience__Proceed_at_your_own_risk__[_2]Update_browser[_3]": "crwdns24267:0[_1]crwdnd24267:0[_2]crwdnd24267:0[_3]crwdne24267:0", "Contract_will_be_sold_at_the_prevailing_market_price_when_the_request_is_received_by_our_servers__This_price_may_differ_from_the_indicated_price_": "crwdns21121:0crwdne21121:0", "Digit": "crwdns21227:0crwdne21227:0", "Matches/Differs": "crwdns22079:0crwdne22079:0", "{JAPAN_ONLY}Congratulations,_you_have_pass_the_test,_our_Customer_Support_will_contact_you_shortly_": "crwdns23831:0{JAPAN ONLY}crwdne23831:0", "Unlock_Cashier": "crwdns23175:0crwdne23175:0", "Charting_for_this_underlying_is_delayed": "crwdns20996:0crwdne20996:0", "Verification_code_format_incorrect_": "crwdns23196:0crwdne23196:0", "Low_Barrier": "crwdns22029:0crwdne22029:0", "[_1]_[_2]_payout_if_[_3]_touches_Barrier_through_close_on_[_4]_": "crwdns20475:0[_1]crwdnd20475:0[_2]crwdnd20475:0[_3]crwdnd20475:0[_4]crwdne20475:0", "Minute": "crwdns22115:0crwdne22115:0", "The_main_password_of_account_number_[_1]_has_been_changed_": "crwdns22929:0[_1]crwdne22929:0", "{JAPAN_ONLY}Knowledge_Test_Result": "crwdns23940:0{JAPAN ONLY}crwdne23940:0", "Read": "crwdns22485:0crwdne22485:0", "Exclude_time_cannot_be_for_more_than_5_years_": "crwdns21359:0crwdne21359:0", "Low_Barrier_([_1])": "crwdns22030:0[_1]crwdne22030:0", "Buy": "crwdns20953:0crwdne20953:0", "Year": "crwdns23403:0crwdne23403:0", "November": "crwdns22191:0crwdne22191:0", "Payout": "crwdns22328:0crwdne22328:0", "minute": "crwdns23615:0crwdne23615:0", "Start_time": "crwdns22702:0crwdne22702:0", "Oct": "crwdns22203:0crwdne22203:0", "Insufficient_balance_": "crwdns21737:0crwdne21737:0", "Select_your_trade_type": "crwdns22611:0crwdne22611:0", "Upcoming_Events": "crwdns23178:0crwdne23178:0", "Delete": "crwdns21194:0crwdne21194:0", "Create_Account": "crwdns21150:0crwdne21150:0", "Sep": "crwdns22628:0crwdne22628:0", "Connection_error:_Please_check_your_internet_connection_": "crwdns21096:0crwdne21096:0", "Waiting_for_exit_tick_": "crwdns23227:0crwdne23227:0", "Sa": "crwdns22580:0crwdne22580:0", "Fridays": "crwdns21473:0crwdne21473:0", "Failed": "crwdns21404:0crwdne21404:0", "Touches": "crwdns23079:0crwdne23079:0", "Number_of_ticks": "crwdns22194:0crwdne22194:0", "Your_changes_have_been_updated_successfully_": "crwdns23546:0crwdne23546:0", "Up/Down": "crwdns23177:0crwdne23177:0", "Forex": "crwdns21454:0crwdne21454:0", "Are_you_sure_that_you_want_to_permanently_revoke_access_to_application": "crwdns20803:0crwdne20803:0", "today,_Fridays": "crwdns23639:0crwdne23639:0", "years": "crwdns23649:0crwdne23649:0", "Sorry,_this_feature_is_not_available_": "crwdns22682:0crwdne22682:0", "The_maximum_number_of_tokens_([_1])_has_been_reached_": "crwdns22936:0[_1]crwdne22936:0", "The_server_<a_href=\"[_1]\">endpoint</a>_is:_[_2]": "crwdns22955:0[_1]crwdnd22955:0[_2]crwdne22955:0", "Market_is_closed__Please_try_again_later_": "crwdns22071:0crwdne22071:0", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_": "crwdns23452:0[_1]crwdnd23452:0[_2]crwdne23452:0", "When_you_click_\"OK\"_you_will_be_excluded_from_trading_on_the_site_until_the_selected_date_": "crwdns23330:0crwdne23330:0", "Long": "crwdns22022:0crwdne22022:0", "Ends_In/Out": "crwdns21316:0crwdne21316:0", "weeks": "crwdns23646:0crwdne23646:0", "Finish": "crwdns21428:0crwdne21428:0", "Total_Cost": "crwdns23071:0crwdne23071:0", "Potential_Payout": "crwdns22405:0crwdne22405:0", "Closed": "crwdns21057:0crwdne21057:0", "[_1]_[_2]_payout_if_[_3]_stays_between_low_and_high_values_of_Barrier_through_close_on_[_4]_": "crwdns20474:0[_1]crwdnd20474:0[_2]crwdnd20474:0[_3]crwdnd20474:0[_4]crwdne20474:0", "Lower": "crwdns22035:0crwdne22035:0", "Invalid_amount,_maximum_is": "crwdns21747:0crwdne21747:0", "logout": "crwdns23609:0crwdne23609:0", "Exit_Spot_Time": "crwdns21369:0crwdne21369:0", "Tu": "crwdns23143:0crwdne23143:0", "Select_your_underlying_asset": "crwdns22612:0crwdne22612:0", "Mar": "crwdns22054:0crwdne22054:0", "Shop": "crwdns22646:0crwdne22646:0", "There_was_some_invalid_character_in_an_input_field_": "crwdns22980:0crwdne22980:0", "Real_Volatility": "crwdns22499:0crwdne22499:0", "Your_[_1]_day_withdrawal_limit_is_currently_[_2]_[_3]_(or_equivalent_in_other_currency)_": "crwdns23524:0[_1]crwdnd23524:0[_2]crwdnd23524:0[_3]crwdne23524:0", "Your_changes_have_been_updated_": "crwdns23547:0crwdne23547:0", "Mo": "crwdns22117:0crwdne22117:0", "Upgrade_to_a_Real_Account": "crwdns23183:0crwdne23183:0", "Contract_ID": "crwdns21110:0crwdne21110:0", "Lock_Cashier": "crwdns22011:0crwdne22011:0", "Contract_is_not_started_yet": "crwdns21118:0crwdne21118:0", "Should_be_less_than_[_1]": "crwdns22655:0[_1]crwdne22655:0", "You_have_already_withdrawn_[_1]_[_2]_": "crwdns23450:0[_1]crwdnd23450:0[_2]crwdne23450:0", "Sunday": "crwdns22752:0crwdne22752:0", "numbers": "crwdns23622:0crwdne23622:0", "Time_out_cannot_be_more_than_6_weeks_": "crwdns23040:0crwdne23040:0", "Never": "crwdns22155:0crwdne22155:0", "Only_letters,_numbers,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "crwdns22224:0crwdne22224:0", "Sorry,_account_signup_is_not_available_in_your_country__Please_contact_<a_href=\"[_1]\">customer_support</a>_for_more_information_": "crwdns22678:0[_1]crwdne22678:0", "Even/Odd": "crwdns21342:0crwdne21342:0", "Sorry,_your_account_is_not_authorised_for_any_further_contract_purchases_": "crwdns22684:0crwdne22684:0", "Reference_ID": "crwdns22507:0crwdne22507:0", "Current": "crwdns21165:0crwdne21165:0", "Description": "crwdns21213:0crwdne21213:0", "Please_input_a_valid_date": "crwdns22371:0crwdne22371:0", "letters": "crwdns23608:0crwdne23608:0", "Please_<a_href=\"[_1]\">log_in</a>_to_view_this_page_": "crwdns22355:0[_1]crwdne22355:0", "Investment_Account": "crwdns21753:0crwdne21753:0", "Target": "crwdns22760:0crwdne22760:0", "Virtual_Account": "crwdns23217:0crwdne23217:0", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_enter_the_password_": "crwdns23545:0crwdne23545:0", "Should_be_a_valid_number": "crwdns22653:0crwdne22653:0", "Thursday": "crwdns23033:0crwdne23033:0", "Price": "crwdns22428:0crwdne22428:0", "Time_out_cannot_be_in_the_past_": "crwdns23039:0crwdne23039:0", "Nov": "crwdns22190:0crwdne22190:0", "months": "crwdns23618:0crwdne23618:0", "Your_account_has_no_trading_activity_": "crwdns23533:0crwdne23533:0", "minutes": "crwdns23616:0crwdne23616:0", "Your_request_to_withdraw_[_1]_[_2]_from_your_account_[_3]_to_Payment_Agent_[_4]_account_has_been_successfully_processed_": "crwdns23559:0[_1]crwdnd23559:0[_2]crwdnd23559:0[_3]crwdnd23559:0[_4]crwdne23559:0", "Your_trading_statistics_since_[_1]_": "crwdns23564:0[_1]crwdne23564:0", "Dec": "crwdns21187:0crwdne21187:0", "Aug": "crwdns20836:0crwdne20836:0", "February": "crwdns21412:0crwdne21412:0", "Real_Account": "crwdns22493:0crwdne22493:0", "Exclude_time_cannot_be_less_than_6_months_": "crwdns21360:0crwdne21360:0", "space": "crwdns23626:0crwdne23626:0", "[_1]_and_[_2]_cannot_be_the_same_": "crwdns20488:0[_1]crwdnd20488:0[_2]crwdne20488:0", "Waiting_for_entry_tick_": "crwdns23226:0crwdne23226:0", "Month": "crwdns22128:0crwdne22128:0", "Spot_Time": "crwdns22694:0crwdne22694:0", "Old_password_is_wrong_": "crwdns22207:0crwdne22207:0", "Saturday": "crwdns22584:0crwdne22584:0", "Ends_Between": "crwdns21314:0crwdne21314:0", "Higher": "crwdns21543:0crwdne21543:0", "{JAPAN_ONLY}Your_Application_has_Been_Processed__Please_Re-Login_to_Access_Your_Real-Money_Account_": "crwdns24180:0{JAPAN ONLY}crwdne24180:0", "verification_token": "crwdns23643:0crwdne23643:0", "Th": "crwdns22785:0crwdne22785:0", "Touch/No_Touch": "crwdns23076:0crwdne23076:0", "Only_letters,_space,_hyphen,_period,_and_apostrophe_are_allowed_": "crwdns22225:0crwdne22225:0", "Your_cashier_is_locked_as_per_your_request_-_to_unlock_it,_please_click_<a_href=\"[_1]\">here</a>_": "crwdns23544:0[_1]crwdne23544:0", "[_1]_[_2]_payout_if_[_3]_ends_on_or_between_low_and_high_values_of_Barrier_at_close_on_[_4]_": "crwdns20469:0[_1]crwdnd20469:0[_2]crwdnd20469:0[_3]crwdnd20469:0[_4]crwdne20469:0", "Gaming_Account": "crwdns21487:0crwdne21487:0", "You_have_reached_the_rate_limit_of_requests_per_second__Please_try_later_": "crwdns23456:0crwdne23456:0", "Please_select_a_valid_date_": "crwdns22384:0crwdne22384:0", "Please_submit_a_valid_verification_token_": "crwdns22393:0crwdne22393:0", "Time_out_must_be_after_today_": "crwdns23041:0crwdne23041:0", "Only_numbers_and_spaces_are_allowed_": "crwdns22226:0crwdne22226:0", "End_time": "crwdns21312:0crwdne21312:0", "{JAPAN_ONLY}Please_complete_the_following_questions_": "crwdns23973:0{JAPAN ONLY}crwdne23973:0", "Your_transaction_reference_number_is_[_1]": "crwdns23566:0[_1]crwdne23566:0", "There_was_an_error": "crwdns22979:0crwdne22979:0", "Female": "crwdns21414:0crwdne21414:0", "Credit/Debit": "crwdns21159:0crwdne21159:0", "days": "crwdns23594:0crwdne23594:0", "Jan": "crwdns21782:0crwdne21782:0", "Your_password_has_been_successfully_reset__Please_log_into_your_account_using_your_new_password_": "crwdns23556:0crwdne23556:0", "Balance": "crwdns20859:0crwdne20859:0", "New_Year's_Day": "crwdns22159:0crwdne22159:0", "This_feature_is_not_relevant_to_virtual-money_accounts_": "crwdns23013:0crwdne23013:0", "[_1]_Please_click_the_link_below_to_restart_the_password_recovery_process__If_you_require_further_assistance,_please_contact_our_Customer_Support_": "crwdns20482:0[_1]crwdne20482:0", "Password_should_have_lower_and_uppercase_letters_with_numbers_": "crwdns22316:0crwdne22316:0", "Entry_Spot": "crwdns21331:0crwdne21331:0", "Successful": "crwdns22747:0crwdne22747:0", "Sorry,_this_feature_is_available_to_virtual_accounts_only_": "crwdns22681:0crwdne22681:0", "details": "crwdns23595:0crwdne23595:0", "The_Payment_Agent_facility_is_currently_not_available_in_your_country_": "crwdns22859:0crwdne22859:0", "The_email_address_provided_is_already_in_use__If_you_forgot_your_password,_please_try_our_<a_href=\"[_1]\">password_recovery_tool</a>_or_contact_our_customer_service_": "crwdns22910:0[_1]crwdne22910:0", "You_have_sold_this_contract_at_[_1]_[_2]": "crwdns23459:0[_1]crwdnd23459:0[_2]crwdne23459:0", "[_1]_[_2]_payout_if_[_3]_is_strictly_higher_than_or_equal_to_Barrier_at_close_on_[_4]_": "crwdns20472:0[_1]crwdnd20472:0[_2]crwdnd20472:0[_3]crwdnd20472:0[_4]crwdne20472:0", "Resources": "crwdns22542:0crwdne22542:0", "Final_price": "crwdns21419:0crwdne21419:0", "Goes_Outside": "crwdns21519:0crwdne21519:0", "Withdraw": "crwdns23384:0crwdne23384:0", "False": "crwdns21405:0crwdne21405:0", "End_time_must_be_after_start_time_": "crwdns21313:0crwdne21313:0", "Revoke_access": "crwdns22560:0crwdne22560:0", "Only_numbers,_space,_and_hyphen_are_allowed_": "crwdns22227:0crwdne22227:0", "This_contract_won": "crwdns23010:0crwdne23010:0", "Rise/Fall": "crwdns22563:0crwdne22563:0", "Date": "crwdns21181:0crwdne21181:0", "Sale_Price": "crwdns22583:0crwdne22583:0", "Start_Time": "crwdns22697:0crwdne22697:0", "Cashier": "crwdns20982:0crwdne20982:0", "Your_withdrawal_limit_is_[_1]_[_2]_(or_equivalent_in_other_currency)_": "crwdns23572:0[_1]crwdnd23572:0[_2]crwdne23572:0", "Deposit": "crwdns21200:0crwdne21200:0", "Major_Pairs": "crwdns22043:0crwdne22043:0", "min": "crwdns23611:0crwdne23611:0", "Admin": "crwdns20707:0crwdne20707:0", "Please_select_a_payment_agent": "crwdns22383:0crwdne22383:0", "Percentage": "crwdns22331:0crwdne22331:0", "Password_is_not_strong_enough_": "crwdns22314:0crwdne22314:0", "Sorry,_an_error_occurred_while_processing_your_account_": "crwdns22679:0crwdne22679:0", "[_1]_deposit_from_[_2]_to_account_number_[_3]_is_done__Transaction_ID:_[_4]": "crwdns20493:0[_1]crwdnd20493:0[_2]crwdnd20493:0[_3]crwdnd20493:0[_4]crwdne20493:0", "Equals": "crwdns21335:0crwdne21335:0", "Invalid_email_address": "crwdns21749:0crwdne21749:0", "Contract_Confirmation": "crwdns21107:0crwdne21107:0", "Time_is_in_the_wrong_format_": "crwdns23038:0crwdne23038:0", "hours": "crwdns23603:0crwdne23603:0", "Your_transaction_reference_is": "crwdns23565:0crwdne23565:0", "This_contract_lost": "crwdns23009:0crwdne23009:0", "Are_you_sure_that_you_want_to_permanently_delete_token": "crwdns20802:0crwdne20802:0", "Settles": "crwdns22641:0crwdne22641:0", "Sale_Date": "crwdns22582:0crwdne22582:0", "June": "crwdns21943:0crwdne21943:0", "Please_set_your_30-day_turnover_limit_in_our_[_1]self-exclusion_facilities[_2]_to_remove_deposit_limits_": "crwdns22390:0[_1]scrwdnd22390:0[_2]crwdne22390:0", "Please_select": "crwdns22382:0crwdne22382:0", "Processing_your_request___": "crwdns22442:0crwdne22442:0", "Next": "crwdns22163:0crwdne22163:0", "September": "crwdns22629:0crwdne22629:0", "Now": "crwdns22193:0crwdne22193:0", "Net_profit": "crwdns22152:0crwdne22152:0", "Male": "crwdns22048:0crwdne22048:0", "You_should_enter_[_1]_characters_": "crwdns23503:0[_1]crwdne23503:0", "Your_request_to_transfer_[_1]_[_2]_from_[_3]_to_[_4]_has_been_successfully_processed_": "crwdns23558:0[_1]crwdnd23558:0[_2]crwdnd23558:0[_3]crwdnd23558:0[_4]crwdne23558:0", "Please_enter_an_integer_value": "crwdns22366:0crwdne22366:0", "Remaining_Time": "crwdns22531:0crwdne22531:0", "Tuesday": "crwdns23144:0crwdne23144:0", "Session_duration_limit_cannot_be_more_than_6_weeks_": "crwdns22632:0crwdne22632:0", "Today": "crwdns23064:0crwdne23064:0", "Previous": "crwdns22422:0crwdne22422:0", "Should_be_more_than_[_1]": "crwdns22656:0[_1]crwdne22656:0", "Explanation": "crwdns21388:0crwdne21388:0", "Real_Cent": "crwdns22495:0crwdne22495:0", "Never_Used": "crwdns22156:0crwdne22156:0", "Current_Time": "crwdns21166:0crwdne21166:0", "Questions": "crwdns22480:0crwdne22480:0", "Scopes": "crwdns22588:0crwdne22588:0", "Update": "crwdns23179:0crwdne23179:0", "Your_account_is_fully_authenticated_and_your_withdrawal_limits_have_been_lifted_": "crwdns23535:0crwdne23535:0", "End_Time": "crwdns21311:0crwdne21311:0", "Barrier_([_1])": "crwdns20868:0[_1]crwdne20868:0", "Payment_Agent": "crwdns22319:0crwdne22319:0", "Friday": "crwdns21472:0crwdne21472:0", "Upgrade_to_a_Financial_Account": "crwdns23182:0crwdne23182:0", "Last_Digit_Stats": "crwdns21964:0crwdne21964:0", "An_additional_password_can_be_used_to_restrict_access_to_the_cashier_": "crwdns20758:0crwdne20758:0", "Opens": "crwdns22247:0crwdne22247:0", "Total_Profit/Loss": "crwdns23074:0crwdne23074:0", "Real_STP": "crwdns22497:0crwdne22497:0", "Note": "crwdns22182:0crwdne22182:0", "There_was_a_problem_accessing_the_server_during_purchase_": "crwdns22976:0crwdne22976:0", "Wednesday": "crwdns23305:0crwdne23305:0", "April": "crwdns20797:0crwdne20797:0", "year": "crwdns23648:0crwdne23648:0", "Your_token_has_expired__Please_click_[_1]here[_2]_to_restart_the_verification_process_": "crwdns23562:0[_1]hecrwdnd23562:0[_2]crwdne23562:0", "In/Out": "crwdns21714:0crwdne21714:0", "The_two_passwords_that_you_entered_do_not_match_": "crwdns22965:0crwdne22965:0", "Transaction_performed_by_[_1]_(App_ID:_[_2])": "crwdns23120:0[_1]crwdnd23120:0[_2]crwdne23120:0", "IP_Address": "crwdns21595:0crwdne21595:0", "Closes_early_(at_18:00)": "crwdns21059:0crwdne21059:0", "Please_check_the_above_form_for_pending_errors_": "crwdns22357:0crwdne22357:0", "Stays_Between": "crwdns22709:0crwdne22709:0", "Trade": "crwdns23083:0crwdne23083:0", "[_1]Authenticate_your_account[_2]_now_to_take_full_advantage_of_all_withdrawal_options_available_": "crwdns20568:0[_1]crwdnd20568:0[_2]crwdne20568:0", "Sell_time": "crwdns22622:0crwdne22622:0", "Please_enter_a_number_between_[_1]_": "crwdns22365:0[_1]crwdne22365:0", "Open_a_Financial_Account": "crwdns22236:0crwdne22236:0", "Please_[_1]complete_your_account_profile[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22352:0[_1]ccrwdnd22352:0[_2]crwdne22352:0", "Main_password": "crwdns22039:0crwdne22039:0", "[_1]_[_2]_payout_if_[_3]_goes_outside_of_low_and_high_values_of_Barrier_through_close_on_[_4]_": "crwdns20471:0[_1]crwdnd20471:0[_2]crwdnd20471:0[_3]crwdnd20471:0[_4]crwdne20471:0", "email_address": "crwdns23597:0crwdne23597:0", "month": "crwdns23617:0crwdne23617:0", "Spot": "crwdns22693:0crwdne22693:0", "Ref_": "crwdns22506:0crwdne22506:0", "January": "crwdns21783:0crwdne21783:0", "Loss": "crwdns22027:0crwdne22027:0", "Monday": "crwdns22118:0crwdne22118:0", "Profit": "crwdns22450:0crwdne22450:0", "{JAPAN_ONLY}The_test_is_unavailable_now,_test_can_only_be_taken_again_on_next_business_day_with_respect_of_most_recent_test_": "crwdns24135:0{JAPAN ONLY}crwdne24135:0", "Demo": "crwdns21195:0crwdne21195:0", "All_markets_are_closed_now__Please_try_again_later_": "crwdns20739:0crwdne20739:0", "Closes_early_(at_21:00)": "crwdns21060:0crwdne21060:0", "[_1]_withdrawal_from_account_number_[_2]_to_[_3]_is_done__Transaction_ID:_[_4]": "crwdns20554:0[_1]crwdnd20554:0[_2]crwdnd20554:0[_3]crwdnd20554:0[_4]crwdne20554:0", "Over/Under": "crwdns22298:0crwdne22298:0", "Exit_spot": "crwdns21370:0crwdne21370:0", "Please_complete_the_[_1]financial_assessment_form[_2]_to_lift_your_withdrawal_and_trading_limits_": "crwdns22361:0[_1]fcrwdnd22361:0[_2]crwdne22361:0", "Sell_at_market": "crwdns22619:0crwdne22619:0", "Your_settings_have_been_updated_successfully_": "crwdns23561:0crwdne23561:0", "Su": "crwdns22739:0crwdne22739:0", "Not": "crwdns22180:0crwdne22180:0", "Your_account_is_restricted__Kindly_[_1]contact_customer_support[_2]_for_assistance_": "crwdns23538:0[_1]ccrwdnd23538:0[_2]crwdne23538:0", "Invalid_amount,_minimum_is": "crwdns21748:0crwdne21748:0", "Please_accept_the_terms_and_conditions_": "crwdns22356:0crwdne22356:0", "Statement": "crwdns22705:0crwdne22705:0", "You_have_already_withdrawn_the_equivalent_of_[_1]_[_2]_in_aggregate_over_the_last_[_3]_days_": "crwdns23451:0[_1]crwdnd23451:0[_2]crwdnd23451:0[_3]crwdne23451:0", "March": "crwdns22055:0crwdne22055:0", "Chart": "crwdns20993:0crwdne20993:0", "New_password": "crwdns22160:0crwdne22160:0", "Browser": "crwdns20949:0crwdne20949:0", "day": "crwdns23593:0crwdne23593:0", "{JAPAN_ONLY}Sorry,_you_have_failed_the_test,_please_try_again_after_24_hours_": "crwdns24014:0{JAPAN ONLY}crwdne24014:0", "Walkthrough_Guide": "crwdns23228:0crwdne23228:0" };
 	
 	module.exports = {
 	    texts_json: texts_json
@@ -36094,6 +36103,334 @@
 
 /***/ },
 /* 433 */
+/***/ function(module, exports) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {var g = (typeof global !== 'undefined') ? global :
+	        (typeof window !== 'undefined') ? window :
+	        (typeof self !== 'undefined') ? self : this;
+	
+	(function(global) {
+	  /**
+	   * Polyfill URLSearchParams
+	   *
+	   * Inspired from : https://github.com/WebReflection/url-search-params/blob/master/src/url-search-params.js
+	   */
+	
+	  var checkIfIteratorIsSupported = function() {
+	    try {
+	      return !!Symbol.iterator;
+	    } catch(error) {
+	      return false;
+	    }
+	  };
+	
+	
+	  var iteratorSupported = checkIfIteratorIsSupported();
+	
+	  var createIterator = function(items) {
+	    var iterator = {
+	      next: function() {
+	        var value = items.shift();
+	        return { done: value === void 0, value: value };
+	      }
+	    };
+	
+	    if(iteratorSupported) {
+	      iterator[Symbol.iterator] = function() {
+	        return iterator;
+	      };
+	    }
+	
+	    return iterator;
+	  };
+	
+	  var polyfillURLSearchParams= function() {
+	
+	    var URLSearchParams = function(searchString) {
+	      Object.defineProperty(this, '_entries', { value: {} });
+	
+	      if(typeof searchString === 'string') {
+	        if(searchString !== '') {
+	          searchString = searchString.replace(/^\?/, '');
+	          var attributes = searchString.split('&');
+	          var attribute;
+	          for(var i = 0; i < attributes.length; i++) {
+	            attribute = attributes[i].split('=');
+	            this.append(
+	              decodeURIComponent(attribute[0]),
+	              (attribute.length > 1) ? decodeURIComponent(attribute[1]) : ''
+	            );
+	          }
+	        }
+	      } else if(searchString instanceof URLSearchParams) {
+	        var _this = this;
+	        searchString.forEach(function(value, name) {
+	          _this.append(value, name);
+	        });
+	      }
+	    };
+	
+	    var proto = URLSearchParams.prototype;
+	
+	    proto.append = function(name, value) {
+	      if(name in this._entries) {
+	        this._entries[name].push(value.toString());
+	      } else {
+	        this._entries[name] = [value.toString()];
+	      }
+	    };
+	
+	    proto.delete = function(name) {
+	      delete this._entries[name];
+	    };
+	
+	    proto.get = function(name) {
+	      return (name in this._entries) ? this._entries[name][0] : null;
+	    };
+	
+	    proto.getAll = function(name) {
+	      return (name in this._entries) ? this._entries[name].slice(0) : [];
+	    };
+	
+	    proto.has = function(name) {
+	      return (name in this._entries);
+	    };
+	
+	    proto.set = function(name, value) {
+	      this._entries[name] = [value.toString()];
+	    };
+	
+	    proto.forEach = function(callback, thisArg) {
+	      var entries;
+	      for(var name in this._entries) {
+	        if(this._entries.hasOwnProperty(name)) {
+	          entries = this._entries[name];
+	          for(var i = 0; i < entries.length; i++) {
+	            callback.call(thisArg, entries[i], name, this);
+	          }
+	        }
+	      }
+	    };
+	
+	    proto.keys = function() {
+	      var items = [];
+	      this.forEach(function(value, name) { items.push(name); });
+	      return createIterator(items);
+	    };
+	
+	    proto.values = function() {
+	      var items = [];
+	      this.forEach(function(value) { items.push(value); });
+	      return createIterator(items);
+	    };
+	
+	    proto.entries = function() {
+	      var items = [];
+	      this.forEach(function(value, name) { items.push([value, name]); });
+	      return createIterator(items);
+	    };
+	
+	    if(iteratorSupported) {
+	      proto[Symbol.iterator] = proto.entries;
+	    }
+	
+	    proto.toString = function() {
+	      var searchString = '';
+	      this.forEach(function(value, name) {
+	        if(searchString.length > 0) searchString+= '&';
+	        searchString += encodeURIComponent(name) + '=' + encodeURIComponent(value);
+	      });
+	      return searchString;
+	    };
+	
+	    global.URLSearchParams = URLSearchParams;
+	  };
+	
+	  if(!('URLSearchParams' in global)) {
+	    polyfillURLSearchParams();
+	  }
+	
+	  // HTMLAnchorElement
+	
+	})(g);
+	
+	(function(global) {
+	  /**
+	   * Polyfill URL
+	   *
+	   * Inspired from : https://github.com/arv/DOM-URL-Polyfill/blob/master/src/url.js
+	   */
+	
+	  var checkIfURLIsSupported = function() {
+	    try {
+	      var u = new URL('b', 'http://a');
+	      u.pathname = 'c%20d';
+	      return (u.href === 'http://a/c%20d') && u.searchParams;
+	    } catch(e) {
+	      return false;
+	    }
+	  };
+	
+	
+	  var polyfillURL = function() {
+	    var _URL = global.URL;
+	
+	    var URL = function(url, base) {
+	      if(typeof url !== 'string') throw new TypeError('Failed to construct \'URL\': Invalid URL');
+	
+	      var doc = document.implementation.createHTMLDocument('');
+	      window.doc = doc;
+	      if(base) {
+	        var baseElement = doc.createElement('base');
+	        baseElement.href = base;
+	        doc.head.appendChild(baseElement);
+	      }
+	
+	      var anchorElement = doc.createElement('a');
+	      anchorElement.href = url;
+	      doc.body.appendChild(anchorElement);
+	      anchorElement.href = anchorElement.href; // force href to refresh
+	
+	      if(anchorElement.protocol === ':' || !/:/.test(anchorElement.href)) {
+	        throw new TypeError('Invalid URL');
+	      }
+	
+	      Object.defineProperty(this, '_anchorElement', {
+	        value: anchorElement
+	      });
+	    };
+	
+	    var proto = URL.prototype;
+	
+	    var linkURLWithAnchorAttribute = function(attributeName) {
+	      Object.defineProperty(proto, attributeName, {
+	        get: function() {
+	          return this._anchorElement[attributeName];
+	        },
+	        set: function(value) {
+	          this._anchorElement[attributeName] = value;
+	        },
+	        enumerable: true
+	      });
+	    };
+	
+	    ['hash', 'host', 'hostname', 'port', 'protocol', 'search']
+	    .forEach(function(attributeName) {
+	      linkURLWithAnchorAttribute(attributeName);
+	    });
+	
+	    Object.defineProperties(proto, {
+	
+	      'toString': {
+	        get: function() {
+	          var _this = this;
+	          return function() {
+	            return _this.href;
+	          };
+	        }
+	      },
+	
+	      'href' : {
+	        get: function() {
+	          return this._anchorElement.href.replace(/\?$/,'');
+	        },
+	        set: function(value) {
+	          this._anchorElement.href = value;
+	        },
+	        enumerable: true
+	      },
+	
+	      'pathname' : {
+	        get: function() {
+	          return this._anchorElement.pathname.replace(/(^\/?)/,'/');
+	        },
+	        set: function(value) {
+	          this._anchorElement.pathname = value;
+	        },
+	        enumerable: true
+	      },
+	
+	      'origin': {
+	        get: function() {
+	          return this._anchorElement.protocol + '//' + this._anchorElement.hostname + (this._anchorElement.port ? (':' + this._anchorElement.port) : '');
+	        },
+	        enumerable: true
+	      },
+	
+	      'password': { // TODO
+	        get: function() {
+	          return '';
+	        },
+	        set: function(value) {
+	        },
+	        enumerable: true
+	      },
+	
+	      'username': { // TODO
+	        get: function() {
+	          return '';
+	        },
+	        set: function(value) {
+	        },
+	        enumerable: true
+	      },
+	
+	      'searchParams': {
+	        get: function() {
+	          var searchParams = new URLSearchParams(this.search);
+	          var _this = this;
+	          ['append', 'delete', 'set'].forEach(function(methodName) {
+	            var method = searchParams[methodName];
+	            searchParams[methodName] = function() {
+	              method.apply(searchParams, arguments);
+	              _this.search = searchParams.toString();
+	            };
+	          });
+	          return searchParams;
+	        },
+	        enumerable: true
+	      }
+	    });
+	
+	    URL.createObjectURL = function(blob) {
+	      return _URL.createObjectURL.apply(_URL, arguments);
+	    };
+	
+	    URL.revokeObjectURL = function(url) {
+	      return _URL.revokeObjectURL.apply(_URL, arguments);
+	    };
+	
+	    global.URL = URL;
+	
+	  };
+	
+	  if(!checkIfURLIsSupported()) {
+	    polyfillURL();
+	  }
+	
+	  if((global.location !== void 0) && !('origin' in global.location)) {
+	    var getOrigin = function() {
+	      return global.location.protocol + '//' + global.location.hostname + (global.location.port ? (':' + global.location.port) : '');
+	    };
+	
+	    try {
+	      Object.defineProperty(global.location, 'origin', {
+	        get: getOrigin,
+	        enumerable: true
+	      });
+	    } catch(e) {
+	      setInterval(function() {
+	        global.location.origin = getOrigin();
+	      }, 100);
+	    }
+	  }
+	
+	})(g);
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 434 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -36101,7 +36438,7 @@
 	var moment = __webpack_require__(305);
 	var localize = __webpack_require__(429).localize;
 	var LocalStore = __webpack_require__(421).LocalStore;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var RealityCheckData = function () {
 	    'use strict';
@@ -36181,7 +36518,7 @@
 	module.exports = RealityCheckData;
 
 /***/ },
-/* 434 */
+/* 435 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -36189,26 +36526,26 @@
 	var jpClient = __webpack_require__(425).jpClient;
 	var getLanguage = __webpack_require__(424).get;
 	
+	var cryptocurrencies = ['BTC'];
+	
 	var formatMoney = function formatMoney(currency_value, amount, exclude_currency) {
-	    var is_bitcoin = /xbt/i.test(currency_value);
+	    var is_crypto = isCryptocurrency(currency_value);
 	    var is_jp = jpClient();
-	    var decimal_places = is_bitcoin ? 6 : is_jp ? 0 : 2;
+	    var decimal_places = getDecimalPlaces(currency_value, amount);
 	    var money = void 0;
 	    if (amount) amount = String(amount).replace(/,/g, '');
-	    if (typeof Intl !== 'undefined' && currency_value && !is_bitcoin && amount) {
+	    if (typeof Intl !== 'undefined' && currency_value && !is_crypto && amount) {
 	        var options = exclude_currency ? { minimumFractionDigits: decimal_places, maximumFractionDigits: decimal_places } : { style: 'currency', currency: currency_value };
 	        var language = getLanguage().toLowerCase();
 	        money = new Intl.NumberFormat(language.replace('_', '-'), options).format(amount);
 	    } else {
-	        var updated_amount = void 0,
+	        var updated_amount = amount,
 	            sign = '';
 	        if (is_jp) {
 	            updated_amount = parseInt(amount);
 	            if (Number(updated_amount) < 0) {
 	                sign = '-';
 	            }
-	        } else {
-	            updated_amount = parseFloat(amount).toFixed(decimal_places);
 	        }
 	        updated_amount = addComma(updated_amount, decimal_places);
 	        if (exclude_currency) {
@@ -36221,11 +36558,27 @@
 	    return money;
 	};
 	
-	var addComma = function addComma(num, decimal_points) {
-	    var number = String(num || 0).replace(/,/g, '') * 1;
-	    return number.toFixed(decimal_points || 2).toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
+	var addComma = function addComma(num, decimal_points, is_crypto) {
+	    var number = (String(num || 0).replace(/,/g, '') * 1).toFixed(decimal_points || 2);
+	    if (is_crypto) {
+	        number = parseFloat(number);
+	    }
+	
+	    return number.toString().replace(/(^|[^\w.])(\d{4,})/g, function ($0, $1, $2) {
 	        return $1 + $2.replace(/\d(?=(?:\d\d\d)+(?!\d))/g, '$&,');
 	    });
+	};
+	
+	var getDecimalPlaces = function getDecimalPlaces(currency, amount) {
+	    var is_crypto = isCryptocurrency(currency);
+	    var is_jp = jpClient();
+	    var decimal_places = 2;
+	    if (is_crypto) {
+	        decimal_places = Math.min((parseFloat(amount).toString().split('.')[1] || '').length || 0, 8);
+	    } else if (is_jp) {
+	        decimal_places = 0;
+	    }
+	    return decimal_places;
 	};
 	
 	// Taken with modifications from:
@@ -36237,18 +36590,24 @@
 	    AUD: 'A$',
 	    EUR: '€',
 	    JPY: '¥',
-	    XBT: '₿'
+	    BTC: '₿'
+	};
+	
+	var isCryptocurrency = function isCryptocurrency(currency) {
+	    return currency ? new RegExp(currency, 'i').test(cryptocurrencies) : false;
 	};
 	
 	module.exports = {
 	    formatMoney: formatMoney,
 	    formatCurrency: function formatCurrency(currency) {
 	        return map_currency[currency];
-	    }
+	    },
+	    isCryptocurrency: isCryptocurrency,
+	    getDecimalPlaces: getDecimalPlaces
 	};
 
 /***/ },
-/* 435 */
+/* 436 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -36327,22 +36686,22 @@
 	module.exports = MBNotifications;
 
 /***/ },
-/* 436 */
+/* 437 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var ViewPopupUI = __webpack_require__(437);
+	var ViewPopupUI = __webpack_require__(438);
 	var BinarySocket = __webpack_require__(428);
-	var Highchart = __webpack_require__(438);
-	var TickDisplay = __webpack_require__(461);
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
+	var Highchart = __webpack_require__(439);
+	var TickDisplay = __webpack_require__(462);
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var ViewPopup = function () {
 	    'use strict';
@@ -36728,7 +37087,7 @@
 	module.exports = ViewPopup;
 
 /***/ },
-/* 437 */
+/* 438 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -36941,23 +37300,23 @@
 	module.exports = ViewPopupUI;
 
 /***/ },
-/* 438 */
+/* 439 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Highcharts = __webpack_require__(439);
-	var HighchartUI = __webpack_require__(440);
+	var Highcharts = __webpack_require__(440);
+	var HighchartUI = __webpack_require__(441);
 	var MBContract = __webpack_require__(304);
 	var MBDefaults = __webpack_require__(416);
-	var Defaults = __webpack_require__(441);
-	var GetTicks = __webpack_require__(442);
+	var Defaults = __webpack_require__(442);
+	var GetTicks = __webpack_require__(443);
 	var BinarySocket = __webpack_require__(428);
-	var ViewPopupUI = __webpack_require__(437);
+	var ViewPopupUI = __webpack_require__(438);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var jpClient = __webpack_require__(425).jpClient;
-	__webpack_require__(455)(Highcharts);
+	__webpack_require__(456)(Highcharts);
 	
 	var Highchart = function () {
 	    var chart = void 0,
@@ -37530,7 +37889,7 @@
 	module.exports = Highchart;
 
 /***/ },
-/* 439 */
+/* 440 */
 /***/ function(module, exports) {
 
 	/*
@@ -38039,7 +38398,7 @@
 
 
 /***/ },
-/* 440 */
+/* 441 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38223,7 +38582,7 @@
 	module.exports = HighchartUI;
 
 /***/ },
-/* 441 */
+/* 442 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38319,26 +38678,26 @@
 	module.exports = Defaults;
 
 /***/ },
-/* 442 */
+/* 443 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Barriers = __webpack_require__(443);
-	var Barriers_Beta = __webpack_require__(451);
-	var DigitInfo_Beta = __webpack_require__(453);
-	var Purchase_Beta = __webpack_require__(456);
-	var TickDisplay_Beta = __webpack_require__(457);
-	var updateWarmChart = __webpack_require__(446).updateWarmChart;
-	var DigitInfo = __webpack_require__(458);
-	var Defaults = __webpack_require__(441);
-	var getActiveTab = __webpack_require__(459).getActiveTab;
-	var getActiveTab_Beta = __webpack_require__(459).getActiveTab_Beta;
-	var Purchase = __webpack_require__(460);
-	var Tick = __webpack_require__(449);
-	var TickDisplay = __webpack_require__(461);
+	var Barriers = __webpack_require__(444);
+	var Barriers_Beta = __webpack_require__(452);
+	var DigitInfo_Beta = __webpack_require__(454);
+	var Purchase_Beta = __webpack_require__(457);
+	var TickDisplay_Beta = __webpack_require__(458);
+	var updateWarmChart = __webpack_require__(447).updateWarmChart;
+	var DigitInfo = __webpack_require__(459);
+	var Defaults = __webpack_require__(442);
+	var getActiveTab = __webpack_require__(460).getActiveTab;
+	var getActiveTab_Beta = __webpack_require__(460).getActiveTab_Beta;
+	var Purchase = __webpack_require__(461);
+	var Tick = __webpack_require__(450);
+	var TickDisplay = __webpack_require__(462);
 	var MBDefaults = __webpack_require__(416);
-	var MBTick = __webpack_require__(463);
+	var MBTick = __webpack_require__(464);
 	var BinarySocket = __webpack_require__(428);
 	var State = __webpack_require__(421).State;
 	
@@ -38450,7 +38809,7 @@
 	module.exports = GetTicks;
 
 /***/ },
-/* 443 */
+/* 444 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38458,10 +38817,10 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var moment = __webpack_require__(305);
-	var countDecimalPlaces = __webpack_require__(444).countDecimalPlaces;
-	var Contract = __webpack_require__(445);
-	var Defaults = __webpack_require__(441);
-	var Tick = __webpack_require__(449);
+	var countDecimalPlaces = __webpack_require__(445).countDecimalPlaces;
+	var Contract = __webpack_require__(446);
+	var Defaults = __webpack_require__(442);
+	var Tick = __webpack_require__(450);
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
 	
@@ -38641,7 +39000,7 @@
 	module.exports = Barriers;
 
 /***/ },
-/* 444 */
+/* 445 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -38717,12 +39076,12 @@
 	};
 
 /***/ },
-/* 445 */
+/* 446 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var getFormNameBarrierCategory = __webpack_require__(446).getFormNameBarrierCategory;
+	var getFormNameBarrierCategory = __webpack_require__(447).getFormNameBarrierCategory;
 	var getLanguage = __webpack_require__(424).get;
 	var localize = __webpack_require__(429).localize;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
@@ -38937,7 +39296,7 @@
 	module.exports = Contract;
 
 /***/ },
-/* 446 */
+/* 447 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -38945,16 +39304,16 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var Moment = __webpack_require__(305);
-	var Defaults = __webpack_require__(441);
-	var Notifications = __webpack_require__(447);
-	var Symbols = __webpack_require__(448);
-	var Tick = __webpack_require__(449);
+	var Defaults = __webpack_require__(442);
+	var Notifications = __webpack_require__(448);
+	var Symbols = __webpack_require__(449);
+	var Tick = __webpack_require__(450);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var urlFor = __webpack_require__(423).urlFor;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var toISOFormat = __webpack_require__(451).toISOFormat;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	
@@ -39665,7 +40024,7 @@
 	module.exports = commonTrading;
 
 /***/ },
-/* 447 */
+/* 448 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -39734,7 +40093,7 @@
 	module.exports = Notifications;
 
 /***/ },
-/* 448 */
+/* 449 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -39793,14 +40152,14 @@
 	module.exports = Symbols;
 
 /***/ },
-/* 449 */
+/* 450 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var countDecimalPlaces = __webpack_require__(444).countDecimalPlaces;
-	var displayPriceMovement = __webpack_require__(444).displayPriceMovement;
+	var countDecimalPlaces = __webpack_require__(445).countDecimalPlaces;
+	var displayPriceMovement = __webpack_require__(445).displayPriceMovement;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
 	
@@ -39975,7 +40334,7 @@
 	module.exports = Tick;
 
 /***/ },
-/* 450 */
+/* 451 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -40027,16 +40386,16 @@
 	};
 
 /***/ },
-/* 451 */
+/* 452 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var Contract_Beta = __webpack_require__(452);
-	var countDecimalPlaces = __webpack_require__(444).countDecimalPlaces;
-	var Defaults = __webpack_require__(441);
-	var Tick = __webpack_require__(449);
+	var Contract_Beta = __webpack_require__(453);
+	var countDecimalPlaces = __webpack_require__(445).countDecimalPlaces;
+	var Defaults = __webpack_require__(442);
+	var Tick = __webpack_require__(450);
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
 	
@@ -40202,12 +40561,12 @@
 	module.exports = Barriers_Beta;
 
 /***/ },
-/* 452 */
+/* 453 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var getFormNameBarrierCategory = __webpack_require__(446).getFormNameBarrierCategory;
+	var getFormNameBarrierCategory = __webpack_require__(447).getFormNameBarrierCategory;
 	var getLanguage = __webpack_require__(424).get;
 	var localize = __webpack_require__(429).localize;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
@@ -40421,19 +40780,19 @@
 	module.exports = Contract_Beta;
 
 /***/ },
-/* 453 */
+/* 454 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
-	var Highcharts = __webpack_require__(454);
-	var Symbols = __webpack_require__(448);
+	var Highcharts = __webpack_require__(455);
+	var Symbols = __webpack_require__(449);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var template = __webpack_require__(417).template;
-	__webpack_require__(455)(Highcharts);
+	__webpack_require__(456)(Highcharts);
 	
 	var DigitInfo_Beta = function () {
 	    'use strict';
@@ -40699,7 +41058,7 @@
 	module.exports = DigitInfo_Beta;
 
 /***/ },
-/* 454 */
+/* 455 */
 /***/ function(module, exports) {
 
 	/*
@@ -41091,7 +41450,7 @@
 
 
 /***/ },
-/* 455 */
+/* 456 */
 /***/ function(module, exports) {
 
 	/*
@@ -41123,23 +41482,23 @@
 
 
 /***/ },
-/* 456 */
+/* 457 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Contract_Beta = __webpack_require__(452);
-	var TickDisplay_Beta = __webpack_require__(457);
-	var commonTrading = __webpack_require__(446);
-	var Symbols = __webpack_require__(448);
-	var Tick = __webpack_require__(449);
+	var Contract_Beta = __webpack_require__(453);
+	var TickDisplay_Beta = __webpack_require__(458);
+	var commonTrading = __webpack_require__(447);
+	var Symbols = __webpack_require__(449);
+	var Tick = __webpack_require__(450);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var toTitleCase = __webpack_require__(450).toTitleCase;
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var toTitleCase = __webpack_require__(451).toTitleCase;
 	
 	/*
 	 * Purchase object that handles all the functions related to
@@ -41397,20 +41756,20 @@
 	module.exports = Purchase_Beta;
 
 /***/ },
-/* 457 */
+/* 458 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Highcharts = __webpack_require__(454);
+	var Highcharts = __webpack_require__(455);
 	var moment = __webpack_require__(305);
-	var commonTrading = __webpack_require__(446);
-	var Tick = __webpack_require__(449);
+	var commonTrading = __webpack_require__(447);
+	var Tick = __webpack_require__(450);
 	var BinarySocket = __webpack_require__(428);
-	var ViewPopupUI = __webpack_require__(437);
+	var ViewPopupUI = __webpack_require__(438);
 	var localize = __webpack_require__(429).localize;
 	var isVisible = __webpack_require__(431).isVisible;
-	__webpack_require__(455)(Highcharts);
+	__webpack_require__(456)(Highcharts);
 	
 	var TickDisplay_Beta = function () {
 	    'use strict';
@@ -41937,18 +42296,18 @@
 	module.exports = TickDisplay_Beta;
 
 /***/ },
-/* 458 */
+/* 459 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
-	var Highcharts = __webpack_require__(454);
-	var Symbols = __webpack_require__(448);
+	var Highcharts = __webpack_require__(455);
+	var Symbols = __webpack_require__(449);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
-	__webpack_require__(455)(Highcharts);
+	__webpack_require__(456)(Highcharts);
 	
 	var DigitInfo = function () {
 	    'use strict';
@@ -42215,7 +42574,7 @@
 	module.exports = DigitInfo;
 
 /***/ },
-/* 459 */
+/* 460 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -42248,21 +42607,21 @@
 	};
 
 /***/ },
-/* 460 */
+/* 461 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Contract = __webpack_require__(445);
-	var Symbols = __webpack_require__(448);
-	var Tick = __webpack_require__(449);
-	var TickDisplay = __webpack_require__(461);
-	var updateValues = __webpack_require__(462);
+	var Contract = __webpack_require__(446);
+	var Symbols = __webpack_require__(449);
+	var Tick = __webpack_require__(450);
+	var TickDisplay = __webpack_require__(462);
+	var updateValues = __webpack_require__(463);
 	var localize = __webpack_require__(429).localize;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var padLeft = __webpack_require__(450).padLeft;
+	var padLeft = __webpack_require__(451).padLeft;
 	
 	/*
 	 * Purchase object that handles all the functions related to
@@ -42500,21 +42859,21 @@
 	module.exports = Purchase;
 
 /***/ },
-/* 461 */
+/* 462 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Highcharts = __webpack_require__(454);
+	var Highcharts = __webpack_require__(455);
 	var moment = __webpack_require__(305);
-	var Tick = __webpack_require__(449);
-	var updatePurchaseStatus = __webpack_require__(462).updatePurchaseStatus;
+	var Tick = __webpack_require__(450);
+	var updatePurchaseStatus = __webpack_require__(463).updatePurchaseStatus;
 	var BinarySocket = __webpack_require__(428);
-	var ViewPopupUI = __webpack_require__(437);
+	var ViewPopupUI = __webpack_require__(438);
 	var localize = __webpack_require__(429).localize;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
 	var isVisible = __webpack_require__(431).isVisible;
-	__webpack_require__(455)(Highcharts);
+	__webpack_require__(456)(Highcharts);
 	
 	var TickDisplay = function () {
 	    'use strict';
@@ -42925,14 +43284,14 @@
 	module.exports = TickDisplay;
 
 /***/ },
-/* 462 */
+/* 463 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var updatePurchaseStatus = function updatePurchaseStatus(final_price, pnl, contract_status) {
 	    $('#contract_purchase_heading').text(localize(contract_status));
@@ -42961,13 +43320,13 @@
 	};
 
 /***/ },
-/* 463 */
+/* 464 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var MBDefaults = __webpack_require__(416);
-	var MBNotifications = __webpack_require__(435);
+	var MBNotifications = __webpack_require__(436);
 	var BinarySocket = __webpack_require__(428);
 	
 	/*
@@ -43156,7 +43515,7 @@
 	module.exports = MBTick;
 
 /***/ },
-/* 464 */
+/* 465 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43259,7 +43618,7 @@
 	module.exports = Clock;
 
 /***/ },
-/* 465 */
+/* 466 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43269,9 +43628,10 @@
 	var moment = __webpack_require__(305);
 	var Client = __webpack_require__(420);
 	var getLanguage = __webpack_require__(424).get;
-	var Login = __webpack_require__(466);
+	var Login = __webpack_require__(467);
 	var State = __webpack_require__(421).State;
 	var isVisible = __webpack_require__(431).isVisible;
+	var BinarySocket = __webpack_require__(428);
 	var getAppId = __webpack_require__(432).getAppId;
 	var Cookies = __webpack_require__(422);
 	
@@ -43351,7 +43711,20 @@
 	            data.bom_lastname = get_settings.last_name;
 	            data.bom_phone = get_settings.phone;
 	        }
-	        pushDataLayer(data);
+	
+	        if (is_login) {
+	            BinarySocket.wait('mt5_login_list').then(function (response) {
+	                (response.mt5_login_list || []).forEach(function (obj) {
+	                    var acc_type = (Client.getMT5AccountType(obj.group) || '').replace('real_vanuatu', 'financial').replace('vanuatu_', '').replace('costarica', 'gaming'); // i.e. financial_cent, demo_cent, demo_gaming, real_gaming
+	                    if (acc_type) {
+	                        data['mt5_' + acc_type + '_id'] = obj.login;
+	                    }
+	                });
+	                pushDataLayer(data);
+	            });
+	        } else {
+	            pushDataLayer(data);
+	        }
 	    };
 	
 	    var pushPurchaseData = function pushPurchaseData(response) {
@@ -43395,10 +43768,29 @@
 	        pushDataLayer(data);
 	    };
 	
+	    var mt5NewAccount = function mt5NewAccount(response) {
+	        var acc_type = response.mt5_new_account.mt5_account_type ? response.mt5_new_account.account_type + '_' + response.mt5_new_account.mt5_account_type : // financial_cent, demo_cent, ...
+	        (response.mt5_new_account.account_type === 'demo' ? 'demo' : 'real') + '_gaming'; // demo_gaming, real_gaming
+	        var gtm_data = {
+	            event: 'mt5_new_account',
+	            bom_email: Client.get('email'),
+	            bom_country: State.get(['response', 'get_settings', 'get_settings', 'country']),
+	            mt5_last_signup: acc_type
+	        };
+	        gtm_data['mt5_' + acc_type + '_id'] = response.mt5_new_account.login;
+	        if (/demo/.test(acc_type) && !Client.get('is_virtual')) {
+	            gtm_data.visitorId = Client.get('loginid_array').find(function (login) {
+	                return !login.real;
+	            }).id;
+	        }
+	        pushDataLayer(gtm_data);
+	    };
+	
 	    return {
 	        pushDataLayer: pushDataLayer,
 	        eventHandler: eventHandler,
 	        pushPurchaseData: pushPurchaseData,
+	        mt5NewAccount: mt5NewAccount,
 	        setLoginFlag: function setLoginFlag() {
 	            if (isGtmApplicable()) localStorage.setItem('GTM_login', '1');
 	        }
@@ -43408,7 +43800,7 @@
 	module.exports = GTM;
 
 /***/ },
-/* 466 */
+/* 467 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43452,12 +43844,12 @@
 	module.exports = Login;
 
 /***/ },
-/* 467 */
+/* 468 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
@@ -43516,7 +43908,7 @@
 	module.exports = CashierJP;
 
 /***/ },
-/* 468 */
+/* 469 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43712,7 +44104,7 @@
 	module.exports = BinaryPjax;
 
 /***/ },
-/* 469 */
+/* 470 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43745,7 +44137,7 @@
 	};
 
 /***/ },
-/* 470 */
+/* 471 */
 /***/ function(module, exports) {
 
 	/** @license
@@ -44292,7 +44684,7 @@
 
 
 /***/ },
-/* 471 */
+/* 472 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
@@ -47394,7 +47786,7 @@
 	})(document, Math);
 
 /***/ },
-/* 472 */
+/* 473 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -47427,7 +47819,7 @@
 	})(jQuery);
 
 /***/ },
-/* 473 */
+/* 474 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -47643,21 +48035,21 @@
 
 
 /***/ },
-/* 474 */
+/* 475 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var BinaryPjax = __webpack_require__(468);
-	var pages_config = __webpack_require__(475);
+	var BinaryPjax = __webpack_require__(469);
+	var pages_config = __webpack_require__(476);
 	var Client = __webpack_require__(420);
-	var GTM = __webpack_require__(465);
+	var GTM = __webpack_require__(466);
 	var localize = __webpack_require__(429).localize;
-	var Login = __webpack_require__(466);
-	var Page = __webpack_require__(584);
+	var Login = __webpack_require__(467);
+	var Page = __webpack_require__(587);
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var BinarySocket = __webpack_require__(428);
-	var BinarySocketGeneral = __webpack_require__(607);
+	var BinarySocketGeneral = __webpack_require__(610);
 	
 	var BinaryLoader = function () {
 	    'use strict';
@@ -47666,6 +48058,11 @@
 	        active_script = null;
 	
 	    var init = function init() {
+	        if (!/\.html$/i.test(window.location.pathname)) {
+	            window.location.pathname += '.html';
+	            return;
+	        }
+	
 	        Client.init();
 	        BinarySocket.init(BinarySocketGeneral.initOptions());
 	
@@ -47733,7 +48130,7 @@
 	
 	    var displayMessage = function displayMessage(message) {
 	        var $content = container.find('#content .container');
-	        $content.html($('<div/>', { class: 'logged_out_title_container', html: $content.find('h1') })).append($('<p/>', { class: 'center-text notice-msg', html: localize(message) }));
+	        $content.html($('<div/>', { class: 'logged_out_title_container', html: $content.find('h1')[0] })).append($('<p/>', { class: 'center-text notice-msg', html: localize(message) }));
 	    };
 	
 	    return {
@@ -47744,64 +48141,65 @@
 	module.exports = BinaryLoader;
 
 /***/ },
-/* 475 */
+/* 476 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var LoggedInHandler = __webpack_require__(476);
+	var LoggedInHandler = __webpack_require__(477);
 	
-	var Charity = __webpack_require__(477);
-	var Contact = __webpack_require__(478);
-	var Endpoint = __webpack_require__(481);
-	var GetStarted = __webpack_require__(482);
-	var GetStartedJP = __webpack_require__(483);
-	var Home = __webpack_require__(484);
-	var HomeJP = __webpack_require__(487);
-	var JobDetails = __webpack_require__(488);
-	var Platforms = __webpack_require__(489);
-	var Regulation = __webpack_require__(490);
-	var StaticPages = __webpack_require__(491);
-	var TermsAndConditions = __webpack_require__(493);
-	var WhyUs = __webpack_require__(499);
+	var Charity = __webpack_require__(478);
+	var Contact = __webpack_require__(479);
+	var Endpoint = __webpack_require__(483);
+	var GetStarted = __webpack_require__(484);
+	var GetStartedJP = __webpack_require__(485);
+	var Home = __webpack_require__(486);
+	var HomeJP = __webpack_require__(489);
+	var JobDetails = __webpack_require__(490);
+	var Platforms = __webpack_require__(491);
+	var Regulation = __webpack_require__(492);
+	var StaticPages = __webpack_require__(493);
+	var TermsAndConditions = __webpack_require__(495);
+	var VideoFacility = __webpack_require__(501);
+	var WhyUs = __webpack_require__(502);
 	
-	var AccountTransfer = __webpack_require__(500);
-	var Cashier = __webpack_require__(501);
-	var DepositWithdraw = __webpack_require__(502);
-	var PaymentAgentList = __webpack_require__(503);
-	var PaymentAgentWithdraw = __webpack_require__(504);
-	var MBTradePage = __webpack_require__(505);
-	var AssetIndexUI = __webpack_require__(515);
-	var TradingTimesUI = __webpack_require__(518);
-	var TradePage_Beta = __webpack_require__(521);
-	var TradePage = __webpack_require__(537);
-	var Authenticate = __webpack_require__(543);
-	var ChangePassword = __webpack_require__(544);
-	var PaymentAgentTransfer = __webpack_require__(545);
-	var Portfolio = __webpack_require__(512);
-	var ProfitTable = __webpack_require__(547);
-	var APIToken = __webpack_require__(550);
-	var AuthorisedApps = __webpack_require__(552);
-	var CashierPassword = __webpack_require__(556);
-	var FinancialAssessment = __webpack_require__(557);
-	var IPHistory = __webpack_require__(558);
-	var Limits = __webpack_require__(562);
-	var Settings = __webpack_require__(565);
-	var SelfExclusion = __webpack_require__(566);
-	var PersonalDetails = __webpack_require__(567);
-	var Statement = __webpack_require__(569);
-	var TopUpVirtual = __webpack_require__(572);
-	var LostPassword = __webpack_require__(573);
-	var MetaTrader = __webpack_require__(496);
-	var FinancialAccOpening = __webpack_require__(574);
-	var JapanAccOpening = __webpack_require__(577);
-	var RealAccOpening = __webpack_require__(578);
-	var VirtualAccOpening = __webpack_require__(579);
-	var ResetPassword = __webpack_require__(581);
-	var TNCApproval = __webpack_require__(494);
+	var AccountTransfer = __webpack_require__(503);
+	var Cashier = __webpack_require__(504);
+	var DepositWithdraw = __webpack_require__(505);
+	var PaymentAgentList = __webpack_require__(506);
+	var PaymentAgentWithdraw = __webpack_require__(507);
+	var MBTradePage = __webpack_require__(508);
+	var AssetIndexUI = __webpack_require__(518);
+	var TradingTimesUI = __webpack_require__(521);
+	var TradePage_Beta = __webpack_require__(524);
+	var TradePage = __webpack_require__(540);
+	var Authenticate = __webpack_require__(546);
+	var ChangePassword = __webpack_require__(547);
+	var PaymentAgentTransfer = __webpack_require__(548);
+	var Portfolio = __webpack_require__(515);
+	var ProfitTable = __webpack_require__(550);
+	var APIToken = __webpack_require__(553);
+	var AuthorisedApps = __webpack_require__(555);
+	var CashierPassword = __webpack_require__(559);
+	var FinancialAssessment = __webpack_require__(560);
+	var IPHistory = __webpack_require__(561);
+	var Limits = __webpack_require__(565);
+	var Settings = __webpack_require__(568);
+	var SelfExclusion = __webpack_require__(569);
+	var PersonalDetails = __webpack_require__(570);
+	var Statement = __webpack_require__(572);
+	var TopUpVirtual = __webpack_require__(575);
+	var LostPassword = __webpack_require__(576);
+	var MetaTrader = __webpack_require__(498);
+	var FinancialAccOpening = __webpack_require__(577);
+	var JapanAccOpening = __webpack_require__(580);
+	var RealAccOpening = __webpack_require__(581);
+	var VirtualAccOpening = __webpack_require__(582);
+	var ResetPassword = __webpack_require__(584);
+	var TNCApproval = __webpack_require__(496);
 	
-	var CashierJP = __webpack_require__(467);
-	var KnowledgeTest = __webpack_require__(582);
+	var CashierJP = __webpack_require__(468);
+	var KnowledgeTest = __webpack_require__(585);
 	
 	var pages_config = {
 	    account_transfer: { module: AccountTransfer, is_authenticated: true, only_real: true },
@@ -47860,6 +48258,7 @@
 	    'payment-agent': { module: StaticPages.PaymentAgent },
 	    'terms-and-conditions': { module: TermsAndConditions },
 	    'terms-and-conditions-jp': { module: TermsAndConditions },
+	    'video-facility': { module: VideoFacility, is_authenticated: true, only_real: true },
 	    'volidx-markets': { module: StaticPages.VolidxMarkets },
 	    'why-us': { module: WhyUs },
 	    'why-us-jp': { module: WhyUs },
@@ -47869,14 +48268,15 @@
 	module.exports = pages_config;
 
 /***/ },
-/* 476 */
+/* 477 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	var GTM = __webpack_require__(465);
+	var GTM = __webpack_require__(466);
 	var getLanguage = __webpack_require__(424).get;
+	var urlLang = __webpack_require__(424).urlLang;
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var urlFor = __webpack_require__(423).urlFor;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
@@ -47928,9 +48328,9 @@
 	            }
 	        }
 	        if (set_default) {
-	            redirect_url = defaultRedirectUrl();
-	            var lang_cookie = Cookies.get('language');
+	            var lang_cookie = urlLang(redirect_url) || Cookies.get('language');
 	            var language = getLanguage();
+	            redirect_url = defaultRedirectUrl();
 	            if (lang_cookie && lang_cookie !== language) {
 	                redirect_url = redirect_url.replace(new RegExp('/' + language + '/', 'i'), '/' + lang_cookie.toLowerCase() + '/');
 	            }
@@ -47968,7 +48368,7 @@
 	module.exports = LoggedInHandler;
 
 /***/ },
-/* 477 */
+/* 478 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -48006,21 +48406,19 @@
 	module.exports = Charity;
 
 /***/ },
-/* 478 */
+/* 479 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var urlForStatic = __webpack_require__(423).urlForStatic;
-	var loadCSS = __webpack_require__(479).loadCSS;
-	var loadJS = __webpack_require__(480).loadJS;
+	var DeskWidget = __webpack_require__(480);
 	
 	var Contact = function () {
 	    'use strict';
 	
 	    var onLoad = function onLoad() {
 	        displayCsContacts();
-	        showLiveChatIcon();
+	        DeskWidget.showDeskLink('style', '#contact_content');
 	    };
 	
 	    var displayCsContacts = function displayCsContacts() {
@@ -48030,7 +48428,26 @@
 	        });
 	    };
 	
-	    var showLiveChatIcon = function showLiveChatIcon() {
+	    return {
+	        onLoad: onLoad
+	    };
+	}();
+	
+	module.exports = Contact;
+
+/***/ },
+/* 480 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var localize = __webpack_require__(429).localize;
+	var urlForStatic = __webpack_require__(423).urlForStatic;
+	var loadCSS = __webpack_require__(481).loadCSS;
+	var loadJS = __webpack_require__(482).loadJS;
+	
+	var DeskWidget = function () {
+	    var showDeskLink = function showDeskLink(style, selector) {
 	        if (typeof DESK === 'undefined') {
 	            loadCSS('https://d3jyn100am7dxp.cloudfront.net/assets/widget_embed_191.cssgz?1367387331');
 	            loadJS('https://d3jyn100am7dxp.cloudfront.net/assets/widget_embed_libraries_191.jsgz?1367387332');
@@ -48039,7 +48456,7 @@
 	        var desk_load = setInterval(function () {
 	            if (typeof DESK !== 'undefined') {
 	                renderDeskWidget();
-	                changeChatIcon();
+	                removeChatIcon(style, selector);
 	                clearInterval(desk_load);
 	            }
 	        }, 80);
@@ -48051,80 +48468,59 @@
 	            site: 'binary.desk.com',
 	            port: '80',
 	            type: 'chat',
-	            id: 'live-chat-icon',
+	            id: 'desk-link',
 	            displayMode: 0, // 0 for popup, 1 for lightbox
 	            features: {
 	                offerAlways: true,
 	                offerAgentsOnline: false,
 	                offerRoutingAgentsAvailable: false,
 	                offerEmailIfChatUnavailable: false
-	            },
-	            fields: {
-	                ticket: {
-	                    // desc: &#x27;&#x27;,
-	                    // labels_new: &#x27;&#x27;,
-	                    // priority: &#x27;&#x27;,
-	                    // subject: &#x27;&#x27;,
-	                    // custom_loginid: &#x27;&#x27;
-	                },
-	                interaction: {
-	                    // email: &#x27;&#x27;,
-	                    // name: &#x27;&#x27;
-	                },
-	                chat: {
-	                    // subject: ''
-	                },
-	                customer: {
-	                    // company: &#x27;&#x27;,
-	                    // desc: &#x27;&#x27;,
-	                    // first_name: &#x27;&#x27;,
-	                    // last_name: &#x27;&#x27;,
-	                    // locale_code: &#x27;&#x27;,
-	                    // title: &#x27;&#x27;,
-	                    // custom_loginid: &#x27;&#x27;
-	                }
 	            }
 	        }).render();
 	    };
 	
-	    var changeChatIcon = function changeChatIcon() {
+	    var removeChatIcon = function removeChatIcon(style, selector) {
 	        // desk.com change icon - crude way
-	        if ($('#live-chat-icon').length > 0) {
-	            (function () {
-	                var timer = null;
-	                var image_url = urlForStatic('images/pages/contact/chat-icon.svg');
-	                var updateIcon = function updateIcon() {
-	                    var desk_widget = $('.a-desk-widget');
-	                    var image_str = desk_widget.css('background-image');
-	                    if (image_str) {
-	                        desk_widget.css({
-	                            'background-image': 'url("' + image_url + '")',
-	                            'background-size': 'contain',
-	                            'min-width': 50,
-	                            'min-height': 50,
-	                            width: 'auto'
-	                        });
+	        var timer = null;
+	        var image_url = urlForStatic('images/pages/contact/chat-icon.svg');
+	        var updateIcon = function updateIcon() {
+	            var $desk_widget = $('.a-desk-widget');
+	            var image_str = $desk_widget.css('background-image');
+	            if (image_str) {
+	                if (style) {
+	                    $desk_widget.css({
+	                        'background-image': 'url("' + image_url + '")',
+	                        'background-size': 'contain',
+	                        'min-width': 50,
+	                        'min-height': 50,
+	                        width: 'auto'
+	                    });
+	                } else {
+	                    $desk_widget.removeAttr('style').text(localize('Contact us via live chat'));
+	                }
 	
-	                        if (image_str.match(/live-chat-icon/g)) {
-	                            clearInterval(timer);
-	                        }
-	                    }
-	                    desk_widget.removeAttr('onmouseover onmouseout');
-	                };
-	                timer = setInterval(updateIcon, 500);
-	            })();
-	        }
+	                $desk_widget.attr('href', 'java' + 'script:;');
+	
+	                if (image_str.match(/(none|chat-icon)/g)) {
+	                    clearInterval(timer);
+	                    $('#loading').remove();
+	                    $(selector).setVisibility(1);
+	                }
+	            }
+	            $desk_widget.removeAttr('onmouseover onmouseout');
+	        };
+	        timer = setInterval(updateIcon, 500);
 	    };
 	
 	    return {
-	        onLoad: onLoad
+	        showDeskLink: showDeskLink
 	    };
 	}();
 	
-	module.exports = Contact;
+	module.exports = DeskWidget;
 
 /***/ },
-/* 479 */
+/* 481 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48164,7 +48560,7 @@
 	};
 
 /***/ },
-/* 480 */
+/* 482 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48185,7 +48581,7 @@
 	};
 
 /***/ },
-/* 481 */
+/* 483 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48226,7 +48622,7 @@
 	module.exports = Endpoint;
 
 /***/ },
-/* 482 */
+/* 484 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48296,13 +48692,13 @@
 	module.exports = GetStarted;
 
 /***/ },
-/* 483 */
+/* 485 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var jpClient = __webpack_require__(425).jpClient;
 	
 	var GetStartedJP = function () {
@@ -48367,16 +48763,16 @@
 	module.exports = GetStartedJP;
 
 /***/ },
-/* 484 */
+/* 486 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var getLanguage = __webpack_require__(424).get;
 	var localize = __webpack_require__(429).localize;
 	var urlFor = __webpack_require__(423).urlFor;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	var BinarySocket = __webpack_require__(428);
 	
 	var Home = function () {
@@ -48427,12 +48823,12 @@
 	module.exports = Home;
 
 /***/ },
-/* 485 */
+/* 487 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Validation = __webpack_require__(486);
+	var Validation = __webpack_require__(488);
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
 	var BinarySocket = __webpack_require__(428);
@@ -48574,13 +48970,13 @@
 	module.exports = FormManager;
 
 /***/ },
-/* 486 */
+/* 488 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var localize = __webpack_require__(429).localize;
-	var compareBigUnsignedInt = __webpack_require__(450).compareBigUnsignedInt;
+	var compareBigUnsignedInt = __webpack_require__(451).compareBigUnsignedInt;
 	
 	var Validation = function () {
 	    'use strict';
@@ -48621,7 +49017,7 @@
 	                    } else {
 	                        var $parent = field.$.parent();
 	                        // Add indicator to required fields
-	                        if (field.validations.indexOf('req') >= 0) {
+	                        if (/req/.test(field.validations)) {
 	                            var $label = $parent.parent().find('label');
 	                            if (!$label.length) $label = $parent.find('label');
 	                            if ($label.find('span.required_field_asterisk').length === 0) {
@@ -48755,7 +49151,9 @@
 	        regular: { func: validRegular, message: '' }
 	    };
 	
-	    var pass_length = { min: 6, max: 25 };
+	    var pass_length = function pass_length(type) {
+	        return { min: /^mt$/.test(type) ? 8 : 6, max: 25 };
+	    };
 	
 	    // --------------------
 	    // ----- Validate -----
@@ -48777,10 +49175,10 @@
 	                options = valid[1];
 	            }
 	
-	            if (type === 'password' && !validLength(getFieldValue(field), pass_length)) {
+	            if (type === 'password' && !validLength(getFieldValue(field), pass_length(options))) {
 	                field.is_ok = false;
 	                type = 'length';
-	                options = pass_length;
+	                options = pass_length(options);
 	            } else {
 	                var validator = type === 'custom' ? options.func : validators_map[type].func;
 	                field.is_ok = validator(getFieldValue(field), options, field);
@@ -48846,12 +49244,12 @@
 	module.exports = Validation;
 
 /***/ },
-/* 487 */
+/* 489 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Home = __webpack_require__(484);
+	var Home = __webpack_require__(486);
 	
 	var HomeJP = function () {
 	    'use strict';
@@ -48908,7 +49306,7 @@
 	            return;
 	        }
 	        var window_width = $(window).width();
-	        var width = window_width <= 959 ? window_width <= 480 ? 200 : 600 : 800;
+	        var width = window_width <= 959 ? window_width <= 480 ? 203 : 603 : 800;
 	
 	        // get current visible element
 	        var id_no_current = Number($('.product_visible').attr('id').split(product_prefix)[1]);
@@ -48955,7 +49353,7 @@
 	module.exports = HomeJP;
 
 /***/ },
-/* 488 */
+/* 490 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49028,7 +49426,7 @@
 	module.exports = JobDetails;
 
 /***/ },
-/* 489 */
+/* 491 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49115,7 +49513,7 @@
 	module.exports = Platforms;
 
 /***/ },
-/* 490 */
+/* 492 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49160,14 +49558,14 @@
 	module.exports = Regulation;
 
 /***/ },
-/* 491 */
+/* 493 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var GetStarted = __webpack_require__(482);
+	var GetStarted = __webpack_require__(484);
 	var handleHash = __webpack_require__(417).handleHash;
-	var Scroll = __webpack_require__(492);
+	var Scroll = __webpack_require__(494);
 	
 	module.exports = {
 	    OpenPositions: {
@@ -49207,7 +49605,7 @@
 	};
 
 /***/ },
-/* 492 */
+/* 494 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49334,15 +49732,15 @@
 	module.exports = Scroll;
 
 /***/ },
-/* 493 */
+/* 495 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var localize = __webpack_require__(429).localize;
 	var urlParam = __webpack_require__(423).param;
-	var Scroll = __webpack_require__(492);
-	var TNCApproval = __webpack_require__(494);
+	var Scroll = __webpack_require__(494);
+	var TNCApproval = __webpack_require__(496);
 	
 	var TermsAndConditions = function () {
 	    'use strict';
@@ -49412,15 +49810,15 @@
 	module.exports = TermsAndConditions;
 
 /***/ },
-/* 494 */
+/* 496 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var Header = __webpack_require__(495);
+	var Header = __webpack_require__(497);
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var urlFor = __webpack_require__(423).urlFor;
 	var template = __webpack_require__(417).template;
@@ -49489,23 +49887,23 @@
 	module.exports = TNCApproval;
 
 /***/ },
-/* 495 */
+/* 497 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var GTM = __webpack_require__(465);
+	var GTM = __webpack_require__(466);
 	var localize = __webpack_require__(429).localize;
-	var Login = __webpack_require__(466);
+	var Login = __webpack_require__(467);
 	var State = __webpack_require__(421).State;
 	var urlFor = __webpack_require__(423).urlFor;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var checkClientsCountry = __webpack_require__(425).checkClientsCountry;
 	var jpClient = __webpack_require__(425).jpClient;
 	var BinarySocket = __webpack_require__(428);
-	var MetaTrader = __webpack_require__(496);
+	var MetaTrader = __webpack_require__(498);
 	
 	var Header = function () {
 	    'use strict';
@@ -49613,11 +50011,14 @@
 	                $upgrade_msg.setVisibility(1).find('> span').setVisibility(1).end().find('a').setVisibility(0);
 	
 	                var jp_account_status = (State.get(['response', 'get_settings', 'get_settings', 'jp_account_status']) || {}).status;
-	                if (jp_account_status && show_upgrade_msg) {
+	                if (jp_account_status) {
+	                    var has_disabled_jp = jpClient() && loginid_array.some(function (client) {
+	                        return client.real && client.disabled;
+	                    });
 	                    if (/jp_knowledge_test_(pending|fail)/.test(jp_account_status)) {
 	                        // do not show upgrade for user that filled up form
 	                        showUpgrade('/new_account/knowledge_testws', '{JAPAN ONLY}Take knowledge test');
-	                    } else {
+	                    } else if (show_upgrade_msg || has_disabled_jp && jp_account_status !== 'disabled') {
 	                        $upgrade_msg.setVisibility(1);
 	                        if (jp_account_status === 'jp_activation_pending') {
 	                            if ($('.activation-message').length === 0) {
@@ -49664,9 +50065,15 @@
 	
 	        var $msg_notification = $('#msg_notification');
 	        $msg_notification.html(message).attr({ 'data-message': message, 'data-code': msg_code });
-	        if ($msg_notification.is(':hidden')) $msg_notification.removeClass('error').slideDown(500, function () {
-	            if (is_error) $msg_notification.addClass('error');
-	        });
+	        if ($msg_notification.is(':hidden')) {
+	            $msg_notification.slideDown(500, function () {
+	                if (is_error) $msg_notification.addClass('error');
+	            });
+	        } else if (is_error) {
+	            $msg_notification.addClass('error');
+	        } else {
+	            $msg_notification.removeClass('error');
+	        }
 	    };
 	
 	    var hideNotification = function hideNotification(msg_code) {
@@ -49777,7 +50184,7 @@
 	                    get_account_status = State.get(['response', 'get_account_status', 'get_account_status']) || {};
 	                    status = get_account_status.status;
 	                    if (costarica_landing_company && +Client.get('balance') < 200) {
-	                        BinarySocket.send({ mt5_login_list: 1 }).then(function (response) {
+	                        BinarySocket.wait('mt5_login_list').then(function (response) {
 	                            if (response.mt5_login_list.length) {
 	                                should_authenticate = true;
 	                            }
@@ -49806,16 +50213,17 @@
 	module.exports = Header;
 
 /***/ },
-/* 496 */
+/* 498 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var MetaTraderConfig = __webpack_require__(497);
-	var MetaTraderUI = __webpack_require__(498);
+	var MetaTraderConfig = __webpack_require__(499);
+	var MetaTraderUI = __webpack_require__(500);
 	var BinarySocket = __webpack_require__(428);
+	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var Validation = __webpack_require__(486);
+	var Validation = __webpack_require__(488);
 	
 	var MetaTrader = function () {
 	    'use strict';
@@ -49862,17 +50270,21 @@
 	    };
 	
 	    var getAllAccountsInfo = function getAllAccountsInfo() {
-	        BinarySocket.send({ mt5_login_list: 1 }).then(function (response) {
-	            if (response.mt5_login_list && response.mt5_login_list.length > 0) {
-	                response.mt5_login_list.map(function (obj) {
-	                    var acc_type = getAccountType(obj.group);
-	                    if (acc_type) {
-	                        // ignore old accounts which are not linked to any group
-	                        types_info[acc_type].account_info = { login: obj.login };
-	                        getAccountDetails(obj.login, acc_type);
-	                    }
-	                });
-	            }
+	        BinarySocket.wait('mt5_login_list').then(function (response) {
+	            // Ignore old accounts which are not linked to any group or has deprecated group
+	            var mt5_login_list = (response.mt5_login_list || []).filter(function (obj) {
+	                return obj.group && Client.getMT5AccountType(obj.group) in types_info;
+	            });
+	
+	            // Update account info
+	            mt5_login_list.forEach(function (obj) {
+	                var acc_type = Client.getMT5AccountType(obj.group);
+	                types_info[acc_type].account_info = { login: obj.login };
+	                getAccountDetails(obj.login, acc_type);
+	            });
+	
+	            Client.set('mt5_account', getDefaultAccount(mt5_login_list));
+	
 	            // Update types with no account
 	            Object.keys(types_info).forEach(function (acc_type) {
 	                if (!types_info[acc_type].account_info) {
@@ -49882,8 +50294,17 @@
 	        });
 	    };
 	
+	    var getDefaultAccount = function getDefaultAccount(login_list) {
+	        return Object.keys(types_info).indexOf(location.hash.substring(1)) >= 0 ? location.hash.substring(1) : Client.get('mt5_account') || (login_list && login_list.length ? Client.getMT5AccountType((login_list.find(function (login) {
+	            return (/real/.test(login.group)
+	            );
+	        }) || login_list.find(function (login) {
+	            return (/demo/.test(login.group)
+	            );
+	        }) || {}).group) : 'demo_vanuatu_cent');
+	    };
+	
 	    var getAccountDetails = function getAccountDetails(login, acc_type) {
-	        MetaTraderUI.displayLoadingAccount(acc_type);
 	        BinarySocket.send({
 	            mt5_get_settings: 1,
 	            login: login
@@ -49893,10 +50314,6 @@
 	                MetaTraderUI.updateAccount(acc_type);
 	            }
 	        });
-	    };
-	
-	    var getAccountType = function getAccountType(group) {
-	        return group ? /demo/.test(group) ? 'demo' : group.split('\\')[1] || '' : '';
 	    };
 	
 	    var makeRequestObject = function makeRequestObject(acc_type, action) {
@@ -49939,10 +50356,18 @@
 	                        MetaTraderUI.displayFormMessage(response.error.message);
 	                        MetaTraderUI.enableButton();
 	                    } else {
-	                        MetaTraderUI.closeForm();
+	                        var login = actions_info[action].login ? actions_info[action].login(response) : types_info[acc_type].account_info.login;
+	                        if (!types_info[acc_type].account_info) {
+	                            types_info[acc_type].account_info = { login: login };
+	                        }
+	                        MetaTraderUI.loadAction(null, acc_type);
 	                        MetaTraderUI.displayMainMessage(actions_info[action].success_msg(response));
-	                        getAccountDetails(actions_info[action].login ? actions_info[action].login(response) : types_info[acc_type].account_info.login, acc_type);
+	                        getAccountDetails(login, acc_type);
+	                        if (typeof actions_info[action].onSuccess === 'function') {
+	                            actions_info[action].onSuccess(response, acc_type);
+	                        }
 	                    }
+	                    MetaTraderUI.enableButton();
 	                });
 	            });
 	        }
@@ -49957,29 +50382,32 @@
 	module.exports = MetaTrader;
 
 /***/ },
-/* 497 */
+/* 499 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
+	var GTM = __webpack_require__(466);
 	var localize = __webpack_require__(429).localize;
+	var State = __webpack_require__(421).State;
 	var urlFor = __webpack_require__(423).urlFor;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var MetaTraderConfig = function () {
 	    'use strict';
 	
-	    var currency = 'USD';
-	
 	    var types_info = {
-	        demo: { account_type: 'demo', mt5_account_type: '', title: localize('Demo'), max_leverage: 1000, is_demo: true },
-	        vanuatu_cent: { account_type: 'financial', mt5_account_type: 'cent', title: localize('Real Cent'), max_leverage: 1000 },
-	        vanuatu_standard: { account_type: 'financial', mt5_account_type: 'standard', title: localize('Real Standard'), max_leverage: 300 },
-	        vanuatu_stp: { account_type: 'financial', mt5_account_type: 'stp', title: localize('Real STP'), max_leverage: 100 },
-	        costarica: { account_type: 'gaming', mt5_account_type: '', title: localize('Real Volatility'), max_leverage: 100 }
+	        demo_vanuatu_cent: { account_type: 'demo', mt5_account_type: 'cent', title: localize('Demo Cent'), order: 1, max_leverage: 1000, is_demo: true },
+	        demo_vanuatu_standard: { account_type: 'demo', mt5_account_type: 'standard', title: localize('Demo Standard'), order: 3, max_leverage: 300, is_demo: true },
+	        demo_vanuatu_stp: { account_type: 'demo', mt5_account_type: 'stp', title: localize('Demo STP'), order: 5, max_leverage: 100, is_demo: true },
+	        real_vanuatu_cent: { account_type: 'financial', mt5_account_type: 'cent', title: localize('Real Cent'), order: 2, max_leverage: 1000 },
+	        real_vanuatu_standard: { account_type: 'financial', mt5_account_type: 'standard', title: localize('Real Standard'), order: 4, max_leverage: 300 },
+	        real_vanuatu_stp: { account_type: 'financial', mt5_account_type: 'stp', title: localize('Real STP'), order: 6, max_leverage: 100 },
+	        demo_costarica: { account_type: 'demo', mt5_account_type: '', title: localize('Demo Volatility'), order: 7, max_leverage: 1000, is_demo: true },
+	        real_costarica: { account_type: 'gaming', mt5_account_type: '', title: localize('Real Volatility'), order: 8, max_leverage: 100 }
 	    };
 	
 	    var needsRealMessage = function needsRealMessage() {
@@ -49988,17 +50416,11 @@
 	
 	    var actions_info = {
 	        new_account: {
-	            title: localize('Create Account'),
+	            title: localize('Sign up'),
 	            success_msg: function success_msg(response) {
-	                var acc_type = response.mt5_new_account.account_type;
-	                switch (acc_type) {
-	                    case 'financial':
-	                        acc_type = 'vanuatu_' + response.mt5_new_account.mt5_account_type;break;
-	                    case 'gaming':
-	                        acc_type = 'costarica';break;
-	                    // no default
-	                }
-	                return localize('Congratulations! Your [_1] Account has been created.', [types_info[acc_type].title]);
+	                return localize('Congratulations! Your [_1] Account has been created.', types_info[Object.keys(types_info).find(function (t) {
+	                    return types_info[t].account_type === response.mt5_new_account.account_type && types_info[t].mt5_account_type === (response.mt5_new_account.mt5_account_type || '');
+	                })].title);
 	            },
 	            login: function login(response) {
 	                return response.mt5_new_account.login;
@@ -50029,6 +50451,9 @@
 	                        $(this).remove();
 	                    }
 	                });
+	            },
+	            onSuccess: function onSuccess(response) {
+	                GTM.mt5NewAccount(response);
 	            }
 	        },
 	        password_change: {
@@ -50049,7 +50474,7 @@
 	        deposit: {
 	            title: localize('Deposit'),
 	            success_msg: function success_msg(response) {
-	                return localize('[_1] deposit from [_2] to account number [_3] is done. Transaction ID: [_4]', [formatMoney(currency, response.echo_req.amount), response.echo_req.from_binary, response.echo_req.to_mt5, response.binary_transaction_id]);
+	                return localize('[_1] deposit from [_2] to account number [_3] is done. Transaction ID: [_4]', [formatMoney(State.get(['response', 'authorize', 'authorize', 'currency']), response.echo_req.amount), response.echo_req.from_binary, response.echo_req.to_mt5, response.binary_transaction_id]);
 	            },
 	            prerequisites: function prerequisites() {
 	                return new Promise(function (resolve) {
@@ -50075,7 +50500,7 @@
 	        withdrawal: {
 	            title: localize('Withdraw'),
 	            success_msg: function success_msg(response) {
-	                return localize('[_1] withdrawal from account number [_2] to [_3] is done. Transaction ID: [_4]', [formatMoney(currency, response.echo_req.amount), response.echo_req.from_mt5, response.echo_req.to_binary, response.binary_transaction_id]);
+	                return localize('[_1] withdrawal from account number [_2] to [_3] is done. Transaction ID: [_4]', [formatMoney(State.get(['response', 'authorize', 'authorize', 'currency']), response.echo_req.amount), response.echo_req.from_mt5, response.echo_req.to_binary, response.binary_transaction_id]);
 	            },
 	            prerequisites: function prerequisites(acc_type) {
 	                return new Promise(function (resolve) {
@@ -50083,7 +50508,7 @@
 	                        resolve(needsRealMessage());
 	                    } else if (types_info[acc_type].account_type === 'financial') {
 	                        BinarySocket.send({ get_account_status: 1 }).then(function (response_status) {
-	                            resolve($.inArray('authenticated', response_status.get_account_status.status) === -1 ? $('#msg_authenticate').find('.show_for_mt5').setVisibility(1).end().html() : '');
+	                            resolve($.inArray('authenticated', response_status.get_account_status.status) === -1 ? $('#msg_authenticate').html() : '');
 	                        });
 	                    } else {
 	                        resolve();
@@ -50168,10 +50593,10 @@
 	    };
 	
 	    var validations = {
-	        new_account: [{ selector: fields.new_account.txt_name.id, validations: ['req', 'letter_symbol', ['length', { min: 2, max: 30 }]] }, { selector: fields.new_account.txt_main_pass.id, validations: ['req', 'password'] }, { selector: fields.new_account.txt_re_main_pass.id, validations: ['req', ['compare', { to: fields.new_account.txt_main_pass.id }]] }, { selector: fields.new_account.txt_investor_pass.id, validations: ['req', 'password', ['not_equal', { to: fields.new_account.txt_main_pass.id, name1: 'Main password', name2: 'Investor password' }]] }, { selector: fields.new_account.ddl_leverage.id, validations: ['req'] }, { selector: fields.new_account.chk_tnc.id, validations: [['req', { message: 'Please accept the terms and conditions.' }]] }],
-	        password_change: [{ selector: fields.password_change.txt_old_password.id, validations: ['req'] }, { selector: fields.password_change.txt_new_password.id, validations: ['req', 'password', ['not_equal', { to: fields.password_change.txt_old_password.id, name1: 'Current password', name2: 'New password' }]], re_check_field: fields.password_change.txt_re_new_password.id }, { selector: fields.password_change.txt_re_new_password.id, validations: ['req', ['compare', { to: fields.password_change.txt_new_password.id }]] }],
-	        deposit: [{ selector: fields.deposit.txt_amount.id, validations: ['req', ['number', { type: 'float', min: 1, max: 20000 }]] }],
-	        withdrawal: [{ selector: fields.withdrawal.txt_main_pass.id, validations: ['req'] }, { selector: fields.withdrawal.txt_amount.id, validations: ['req', ['number', { type: 'float', min: 1, max: 20000 }]] }]
+	        new_account: [{ selector: fields.new_account.txt_name.id, validations: ['req', 'letter_symbol', ['length', { min: 2, max: 30 }]] }, { selector: fields.new_account.txt_main_pass.id, validations: ['req', ['password', 'mt']] }, { selector: fields.new_account.txt_re_main_pass.id, validations: ['req', ['compare', { to: fields.new_account.txt_main_pass.id }]] }, { selector: fields.new_account.txt_investor_pass.id, validations: ['req', ['password', 'mt'], ['not_equal', { to: fields.new_account.txt_main_pass.id, name1: 'Main password', name2: 'Investor password' }]] }, { selector: fields.new_account.ddl_leverage.id, validations: ['req'] }, { selector: fields.new_account.chk_tnc.id, validations: [['req', { message: 'Please accept the terms and conditions.' }]] }],
+	        password_change: [{ selector: fields.password_change.txt_old_password.id, validations: ['req'] }, { selector: fields.password_change.txt_new_password.id, validations: ['req', ['password', 'mt'], ['not_equal', { to: fields.password_change.txt_old_password.id, name1: 'Current password', name2: 'New password' }]], re_check_field: fields.password_change.txt_re_new_password.id }, { selector: fields.password_change.txt_re_new_password.id, validations: ['req', ['compare', { to: fields.password_change.txt_new_password.id }]] }],
+	        deposit: [{ selector: fields.deposit.txt_amount.id, validations: ['req', ['number', { type: 'float', min: 1, max: 20000, decimals: '0, 2' }]] }],
+	        withdrawal: [{ selector: fields.withdrawal.txt_main_pass.id, validations: ['req'] }, { selector: fields.withdrawal.txt_amount.id, validations: ['req', ['number', { type: 'float', min: 1, max: 20000, decimals: '0, 2' }]] }]
 	    };
 	
 	    return {
@@ -50185,21 +50610,25 @@
 	module.exports = MetaTraderConfig;
 
 /***/ },
-/* 498 */
+/* 500 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
+	var Client = __webpack_require__(420);
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var Validation = __webpack_require__(486);
-	var MetaTraderConfig = __webpack_require__(497);
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var Validation = __webpack_require__(488);
+	var MetaTraderConfig = __webpack_require__(499);
 	
 	var MetaTraderUI = function () {
 	    'use strict';
 	
 	    var $container = void 0,
+	        $list_cont = void 0,
+	        $mt5_account = void 0,
 	        $list = void 0,
+	        $detail = void 0,
 	        $action = void 0,
 	        $templates = void 0,
 	        _$form = void 0,
@@ -50213,78 +50642,155 @@
 	    var init = function init(submit_func) {
 	        submit = submit_func;
 	        $container = $('#mt_account_management');
-	        $list = $container.find('#accounts_list');
+	        $mt5_account = $container.find('#mt5_account');
+	        $list_cont = $container.find('#accounts_list');
+	        $list = $list_cont.find('> div');
+	        $detail = $container.find('#account_detail');
 	        $action = $container.find('#fst_action');
 	        $templates = $container.find('#templates');
 	        $main_msg = $container.find('#main_msg');
-	        $container.find('#mt_loading').remove();
+	        $detail.find('[class*="act_"]').click(populateForm);
 	
 	        populateAccountList();
 	    };
 	
 	    var populateAccountList = function populateAccountList() {
-	        var $acc_box = $templates.find('> .acc-box');
-	        Object.keys(types_info).forEach(function (acc_type) {
-	            if ($list.find('#' + acc_type).length === 0 && (types_info[acc_type].is_enabled || types_info[acc_type].is_demo)) {
-	                var $acc_item = $acc_box.clone();
-	
-	                // set values
-	                $acc_item.attr('id', acc_type);
-	                $acc_item.find('.title').text(types_info[acc_type].title);
-	
-	                // exceptions for demo account
-	                if (types_info[acc_type].is_demo) {
-	                    $acc_item.find('.act_deposit, .act_withdrawal').remove();
+	        var $acc_name = $templates.find('> .acc-name');
+	        var no_real = Client.get('is_virtual') && !Client.get('has_real');
+	        $container.find('#top_msg').setVisibility(no_real);
+	        Object.keys(types_info).sort(function (a, b) {
+	            return types_info[a].order > types_info[b].order;
+	        }).forEach(function (acc_type, idx) {
+	            if ($list.find('#' + acc_type).length === 0) {
+	                var $acc_item = $acc_name.clone();
+	                $acc_item.attr('value', acc_type);
+	                if (no_real && /real/.test(acc_type)) {
+	                    $acc_item.addClass('disabled');
 	                }
 	                $list.append($acc_item);
+	                if (idx % 2 === 1 && idx < Object.keys(types_info).length - 1) {
+	                    $list.append($('<div/>', { class: 'separator fill-bg-color' }));
+	                }
 	            }
 	        });
-	        $list.find('[class*="act_"]').click(populateForm);
-	        $action.find('.close').click(function () {
-	            closeForm(true);
+	
+	        var hideList = function hideList() {
+	            $list_cont.slideUp('fast', function () {
+	                $mt5_account.removeClass('open');
+	            });
+	        };
+	
+	        // account switch events
+	        $mt5_account.off('click').on('click', function (e) {
+	            e.stopPropagation();
+	            if ($list_cont.is(':hidden')) {
+	                $mt5_account.addClass('open');
+	                $list_cont.slideDown('fast');
+	            } else {
+	                hideList();
+	            }
+	        });
+	        $list.off('click').on('click', '.acc-name', function () {
+	            if (!$(this).hasClass('disabled')) {
+	                setAccountType($(this).attr('value'), true);
+	            }
+	        });
+	        $(document).off('click.mt5_account_list').on('click.mt5_account_list', function () {
+	            hideList();
 	        });
 	    };
 	
-	    var displayLoadingAccount = function displayLoadingAccount(acc_type) {
-	        var $acc_item = $list.find('#' + acc_type);
-	        $acc_item.find('> div > div[class!="title"]').setVisibility(0);
-	        $acc_item.find('.loading').setVisibility(1);
+	    var setAccountType = function setAccountType(acc_type, should_set_account) {
+	        if ($mt5_account.attr('value') !== acc_type) {
+	            Client.set('mt5_account', acc_type);
+	            $mt5_account.attr('value', acc_type).html(types_info[acc_type].title).removeClass('empty');
+	            $action.setVisibility(0);
+	            if (should_set_account) {
+	                setCurrentAccount(acc_type);
+	            }
+	        }
 	    };
 	
 	    var updateAccount = function updateAccount(acc_type) {
-	        var $acc_item = $list.find('#' + acc_type);
-	        $acc_item.find('.loading').setVisibility(0);
+	        updateListItem(acc_type);
+	        setCurrentAccount(acc_type);
+	    };
+	
+	    var updateListItem = function updateListItem(acc_type) {
+	        var $acc_item = $list.find('[value=' + acc_type + ']');
+	        $acc_item.find('.mt-type').text('' + types_info[acc_type].title);
+	        if (types_info[acc_type].account_info) {
+	            $acc_item.find('.mt-login').text(types_info[acc_type].account_info.login);
+	            $acc_item.find('.mt-balance').text(formatMoney('USD', +types_info[acc_type].account_info.balance));
+	            $acc_item.find('.mt-new').setVisibility(0);
+	        } else {
+	            $acc_item.find('.mt-new').setVisibility(1);
+	        }
+	    };
+	
+	    var setCurrentAccount = function setCurrentAccount(acc_type) {
+	        if (acc_type !== Client.get('mt5_account')) return;
+	
+	        $detail.find('#account_desc').html($templates.find('.account-desc .' + acc_type).clone());
+	
 	        if (types_info[acc_type].account_info) {
 	            // Update account info
-	            $acc_item.find('.acc-info div[data]').map(function () {
+	            $detail.find('.acc-info div[data]').map(function () {
 	                var key = $(this).attr('data');
 	                var info = types_info[acc_type].account_info[key];
 	                $(this).text(key === 'balance' ? formatMoney('USD', +info) : key === 'leverage' ? '1:' + info : info);
 	            });
-	            $acc_item.find('.has-account').setVisibility(1);
+	            $detail.find('.act_deposit, .act_withdrawal').setVisibility(!types_info[acc_type].is_demo);
+	            $detail.find('.has-account').setVisibility(1);
+	            $detail.find('#account_desc .more').setVisibility(0);
 	        } else {
-	            $acc_item.find('.no-account').setVisibility(1).find('.info').html($templates.find('#' + acc_type));
+	            $detail.find('.acc-info, .acc-actions').setVisibility(0);
+	        }
+	        $('#mt_loading').remove();
+	        $container.setVisibility(1);
+	
+	        setAccountType(acc_type);
+	
+	        if ($action.hasClass('invisible')) {
+	            loadAction(defaultAction(acc_type));
 	        }
 	    };
 	
+	    var defaultAction = function defaultAction(acc_type) {
+	        return types_info[acc_type].account_info ? types_info[acc_type].is_demo ? 'password_change' : 'deposit' : 'new_account';
+	    };
+	
+	    var loadAction = function loadAction(action, acc_type) {
+	        $detail.find('.acc-actions [class*=act_' + (action || defaultAction(acc_type)) + ']').click();
+	    };
+	
 	    var populateForm = function populateForm(e) {
-	        closeForm();
 	        var $target = $(e.target);
-	        if ($target.prop('tagName').toLowerCase() === 'img') {
+	        if ($target.prop('tagName').toLowerCase() !== 'a') {
 	            $target = $target.parents('a');
 	        }
-	        var acc_type = $target.parents('.acc-box').attr('id');
-	        var action = $target.attr('class').match(/act_(.*)/)[1];
 	
-	        // set active
-	        $list.find('.acc-box[id!="' + acc_type + '"] > div').removeClass('active');
-	        $list.find('#' + acc_type + ' > div').addClass('active');
+	        var acc_type = Client.get('mt5_account');
+	        var action = $target.attr('class').split(' ').find(function (c) {
+	            return (/^act_/.test(c)
+	            );
+	        }).replace('act_', '');
+	
+	        // set active, update title
+	        $detail.find('[class*="act_"]').removeClass('selected');
+	        $target.addClass('selected');
+	        $action.find('h3').text(actions_info[action].title);
 	
 	        actions_info[action].prerequisites(acc_type).then(function (error_msg) {
 	            if (error_msg) {
 	                // does not meet one of prerequisites
 	                displayMainMessage(error_msg);
+	                $action.find('#frm_action').empty().end().setVisibility(1);
 	                return;
+	            }
+	
+	            if (!$action.find('#frm_' + action).length) {
+	                $main_msg.setVisibility(0);
 	            }
 	
 	            // clone form, event listener
@@ -50293,25 +50799,11 @@
 	            if (formValues) formValues(_$form, acc_type, action);
 	            _$form.find('#btn_submit').attr({ acc_type: acc_type, action: action }).on('click dblclick', submit);
 	
-	            // update legend, append form
-	            $action.find('legend').text(types_info[acc_type].title + ': ' + actions_info[action].title).end().find('#frm_action').html(_$form).end().setVisibility(1);
-	            $.scrollTo($action, 500, { offset: -7 });
+	            // append form
+	            $action.find('#frm_action').html(_$form).setVisibility(1).end().setVisibility(1);
+	            // $.scrollTo($action, 500, { offset: -7 });
 	            Validation.init('#frm_' + action, validations[action]);
 	        });
-	    };
-	
-	    var closeForm = function closeForm(should_scroll) {
-	        if (_$form && _$form.length) {
-	            _$form.find('#btn_submit').off('click dblclick', submit);
-	            _$form.empty();
-	            _$form = undefined;
-	            $action.setVisibility(0);
-	            $list.find('.acc-box > div').removeClass('active');
-	            if (should_scroll) {
-	                $.scrollTo($list, 500, { offset: -10 });
-	            }
-	        }
-	        $main_msg.empty().setVisibility(0);
 	    };
 	
 	    var postValidate = function postValidate(acc_type, action) {
@@ -50331,11 +50823,12 @@
 	
 	    var displayMainMessage = function displayMainMessage(message) {
 	        $main_msg.html(message).setVisibility(1);
-	        $.scrollTo($main_msg, 500, { offset: -10 });
+	        $.scrollTo($action, 500, { offset: -80 });
 	    };
 	
 	    var displayPageError = function displayPageError(message) {
-	        $('#mt_account_management').find('#page_msg').html(message).setVisibility(1).end().find('#mt_loading').remove();
+	        $('#page_msg').html(message).setVisibility(1);
+	        $('#mt_loading').remove();
 	    };
 	
 	    var disableButton = function disableButton() {
@@ -50360,9 +50853,8 @@
 	        $form: function $form() {
 	            return _$form;
 	        },
-	        displayLoadingAccount: displayLoadingAccount,
+	        loadAction: loadAction,
 	        updateAccount: updateAccount,
-	        closeForm: closeForm,
 	        postValidate: postValidate,
 	        hideFormMessage: hideFormMessage,
 	        displayFormMessage: displayFormMessage,
@@ -50376,13 +50868,54 @@
 	module.exports = MetaTraderUI;
 
 /***/ },
-/* 499 */
+/* 501 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var BinaryPjax = __webpack_require__(469);
+	var Client = __webpack_require__(420);
+	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
+	var getLoginToken = __webpack_require__(431).getLoginToken;
+	var DeskWidget = __webpack_require__(480);
+	var BinarySocket = __webpack_require__(428);
+	
+	var VideoFacility = function () {
+	    var onLoad = function onLoad() {
+	        BinarySocket.send({ get_account_status: 1 }).then(function (response) {
+	            if (response.error) {
+	                $('#error_message').setVisibility(1).text(response.error.message);
+	            } else {
+	                var status = response.get_account_status.status;
+	                if (/authenticated/.test(status)) {
+	                    BinaryPjax.load(defaultRedirectUrl());
+	                } else {
+	                    DeskWidget.showDeskLink('', '#facility_content');
+	                    if (!Client.isFinancial()) {
+	                        $('#not_authenticated').setVisibility(1);
+	                    }
+	                    $('.msg_authenticate').setVisibility(1);
+	                    $('#generated_token').text(getLoginToken().slice(-4));
+	                }
+	            }
+	        });
+	    };
+	
+	    return {
+	        onLoad: onLoad
+	    };
+	}();
+	
+	module.exports = VideoFacility;
+
+/***/ },
+/* 502 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	var Scroll = __webpack_require__(492);
+	var Scroll = __webpack_require__(494);
 	
 	var WhyUs = function () {
 	    'use strict';
@@ -50405,7 +50938,7 @@
 	module.exports = WhyUs;
 
 /***/ },
-/* 500 */
+/* 503 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50413,7 +50946,7 @@
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var AccountTransfer = function () {
 	    'use strict';
@@ -50530,19 +51063,20 @@
 	module.exports = AccountTransfer;
 
 /***/ },
-/* 501 */
+/* 504 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var Header = __webpack_require__(495);
+	var Header = __webpack_require__(497);
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var urlFor = __webpack_require__(423).urlFor;
 	var jpClient = __webpack_require__(425).jpClient;
 	var jpResidence = __webpack_require__(425).jpResidence;
+	var isCryptocurrency = __webpack_require__(435).isCryptocurrency;
 	
 	var Cashier = function () {
 	    'use strict';
@@ -50579,12 +51113,14 @@
 	            BinarySocket.wait('authorize').then(function () {
 	                Header.upgradeMessageVisibility(); // To handle the upgrade buttons visibility
 	                var is_virtual = Client.get('is_virtual');
+	                var is_crypto = isCryptocurrency(Client.get('currency'));
 	                if (is_virtual) {
 	                    displayTopUpButton();
 	                }
-	                if (is_virtual || /CR/.test(Client.get('loginid'))) {
+	                if (is_virtual || /CR/.test(Client.get('loginid')) && !is_crypto) {
 	                    $('#payment-agent-section').setVisibility(1);
 	                }
+	                $(is_crypto ? '.crypto_currency' : '.normal_currency').setVisibility(1);
 	                if (Client.hasGamingFinancialEnabled()) {
 	                    $('#account-transfer-section').setVisibility(1);
 	                }
@@ -50604,7 +51140,7 @@
 	module.exports = Cashier;
 
 /***/ },
-/* 502 */
+/* 505 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50614,7 +51150,7 @@
 	var localize = __webpack_require__(429).localize;
 	var template = __webpack_require__(417).template;
 	var appendTextValueChild = __webpack_require__(431).appendTextValueChild;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var DepositWithdraw = function () {
 	    'use strict';
@@ -50828,7 +51364,7 @@
 	module.exports = DepositWithdraw;
 
 /***/ },
-/* 503 */
+/* 506 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50963,7 +51499,7 @@
 	module.exports = PaymentAgentList;
 
 /***/ },
-/* 504 */
+/* 507 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50971,7 +51507,7 @@
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	var Cookies = __webpack_require__(422);
 	
 	var PaymentAgentWithdraw = function () {
@@ -51119,22 +51655,22 @@
 	module.exports = PaymentAgentWithdraw;
 
 /***/ },
-/* 505 */
+/* 508 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var MBContract = __webpack_require__(304);
-	var MBDisplayCurrencies = __webpack_require__(506);
-	var MBTradingEvents = __webpack_require__(507);
+	var MBDisplayCurrencies = __webpack_require__(509);
+	var MBTradingEvents = __webpack_require__(510);
 	var MBPrice = __webpack_require__(303);
-	var MBProcess = __webpack_require__(508);
+	var MBProcess = __webpack_require__(511);
 	var BinarySocket = __webpack_require__(428);
-	var TradingAnalysis = __webpack_require__(509);
-	var chartFrameCleanup = __webpack_require__(510).chartFrameCleanup;
+	var TradingAnalysis = __webpack_require__(512);
+	var chartFrameCleanup = __webpack_require__(513).chartFrameCleanup;
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
-	var JapanPortfolio = __webpack_require__(511);
+	var JapanPortfolio = __webpack_require__(514);
 	
 	var MBTradePage = function () {
 	    'use strict';
@@ -51198,7 +51734,7 @@
 	module.exports = MBTradePage;
 
 /***/ },
-/* 506 */
+/* 509 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -51207,7 +51743,7 @@
 	var Client = __webpack_require__(420);
 	var State = __webpack_require__(421).State;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatCurrency = __webpack_require__(434).formatCurrency;
+	var formatCurrency = __webpack_require__(435).formatCurrency;
 	
 	/*
 	 * Handles currency display
@@ -51258,20 +51794,20 @@
 	module.exports = MBDisplayCurrencies;
 
 /***/ },
-/* 507 */
+/* 510 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var MBContract = __webpack_require__(304);
 	var MBDefaults = __webpack_require__(416);
-	var MBNotifications = __webpack_require__(435);
-	var MBProcess = __webpack_require__(508);
-	var MBTick = __webpack_require__(463);
-	var TradingAnalysis = __webpack_require__(509);
-	var debounce = __webpack_require__(446).debounce;
+	var MBNotifications = __webpack_require__(436);
+	var MBProcess = __webpack_require__(511);
+	var MBTick = __webpack_require__(464);
+	var TradingAnalysis = __webpack_require__(512);
+	var debounce = __webpack_require__(447).debounce;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	/*
 	 * TradingEvents object contains all the event handler function required for
@@ -51432,21 +51968,21 @@
 	module.exports = MBTradingEvents;
 
 /***/ },
-/* 508 */
+/* 511 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var MBContract = __webpack_require__(304);
 	var MBDefaults = __webpack_require__(416);
-	var MBNotifications = __webpack_require__(435);
+	var MBNotifications = __webpack_require__(436);
 	var MBPrice = __webpack_require__(303);
 	var MBSymbols = __webpack_require__(418);
-	var MBTick = __webpack_require__(463);
+	var MBTick = __webpack_require__(464);
 	var BinarySocket = __webpack_require__(428);
-	var TradingAnalysis = __webpack_require__(509);
-	var commonTrading = __webpack_require__(446);
-	var BinaryPjax = __webpack_require__(468);
+	var TradingAnalysis = __webpack_require__(512);
+	var commonTrading = __webpack_require__(447);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var getLanguage = __webpack_require__(424).get;
 	var localize = __webpack_require__(429).localize;
@@ -51810,20 +52346,20 @@
 	module.exports = MBProcess;
 
 /***/ },
-/* 509 */
+/* 512 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var showHighchart = __webpack_require__(510).showHighchart;
-	var Defaults = __webpack_require__(441);
-	var getActiveTab = __webpack_require__(459).getActiveTab;
-	var GetTicks = __webpack_require__(442);
+	var showHighchart = __webpack_require__(513).showHighchart;
+	var Defaults = __webpack_require__(442);
+	var getActiveTab = __webpack_require__(460).getActiveTab;
+	var GetTicks = __webpack_require__(443);
 	var MBDefaults = __webpack_require__(416);
 	var getLanguage = __webpack_require__(424).get;
 	var State = __webpack_require__(421).State;
 	var Url = __webpack_require__(423);
-	var JapanPortfolio = __webpack_require__(511);
+	var JapanPortfolio = __webpack_require__(514);
 	
 	/*
 	 * This file contains the code related to loading of trading page bottom analysis
@@ -51987,7 +52523,7 @@
 	module.exports = TradingAnalysis;
 
 /***/ },
-/* 510 */
+/* 513 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -52045,14 +52581,14 @@
 	module.exports = ChartFrame;
 
 /***/ },
-/* 511 */
+/* 514 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
 	var State = __webpack_require__(421).State;
-	var PortfolioInit = __webpack_require__(512);
+	var PortfolioInit = __webpack_require__(515);
 	
 	var JapanPortfolio = function () {
 	    var $portfolio = void 0,
@@ -52106,22 +52642,22 @@
 	module.exports = JapanPortfolio;
 
 /***/ },
-/* 512 */
+/* 515 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Portfolio = __webpack_require__(513).Portfolio;
-	var ViewPopup = __webpack_require__(436);
+	var Portfolio = __webpack_require__(516).Portfolio;
+	var ViewPopup = __webpack_require__(437);
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
 	var localize = __webpack_require__(429).localize;
 	var urlParam = __webpack_require__(423).param;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var GetAppDetails = __webpack_require__(514);
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var GetAppDetails = __webpack_require__(517);
 	
 	var PortfolioInit = function () {
 	    'use strict';
@@ -52335,13 +52871,13 @@
 	module.exports = PortfolioInit;
 
 /***/ },
-/* 513 */
+/* 516 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	var jpClient = __webpack_require__(425).jpClient;
 	
 	var Portfolio = function () {
@@ -52406,7 +52942,7 @@
 	};
 
 /***/ },
-/* 514 */
+/* 517 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -52444,17 +52980,17 @@
 	};
 
 /***/ },
-/* 515 */
+/* 518 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var AssetIndex = __webpack_require__(516);
+	var AssetIndex = __webpack_require__(519);
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var State = __webpack_require__(421).State;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
-	var Table = __webpack_require__(517);
+	var Table = __webpack_require__(520);
 	var jqueryuiTabsToDropdown = __webpack_require__(431).jqueryuiTabsToDropdown;
 	var jpClient = __webpack_require__(425).jpClient;
 	
@@ -52512,7 +53048,10 @@
 	
 	        $container.empty().append($tabs).append($contents.children());
 	
-	        $container.tabs('destroy').tabs();
+	        if ($container.is(':ui-tabs')) {
+	            $container.tabs('destroy');
+	        }
+	        $container.tabs();
 	
 	        if (is_framed) {
 	            $container.find('ul').hide();
@@ -52598,7 +53137,7 @@
 	module.exports = AssetIndexUI;
 
 /***/ },
-/* 516 */
+/* 519 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -52689,7 +53228,7 @@
 	module.exports = AssetIndex;
 
 /***/ },
-/* 517 */
+/* 520 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -52817,24 +53356,24 @@
 	module.exports = Table;
 
 /***/ },
-/* 518 */
+/* 521 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var TradingTimes = __webpack_require__(519);
+	var TradingTimes = __webpack_require__(522);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
-	var Table = __webpack_require__(517);
+	var Table = __webpack_require__(520);
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
 	var jqueryuiTabsToDropdown = __webpack_require__(431).jqueryuiTabsToDropdown;
 	var jpClient = __webpack_require__(425).jpClient;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
-	var toReadableFormat = __webpack_require__(450).toReadableFormat;
-	var DatePicker = __webpack_require__(520);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
+	var toReadableFormat = __webpack_require__(451).toReadableFormat;
+	var DatePicker = __webpack_require__(523);
 	
 	var TradingTimesUI = function () {
 	    'use strict';
@@ -52912,7 +53451,10 @@
 	
 	        $container.empty().append($ul).append($contents.children());
 	
-	        $container.tabs('destroy').tabs();
+	        if ($container.is(':ui-tabs')) {
+	            $container.tabs('destroy');
+	        }
+	        $container.tabs();
 	
 	        if (is_framed) {
 	            $container.find('ul').hide();
@@ -53022,7 +53564,7 @@
 	module.exports = TradingTimesUI;
 
 /***/ },
-/* 519 */
+/* 522 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -53051,7 +53593,7 @@
 	module.exports = TradingTimes;
 
 /***/ },
-/* 520 */
+/* 523 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -53061,8 +53603,8 @@
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var clearable = __webpack_require__(417).clearable;
 	var checkInput = __webpack_require__(431).checkInput;
-	var toReadableFormat = __webpack_require__(450).toReadableFormat;
-	var padLeft = __webpack_require__(450).padLeft;
+	var toReadableFormat = __webpack_require__(451).toReadableFormat;
+	var padLeft = __webpack_require__(451).padLeft;
 	
 	var DatePicker = function () {
 	    'use strict';
@@ -53195,7 +53737,7 @@
 	            }
 	            if (checkInput('date', 'not-a-date') && $selector.attr('data-picker') !== 'native') {
 	                hide(selector);
-	                $selector.attr({ type: 'date', 'data-picker': 'native' }).val($selector.attr('data-value'));
+	                $selector.attr({ type: 'date', 'data-picker': 'native' }).val($selector.attr('data-value')).removeClass('clear');
 	                if ($selector.attr('readonly')) $selector.attr('data-readonly', 'readonly').removeAttr('readonly');
 	                if (date_picker_conf.minDate !== undefined) $selector.attr('min', toDate(date_picker_conf.minDate));
 	                if (date_picker_conf.maxDate !== undefined) $selector.attr('max', toDate(date_picker_conf.maxDate));
@@ -53207,6 +53749,9 @@
 	            var format_value = value && date_picker_conf.type !== 'diff' ? toReadableFormat(moment(value)) : $selector.val();
 	            $selector.attr({ type: 'text', 'data-picker': 'jquery', 'data-value': value }).removeAttr('min max').val(format_value);
 	            if ($selector.attr('data-readonly')) $selector.attr('readonly', 'readonly').removeAttr('data-readonly');
+	            if ($selector.attr('data-value') && $selector.hasClass('clearable')) {
+	                clearable($selector);
+	            }
 	            create(selector);
 	        }
 	    };
@@ -53220,27 +53765,27 @@
 	module.exports = DatePicker;
 
 /***/ },
-/* 521 */
+/* 524 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var TradingAnalysis_Beta = __webpack_require__(522);
-	var TradingEvents_Beta = __webpack_require__(523);
-	var Price_Beta = __webpack_require__(525);
-	var Process_Beta = __webpack_require__(526);
-	var commonTrading = __webpack_require__(446);
-	var chartFrameCleanup = __webpack_require__(510).chartFrameCleanup;
-	var displayCurrencies = __webpack_require__(530);
-	var Defaults = __webpack_require__(441);
+	var TradingAnalysis_Beta = __webpack_require__(525);
+	var TradingEvents_Beta = __webpack_require__(526);
+	var Price_Beta = __webpack_require__(528);
+	var Process_Beta = __webpack_require__(529);
+	var commonTrading = __webpack_require__(447);
+	var chartFrameCleanup = __webpack_require__(513).chartFrameCleanup;
+	var displayCurrencies = __webpack_require__(533);
+	var Defaults = __webpack_require__(442);
 	var BinarySocket = __webpack_require__(428);
-	var PortfolioInit = __webpack_require__(512);
-	var ViewPopup = __webpack_require__(436);
-	var BinaryPjax = __webpack_require__(468);
+	var PortfolioInit = __webpack_require__(515);
+	var ViewPopup = __webpack_require__(437);
+	var BinaryPjax = __webpack_require__(469);
 	var State = __webpack_require__(421).State;
 	var jpClient = __webpack_require__(425).jpClient;
-	var Guide = __webpack_require__(531);
-	var ResizeSensor = __webpack_require__(536);
+	var Guide = __webpack_require__(534);
+	var ResizeSensor = __webpack_require__(539);
 	
 	var TradePage_Beta = function () {
 	    'use strict';
@@ -53425,19 +53970,19 @@
 	module.exports = TradePage_Beta;
 
 /***/ },
-/* 522 */
+/* 525 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Defaults = __webpack_require__(441);
-	var showHighchart = __webpack_require__(510).showHighchart;
-	var getActiveTab = __webpack_require__(459).getActiveTab_Beta;
-	var GetTicks = __webpack_require__(442);
+	var Defaults = __webpack_require__(442);
+	var showHighchart = __webpack_require__(513).showHighchart;
+	var getActiveTab = __webpack_require__(460).getActiveTab_Beta;
+	var GetTicks = __webpack_require__(443);
 	var MBDefaults = __webpack_require__(416);
-	var AssetIndexUI = __webpack_require__(515);
-	var TradingTimesUI = __webpack_require__(518);
-	var PortfolioInit = __webpack_require__(512);
+	var AssetIndexUI = __webpack_require__(518);
+	var TradingTimesUI = __webpack_require__(521);
+	var PortfolioInit = __webpack_require__(515);
 	var Client = __webpack_require__(420);
 	var getLanguage = __webpack_require__(424).get;
 	var State = __webpack_require__(421).State;
@@ -53620,33 +54165,33 @@
 	module.exports = TradingAnalysis_Beta;
 
 /***/ },
-/* 523 */
+/* 526 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var TradingAnalysis_Beta = __webpack_require__(522);
-	var Barriers_Beta = __webpack_require__(451);
-	var Durations_Beta = __webpack_require__(524);
-	var Price_Beta = __webpack_require__(525);
-	var Process_Beta = __webpack_require__(526);
-	var Purchase_Beta = __webpack_require__(456);
-	var chartFrameSource = __webpack_require__(510).chartFrameSource;
-	var Defaults = __webpack_require__(441);
-	var GetTicks = __webpack_require__(442);
-	var Tick = __webpack_require__(449);
-	var commonTrading = __webpack_require__(446);
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var Notifications = __webpack_require__(447);
+	var TradingAnalysis_Beta = __webpack_require__(525);
+	var Barriers_Beta = __webpack_require__(452);
+	var Durations_Beta = __webpack_require__(527);
+	var Price_Beta = __webpack_require__(528);
+	var Process_Beta = __webpack_require__(529);
+	var Purchase_Beta = __webpack_require__(457);
+	var chartFrameSource = __webpack_require__(513).chartFrameSource;
+	var Defaults = __webpack_require__(442);
+	var GetTicks = __webpack_require__(443);
+	var Tick = __webpack_require__(450);
+	var commonTrading = __webpack_require__(447);
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var Notifications = __webpack_require__(448);
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
-	var GTM = __webpack_require__(465);
+	var BinaryPjax = __webpack_require__(469);
+	var GTM = __webpack_require__(466);
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var onlyNumericOnKeypress = __webpack_require__(528);
-	var TimePicker = __webpack_require__(529);
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var onlyNumericOnKeypress = __webpack_require__(531);
+	var TimePicker = __webpack_require__(532);
 	
 	/*
 	 * TradingEvents object contains all the event handler function for
@@ -54060,26 +54605,26 @@
 	module.exports = TradingEvents_Beta;
 
 /***/ },
-/* 524 */
+/* 527 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var Barriers_Beta = __webpack_require__(451);
-	var Contract_Beta = __webpack_require__(452);
-	var Price_Beta = __webpack_require__(525);
-	var commonTrading = __webpack_require__(446);
-	var processTradingTimesAnswer = __webpack_require__(444).processTradingTimesAnswer;
-	var Defaults = __webpack_require__(441);
+	var Barriers_Beta = __webpack_require__(452);
+	var Contract_Beta = __webpack_require__(453);
+	var Price_Beta = __webpack_require__(528);
+	var commonTrading = __webpack_require__(447);
+	var processTradingTimesAnswer = __webpack_require__(445).processTradingTimesAnswer;
+	var Defaults = __webpack_require__(442);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
-	var toReadableFormat = __webpack_require__(450).toReadableFormat;
-	var DatePicker = __webpack_require__(520);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
+	var toReadableFormat = __webpack_require__(451).toReadableFormat;
+	var DatePicker = __webpack_require__(523);
 	
 	/*
 	 * Handles duration processing display
@@ -54503,7 +55048,7 @@
 	module.exports = Durations_Beta;
 
 /***/ },
-/* 525 */
+/* 528 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -54511,17 +55056,17 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var moment = __webpack_require__(305);
-	var Contract_Beta = __webpack_require__(452);
-	var commonTrading = __webpack_require__(446);
-	var displayPriceMovement = __webpack_require__(444).displayPriceMovement;
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var getTradingTimes = __webpack_require__(444).getTradingTimes;
-	var Defaults = __webpack_require__(441);
+	var Contract_Beta = __webpack_require__(453);
+	var commonTrading = __webpack_require__(447);
+	var displayPriceMovement = __webpack_require__(445).displayPriceMovement;
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var getTradingTimes = __webpack_require__(445).getTradingTimes;
+	var Defaults = __webpack_require__(442);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	/*
 	 * Price object handles all the functions we need to display prices
@@ -54825,7 +55370,7 @@
 	module.exports = Price_Beta;
 
 /***/ },
-/* 526 */
+/* 529 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -54833,20 +55378,20 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var moment = __webpack_require__(305);
-	var TradingAnalysis_Beta = __webpack_require__(522);
-	var Contract_Beta = __webpack_require__(452);
-	var Durations_Beta = __webpack_require__(524);
-	var Price_Beta = __webpack_require__(525);
-	var StartDates_Beta = __webpack_require__(527);
-	var commonTrading = __webpack_require__(446);
-	var Defaults = __webpack_require__(441);
-	var GetTicks = __webpack_require__(442);
-	var Notifications = __webpack_require__(447);
-	var Symbols = __webpack_require__(448);
-	var Tick = __webpack_require__(449);
+	var TradingAnalysis_Beta = __webpack_require__(525);
+	var Contract_Beta = __webpack_require__(453);
+	var Durations_Beta = __webpack_require__(527);
+	var Price_Beta = __webpack_require__(528);
+	var StartDates_Beta = __webpack_require__(530);
+	var commonTrading = __webpack_require__(447);
+	var Defaults = __webpack_require__(442);
+	var GetTicks = __webpack_require__(443);
+	var Notifications = __webpack_require__(448);
+	var Symbols = __webpack_require__(449);
+	var Tick = __webpack_require__(450);
 	var BinarySocket = __webpack_require__(428);
-	var AssetIndexUI = __webpack_require__(515);
-	var TradingTimesUI = __webpack_require__(518);
+	var AssetIndexUI = __webpack_require__(518);
+	var TradingTimesUI = __webpack_require__(521);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var elementInnerHtml = __webpack_require__(431).elementInnerHtml;
@@ -55111,16 +55656,16 @@
 	module.exports = Process_Beta;
 
 /***/ },
-/* 527 */
+/* 530 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var Contract_Beta = __webpack_require__(452);
-	var Durations_Beta = __webpack_require__(524);
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var Defaults = __webpack_require__(441);
+	var Contract_Beta = __webpack_require__(453);
+	var Durations_Beta = __webpack_require__(527);
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var Defaults = __webpack_require__(442);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	
@@ -55232,7 +55777,7 @@
 	module.exports = StartDates_Beta;
 
 /***/ },
-/* 528 */
+/* 531 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -55254,7 +55799,7 @@
 	module.exports = onlyNumericOnKeypress;
 
 /***/ },
-/* 529 */
+/* 532 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -55263,7 +55808,7 @@
 	var localize = __webpack_require__(429).localize;
 	var clearable = __webpack_require__(417).clearable;
 	var checkInput = __webpack_require__(431).checkInput;
-	var padLeft = __webpack_require__(450).padLeft;
+	var padLeft = __webpack_require__(451).padLeft;
 	
 	var TimePicker = function () {
 	    'use strict';
@@ -55281,7 +55826,7 @@
 	    };
 	
 	    var hide = function hide(selector) {
-	        $(selector).timepicker('destroy').removeAttr('data-picker').off('keydown');
+	        $(selector).timepicker('destroy').removeAttr('data-picker').off('keydown keyup input');
 	    };
 	
 	    var create = function create(selector) {
@@ -55379,7 +55924,7 @@
 	        var time_picker_conf = time_pickers[selector].config_data;
 	        if ($(window).width() < 770 && checkInput('time', 'not-a-time') && $selector.attr('data-picker') !== 'native') {
 	            hide(selector);
-	            $selector.attr({ type: 'time', 'data-picker': 'native' }).removeAttr('readonly');
+	            $selector.attr({ type: 'time', 'data-picker': 'native' }).val($selector.attr('data-value')).removeAttr('readonly').removeClass('clear');
 	
 	            var minTime = time_picker_conf.minTime;
 	            if (minTime) $selector.attr('min', toTime(minTime));
@@ -55391,6 +55936,9 @@
 	        if ($(window).width() > 769 && $selector.attr('data-picker') !== 'jquery' || $(window).width() < 770 && !checkInput('time', 'not-a-time')) {
 	            $selector.attr({ type: 'text', 'data-picker': 'jquery', readonly: 'readonly' });
 	            $selector.removeAttr('min max');
+	            if ($selector.attr('data-value') && $selector.hasClass('clearable')) {
+	                clearable($selector);
+	            }
 	            create(selector);
 	        }
 	    };
@@ -55403,14 +55951,14 @@
 	module.exports = TimePicker;
 
 /***/ },
-/* 530 */
+/* 533 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Defaults = __webpack_require__(441);
+	var Defaults = __webpack_require__(442);
 	var Client = __webpack_require__(420);
-	var formatCurrency = __webpack_require__(434).formatCurrency;
+	var formatCurrency = __webpack_require__(435).formatCurrency;
 	
 	/*
 	 * Handles currency display
@@ -55455,13 +56003,13 @@
 	module.exports = displayCurrencies;
 
 /***/ },
-/* 531 */
+/* 534 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var localize = __webpack_require__(429).localize;
-	var EnjoyHint = __webpack_require__(532);
+	var EnjoyHint = __webpack_require__(535);
 	var Cookies = __webpack_require__(422);
 	
 	/*
@@ -55610,7 +56158,7 @@
 	module.exports = Guide;
 
 /***/ },
-/* 532 */
+/* 535 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -55621,7 +56169,7 @@
 	// (+ some custom changes for binary.com)
 	
 	var $ = __webpack_require__(1);
-	var Kinetic = __webpack_require__(533);
+	var Kinetic = __webpack_require__(536);
 	
 	module.exports = function (_options) {
 	    var that = this;
@@ -56605,7 +57153,7 @@
 	};
 
 /***/ },
-/* 533 */
+/* 536 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -57211,8 +57759,8 @@
 	            // Node. Does not work with strict CommonJS, but
 	            // only CommonJS-like enviroments that support module.exports,
 	            // like Node.
-	            var Canvas = __webpack_require__(534);
-	            var jsdom = __webpack_require__(535).jsdom;
+	            var Canvas = __webpack_require__(537);
+	            var jsdom = __webpack_require__(538).jsdom;
 	
 	            Kinetic.document = jsdom('<!DOCTYPE html><html><head></head><body></body></html>');
 	            Kinetic.window = Kinetic.document.createWindow();
@@ -71750,19 +72298,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 534 */
+/* 537 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 535 */
+/* 538 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 536 */
+/* 539 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;"use strict";
@@ -71979,26 +72527,26 @@
 	});
 
 /***/ },
-/* 537 */
+/* 540 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var TradingAnalysis = __webpack_require__(509);
-	var commonTrading = __webpack_require__(446);
-	var chartFrameCleanup = __webpack_require__(510).chartFrameCleanup;
-	var displayCurrencies = __webpack_require__(530);
-	var Defaults = __webpack_require__(441);
-	var TradingEvents = __webpack_require__(538);
-	var Price = __webpack_require__(540);
-	var Process = __webpack_require__(541);
+	var TradingAnalysis = __webpack_require__(512);
+	var commonTrading = __webpack_require__(447);
+	var chartFrameCleanup = __webpack_require__(513).chartFrameCleanup;
+	var displayCurrencies = __webpack_require__(533);
+	var Defaults = __webpack_require__(442);
+	var TradingEvents = __webpack_require__(541);
+	var Price = __webpack_require__(543);
+	var Process = __webpack_require__(544);
 	var BinarySocket = __webpack_require__(428);
-	var ViewPopup = __webpack_require__(436);
-	var BinaryPjax = __webpack_require__(468);
+	var ViewPopup = __webpack_require__(437);
+	var BinaryPjax = __webpack_require__(469);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var jpClient = __webpack_require__(425).jpClient;
-	var Guide = __webpack_require__(531);
+	var Guide = __webpack_require__(534);
 	
 	var TradePage = function () {
 	    'use strict';
@@ -72007,6 +72555,12 @@
 	    State.remove('is_trading');
 	
 	    var onLoad = function onLoad() {
+	        BinarySocket.wait('authorize').then(function () {
+	            init();
+	        });
+	    };
+	
+	    var init = function init() {
 	        if (jpClient()) {
 	            BinaryPjax.load('multi_barriers_trading');
 	            return;
@@ -72074,33 +72628,33 @@
 	module.exports = TradePage;
 
 /***/ },
-/* 538 */
+/* 541 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var TradingAnalysis = __webpack_require__(509);
-	var Barriers = __webpack_require__(443);
-	var commonTrading = __webpack_require__(446);
-	var chartFrameSource = __webpack_require__(510).chartFrameSource;
-	var Defaults = __webpack_require__(441);
-	var Durations = __webpack_require__(539);
-	var GetTicks = __webpack_require__(442);
-	var Notifications = __webpack_require__(447);
-	var Price = __webpack_require__(540);
-	var Process = __webpack_require__(541);
-	var Purchase = __webpack_require__(460);
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var Tick = __webpack_require__(449);
+	var TradingAnalysis = __webpack_require__(512);
+	var Barriers = __webpack_require__(444);
+	var commonTrading = __webpack_require__(447);
+	var chartFrameSource = __webpack_require__(513).chartFrameSource;
+	var Defaults = __webpack_require__(442);
+	var Durations = __webpack_require__(542);
+	var GetTicks = __webpack_require__(443);
+	var Notifications = __webpack_require__(448);
+	var Price = __webpack_require__(543);
+	var Process = __webpack_require__(544);
+	var Purchase = __webpack_require__(461);
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var Tick = __webpack_require__(450);
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
-	var GTM = __webpack_require__(465);
+	var BinaryPjax = __webpack_require__(469);
+	var GTM = __webpack_require__(466);
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var onlyNumericOnKeypress = __webpack_require__(528);
-	var TimePicker = __webpack_require__(529);
+	var getDecimalPlaces = __webpack_require__(435).getDecimalPlaces;
+	var onlyNumericOnKeypress = __webpack_require__(531);
+	var TimePicker = __webpack_require__(532);
 	
 	/*
 	 * TradingEvents object contains all the event handler function for
@@ -72308,7 +72862,7 @@
 	            amount_element.addEventListener('input', commonTrading.debounce(function (e) {
 	                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
 	                if (isStandardFloat(e.target.value)) {
-	                    e.target.value = formatMoney(Defaults.get('currency'), parseFloat(e.target.value), 1);
+	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency'), e.target.value));
 	                }
 	                Defaults.set('amount', e.target.value);
 	                Price.processPriceRequest();
@@ -72520,26 +73074,26 @@
 	module.exports = TradingEvents;
 
 /***/ },
-/* 539 */
+/* 542 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var Barriers = __webpack_require__(443);
-	var commonTrading = __webpack_require__(446);
-	var commonIndependent = __webpack_require__(444);
-	var Contract = __webpack_require__(445);
-	var Defaults = __webpack_require__(441);
-	var Price = __webpack_require__(540);
+	var Barriers = __webpack_require__(444);
+	var commonTrading = __webpack_require__(447);
+	var commonIndependent = __webpack_require__(445);
+	var Contract = __webpack_require__(446);
+	var Defaults = __webpack_require__(442);
+	var Price = __webpack_require__(543);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
-	var toReadableFormat = __webpack_require__(450).toReadableFormat;
-	var DatePicker = __webpack_require__(520);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
+	var toReadableFormat = __webpack_require__(451).toReadableFormat;
+	var DatePicker = __webpack_require__(523);
 	
 	/*
 	 * Handles duration processing display
@@ -72961,7 +73515,7 @@
 	module.exports = Durations;
 
 /***/ },
-/* 540 */
+/* 543 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -72969,17 +73523,17 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var moment = __webpack_require__(305);
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var commonTrading = __webpack_require__(446);
-	var displayPriceMovement = __webpack_require__(444).displayPriceMovement;
-	var getTradingTimes = __webpack_require__(444).getTradingTimes;
-	var Contract = __webpack_require__(445);
-	var Defaults = __webpack_require__(441);
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var commonTrading = __webpack_require__(447);
+	var displayPriceMovement = __webpack_require__(445).displayPriceMovement;
+	var getTradingTimes = __webpack_require__(445).getTradingTimes;
+	var Contract = __webpack_require__(446);
+	var Defaults = __webpack_require__(442);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
 	var isVisible = __webpack_require__(431).isVisible;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	/*
 	 * Price object handles all the functions we need to display prices
@@ -73280,7 +73834,7 @@
 	module.exports = Price;
 
 /***/ },
-/* 541 */
+/* 544 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -73288,18 +73842,18 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var moment = __webpack_require__(305);
-	var TradingAnalysis = __webpack_require__(509);
-	var commonTrading = __webpack_require__(446);
-	var processTradingTimesAnswer = __webpack_require__(444).processTradingTimesAnswer;
-	var Contract = __webpack_require__(445);
-	var Defaults = __webpack_require__(441);
-	var Durations = __webpack_require__(539);
-	var GetTicks = __webpack_require__(442);
-	var Notifications = __webpack_require__(447);
-	var Price = __webpack_require__(540);
-	var StartDates = __webpack_require__(542).StartDates;
-	var Symbols = __webpack_require__(448);
-	var Tick = __webpack_require__(449);
+	var TradingAnalysis = __webpack_require__(512);
+	var commonTrading = __webpack_require__(447);
+	var processTradingTimesAnswer = __webpack_require__(445).processTradingTimesAnswer;
+	var Contract = __webpack_require__(446);
+	var Defaults = __webpack_require__(442);
+	var Durations = __webpack_require__(542);
+	var GetTicks = __webpack_require__(443);
+	var Notifications = __webpack_require__(448);
+	var Price = __webpack_require__(543);
+	var StartDates = __webpack_require__(545).StartDates;
+	var Symbols = __webpack_require__(449);
+	var Tick = __webpack_require__(450);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
@@ -73459,7 +74013,8 @@
 	            Durations.display();
 	        }
 	
-	        if (Defaults.get('amount')) $('#amount').val(Defaults.get('amount'));else Defaults.set('amount', document.getElementById('amount').value);
+	        var currency = Defaults.get('currency') || document.getElementById('currency').value;
+	        if (Defaults.get('amount')) $('#amount').val(Defaults.get('amount'));else Defaults.set('amount', /btc/i.test(currency) ? 0.005 : document.getElementById('amount').value);
 	        if (Defaults.get('amount_type')) commonTrading.selectOption(Defaults.get('amount_type'), document.getElementById('amount_type'));else Defaults.set('amount_type', document.getElementById('amount_type').value);
 	        if (Defaults.get('currency')) commonTrading.selectOption(Defaults.get('currency'), document.getElementById('currency'));
 	
@@ -73570,16 +74125,16 @@
 	module.exports = Process;
 
 /***/ },
-/* 542 */
+/* 545 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var getStartDateNode = __webpack_require__(444).getStartDateNode;
-	var Contract = __webpack_require__(445);
-	var Defaults = __webpack_require__(441);
-	var Durations = __webpack_require__(539);
+	var getStartDateNode = __webpack_require__(445).getStartDateNode;
+	var Contract = __webpack_require__(446);
+	var Defaults = __webpack_require__(442);
+	var Durations = __webpack_require__(542);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	
@@ -73693,11 +74248,12 @@
 	};
 
 /***/ },
-/* 543 */
+/* 546 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
+	var Client = __webpack_require__(420);
 	var BinarySocket = __webpack_require__(428);
 	
 	var Authenticate = function () {
@@ -73714,7 +74270,11 @@
 	                if (authenticated && age_verified) {
 	                    $('#fully_authenticated').setVisibility(1);
 	                } else if (!authenticated) {
-	                    $('#not_authenticated').setVisibility(1);
+	                    if (Client.isFinancial()) {
+	                        $('#not_authenticated_financial').setVisibility(1);
+	                    } else {
+	                        $('#not_authenticated').setVisibility(1);
+	                    }
 	                } else if (!age_verified) {
 	                    $('#needs_age_verification').setVisibility(1);
 	                }
@@ -73730,16 +74290,16 @@
 	module.exports = Authenticate;
 
 /***/ },
-/* 544 */
+/* 547 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var ChangePassword = function () {
 	    'use strict';
@@ -73784,17 +74344,17 @@
 	module.exports = ChangePassword;
 
 /***/ },
-/* 545 */
+/* 548 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var PaymentAgentTransferUI = __webpack_require__(546);
+	var PaymentAgentTransferUI = __webpack_require__(549);
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var PaymentAgentTransfer = function () {
 	    'use strict';
@@ -73931,7 +74491,7 @@
 	module.exports = PaymentAgentTransfer;
 
 /***/ },
-/* 546 */
+/* 549 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -74030,18 +74590,18 @@
 	module.exports = PaymentAgentTransferUI;
 
 /***/ },
-/* 547 */
+/* 550 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var ProfitTableUI = __webpack_require__(548);
-	var ViewPopup = __webpack_require__(436);
+	var ProfitTableUI = __webpack_require__(551);
+	var ViewPopup = __webpack_require__(437);
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
-	var addTooltip = __webpack_require__(514).addTooltip;
-	var buildOauthApps = __webpack_require__(514).buildOauthApps;
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
+	var addTooltip = __webpack_require__(517).addTooltip;
+	var buildOauthApps = __webpack_require__(517).buildOauthApps;
 	
 	var ProfitTableInit = function () {
 	    var batch_size = void 0,
@@ -74173,19 +74733,19 @@
 	module.exports = ProfitTableInit;
 
 /***/ },
-/* 548 */
+/* 551 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var ProfitTable = __webpack_require__(549);
+	var ProfitTable = __webpack_require__(552);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var showTooltip = __webpack_require__(514).showTooltip;
-	var Table = __webpack_require__(517);
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var showTooltip = __webpack_require__(517).showTooltip;
+	var Table = __webpack_require__(520);
 	
 	var ProfitTableUI = function () {
 	    'use strict';
@@ -74289,7 +74849,7 @@
 	module.exports = ProfitTableUI;
 
 /***/ },
-/* 549 */
+/* 552 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -74297,7 +74857,7 @@
 	var moment = __webpack_require__(305);
 	var Client = __webpack_require__(420);
 	var jpClient = __webpack_require__(425).jpClient;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var ProfitTable = function () {
 	    'use strict';
@@ -74332,19 +74892,19 @@
 	module.exports = ProfitTable;
 
 /***/ },
-/* 550 */
+/* 553 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
+	var BinaryPjax = __webpack_require__(469);
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
 	var localize = __webpack_require__(429).localize;
-	var FlexTableUI = __webpack_require__(551);
+	var FlexTableUI = __webpack_require__(554);
 	var jpClient = __webpack_require__(425).jpClient;
-	var FormManager = __webpack_require__(485);
-	var toTitleCase = __webpack_require__(450).toTitleCase;
+	var FormManager = __webpack_require__(487);
+	var toTitleCase = __webpack_require__(451).toTitleCase;
 	
 	var APIToken = function () {
 	    'use strict';
@@ -74495,12 +75055,12 @@
 	module.exports = APIToken;
 
 /***/ },
-/* 551 */
+/* 554 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Table = __webpack_require__(517);
+	var Table = __webpack_require__(520);
 	
 	var FlexTableUI = function () {
 	    'use strict';
@@ -74569,13 +75129,13 @@
 	module.exports = FlexTableUI;
 
 /***/ },
-/* 552 */
+/* 555 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var ApplicationsInit = __webpack_require__(553);
-	var BinaryPjax = __webpack_require__(468);
+	var ApplicationsInit = __webpack_require__(556);
+	var BinaryPjax = __webpack_require__(469);
 	var jpClient = __webpack_require__(425).jpClient;
 	
 	var AuthorisedApps = function () {
@@ -74599,13 +75159,13 @@
 	module.exports = AuthorisedApps;
 
 /***/ },
-/* 553 */
+/* 556 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var ApplicationsData = __webpack_require__(554);
-	var ApplicationsUI = __webpack_require__(555);
+	var ApplicationsData = __webpack_require__(557);
+	var ApplicationsUI = __webpack_require__(558);
 	var BinarySocket = __webpack_require__(428);
 	
 	var ApplicationsInit = function () {
@@ -74635,7 +75195,7 @@
 	module.exports = ApplicationsInit;
 
 /***/ },
-/* 554 */
+/* 557 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -74663,21 +75223,24 @@
 	module.exports = ApplicationsData;
 
 /***/ },
-/* 555 */
+/* 558 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var ApplicationsData = __webpack_require__(554);
+	var ApplicationsData = __webpack_require__(557);
 	var BinarySocket = __webpack_require__(428);
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
 	var localize = __webpack_require__(429).localize;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
-	var FlexTableUI = __webpack_require__(551);
-	var toTitleCase = __webpack_require__(450).toTitleCase;
+	var State = __webpack_require__(421).State;
+	var FlexTableUI = __webpack_require__(554);
+	var toTitleCase = __webpack_require__(451).toTitleCase;
 	
 	var ApplicationsUI = function () {
 	    'use strict';
+	
+	    var can_revoke = false;
 	
 	    var container_selector = '#applications-container';
 	    var messages = {
@@ -74691,18 +75254,24 @@
 	        var scopes = app.scopes.map(function (scope) {
 	            return localize(toTitleCase(scope));
 	        }).join(', ');
-	        return [app.name, scopes, last_used, ''];
+	        var data = [app.name, scopes, last_used];
+	        if (can_revoke) {
+	            data.push(''); // for the "Revoke App" button
+	        }
+	        return data;
 	    };
 	
 	    var createRevokeButton = function createRevokeButton(container, app) {
 	        var $button = $('<button/>', { class: 'button', text: localize(messages.revoke_access) });
 	        $button.on('click', function () {
 	            if (window.confirm(localize(messages.revoke_confirm) + ': \'' + app.name + '\'?')) {
-	                BinarySocket.send({ oauth_apps: 1, revoke_app: app.id }).then(function (response) {
+	                BinarySocket.send({ revoke_oauth_app: app.id }).then(function (response) {
 	                    if (response.error) {
 	                        displayError(response.error.message);
 	                    } else {
-	                        update(response.oauth_apps.map(ApplicationsData.parse));
+	                        BinarySocket.send({ oauth_apps: 1 }).then(function (res) {
+	                            update(res.oauth_apps.map(ApplicationsData.parse));
+	                        });
 	                    }
 	                });
 	                container.css({ opacity: 0.5 });
@@ -74715,18 +75284,23 @@
 	        if ($('#applications-table').length) {
 	            return FlexTableUI.replace(data);
 	        }
-	        var headers = ['Name', 'Permissions', 'Last Used', 'Action'];
-	        var columns = ['name', 'permissions', 'last_used', 'action'];
+	        var headers = ['Name', 'Permissions', 'Last Used'];
+	        can_revoke = /admin/.test((State.get(['response', 'authorize', 'authorize']) || {}).scopes);
+	        if (can_revoke) {
+	            headers.push('Action');
+	        }
 	        FlexTableUI.init({
 	            container: container_selector,
-	            header: headers.map(function (s) {
-	                return localize(s);
-	            }),
+	            header: headers.map(localize),
 	            id: 'applications-table',
-	            cols: columns,
+	            cols: headers.map(function (title) {
+	                return title.toLowerCase().replace(/\s/g, '-');
+	            }),
 	            data: data,
 	            style: function style($row, app) {
-	                $row.children('.action').first().append(createRevokeButton($row, app));
+	                if (can_revoke) {
+	                    $row.children('.action').first().append(createRevokeButton($row, app));
+	                }
 	            },
 	            formatter: formatApp
 	        });
@@ -74765,15 +75339,15 @@
 	module.exports = ApplicationsUI;
 
 /***/ },
-/* 556 */
+/* 559 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var localize = __webpack_require__(429).localize;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var CashierPassword = function () {
 	    'use strict';
@@ -74857,7 +75431,7 @@
 	module.exports = CashierPassword;
 
 /***/ },
-/* 557 */
+/* 560 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -74865,14 +75439,14 @@
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
-	var Header = __webpack_require__(495);
+	var BinaryPjax = __webpack_require__(469);
+	var Header = __webpack_require__(497);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
 	var jpClient = __webpack_require__(425).jpClient;
-	var Validation = __webpack_require__(486);
+	var Validation = __webpack_require__(488);
 	
 	var FinancialAssessment = function () {
 	    'use strict';
@@ -75014,13 +75588,13 @@
 	module.exports = FinancialAssessment;
 
 /***/ },
-/* 558 */
+/* 561 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var IPHistoryInit = __webpack_require__(559);
-	var BinaryPjax = __webpack_require__(468);
+	var IPHistoryInit = __webpack_require__(562);
+	var BinaryPjax = __webpack_require__(469);
 	var jpClient = __webpack_require__(425).jpClient;
 	
 	var IPHistory = function () {
@@ -75044,13 +75618,13 @@
 	module.exports = IPHistory;
 
 /***/ },
-/* 559 */
+/* 562 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var IPHistoryData = __webpack_require__(560);
-	var IPHistoryUI = __webpack_require__(561);
+	var IPHistoryData = __webpack_require__(563);
+	var IPHistoryUI = __webpack_require__(564);
 	var BinarySocket = __webpack_require__(428);
 	
 	var IPHistoryInit = function () {
@@ -75088,7 +75662,7 @@
 	module.exports = IPHistoryInit;
 
 /***/ },
-/* 560 */
+/* 563 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -75135,15 +75709,15 @@
 	module.exports = IPHistoryData;
 
 /***/ },
-/* 561 */
+/* 564 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
 	var localize = __webpack_require__(429).localize;
-	var FlexTableUI = __webpack_require__(551);
+	var FlexTableUI = __webpack_require__(554);
 	
 	var IPHistoryUI = function () {
 	    'use strict';
@@ -75211,13 +75785,13 @@
 	module.exports = IPHistoryUI;
 
 /***/ },
-/* 562 */
+/* 565 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var LimitsInit = __webpack_require__(563);
+	var LimitsInit = __webpack_require__(566);
 	
 	var Limits = function () {
 	    var onLoad = function onLoad() {
@@ -75243,16 +75817,16 @@
 	module.exports = Limits;
 
 /***/ },
-/* 563 */
+/* 566 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var LimitsUI = __webpack_require__(564);
+	var LimitsUI = __webpack_require__(567);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var elementTextContent = __webpack_require__(431).elementTextContent;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var LimitsInit = function () {
 	    'use strict';
@@ -75318,16 +75892,16 @@
 	module.exports = LimitsInit;
 
 /***/ },
-/* 564 */
+/* 567 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Table = __webpack_require__(517);
+	var Table = __webpack_require__(520);
 	var localize = __webpack_require__(429).localize;
 	var Client = __webpack_require__(420);
 	var elementTextContent = __webpack_require__(431).elementTextContent;
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var LimitsUI = function () {
 	    'use strict';
@@ -75391,7 +75965,7 @@
 	module.exports = LimitsUI;
 
 /***/ },
-/* 565 */
+/* 568 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -75430,23 +76004,23 @@
 	module.exports = Settings;
 
 /***/ },
-/* 566 */
+/* 569 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var Header = __webpack_require__(495);
+	var Header = __webpack_require__(497);
 	var localize = __webpack_require__(429).localize;
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
-	var FormManager = __webpack_require__(485);
-	var scrollToHashSection = __webpack_require__(492).scrollToHashSection;
-	var DatePicker = __webpack_require__(520);
-	var TimePicker = __webpack_require__(529);
+	var FormManager = __webpack_require__(487);
+	var scrollToHashSection = __webpack_require__(494).scrollToHashSection;
+	var DatePicker = __webpack_require__(523);
+	var TimePicker = __webpack_require__(532);
 	
 	var SelfExclusion = function () {
 	    'use strict';
@@ -75589,13 +76163,13 @@
 	
 	    var getDate = function getDate(elm_id) {
 	        var $elm = $(elm_id);
-	        return !isNaN(new Date($elm.val()).getTime()) ? $elm.val() : $elm.attr('data-value');
+	        return $elm.attr('data-value') ? $elm.attr('data-value') : !isNaN(new Date($elm.val()).getTime()) ? $elm.val() : '';
 	    };
 	    var getMoment = function getMoment(elm_id) {
 	        return moment(new Date(getDate(elm_id)));
 	    };
 	    var getTimeout = function getTimeout() {
-	        return $(timeout_date_id).attr('data-value') ? moment(new Date(getDate(timeout_date_id) + ' ' + $(timeout_time_id).val())) : '';
+	        return getDate(timeout_date_id) ? (moment(new Date(getDate(timeout_date_id) + 'T' + $(timeout_time_id).val())).valueOf() / 1000).toFixed(0) : '';
 	    };
 	
 	    var initDatePicker = function initDatePicker() {
@@ -75641,6 +76215,7 @@
 	            var error_msg = response.error.message;
 	            var error_fld = response.error.field;
 	            if (error_fld) {
+	                error_fld = /^timeout_until$/.test(error_fld) ? 'timeout_until_date' : error_fld;
 	                $('#' + error_fld).siblings('.error-msg').setVisibility(1).html(error_msg);
 	            } else {
 	                showFormMessage(localize(error_msg), false);
@@ -75671,7 +76246,7 @@
 	module.exports = SelfExclusion;
 
 /***/ },
-/* 567 */
+/* 570 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -75679,14 +76254,14 @@
 	var BinarySocket = __webpack_require__(428);
 	var localize = __webpack_require__(429).localize;
 	var Client = __webpack_require__(420);
-	var Header = __webpack_require__(495);
+	var Header = __webpack_require__(497);
 	var State = __webpack_require__(421).State;
 	var detectHedging = __webpack_require__(431).detectHedging;
 	var makeOption = __webpack_require__(431).makeOption;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var FormManager = __webpack_require__(485);
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var FormManager = __webpack_require__(487);
 	var moment = __webpack_require__(305);
-	__webpack_require__(568);
+	__webpack_require__(571);
 	
 	var PersonalDetails = function () {
 	    'use strict';
@@ -75959,7 +76534,7 @@
 	module.exports = PersonalDetails;
 
 /***/ },
-/* 568 */
+/* 571 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var require;var require;var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -81690,24 +82265,24 @@
 
 
 /***/ },
-/* 569 */
+/* 572 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
-	var StatementUI = __webpack_require__(570);
-	var ViewPopup = __webpack_require__(436);
+	var StatementUI = __webpack_require__(573);
+	var ViewPopup = __webpack_require__(437);
 	var BinarySocket = __webpack_require__(428);
 	var getLanguage = __webpack_require__(424).get;
 	var localize = __webpack_require__(429).localize;
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
-	var addTooltip = __webpack_require__(514).addTooltip;
-	var buildOauthApps = __webpack_require__(514).buildOauthApps;
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
+	var addTooltip = __webpack_require__(517).addTooltip;
+	var buildOauthApps = __webpack_require__(517).buildOauthApps;
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
 	var jpClient = __webpack_require__(425).jpClient;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
-	var DatePicker = __webpack_require__(520);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
+	var DatePicker = __webpack_require__(523);
 	
 	var StatementInit = function () {
 	    'use strict';
@@ -81881,19 +82456,19 @@
 	module.exports = StatementInit;
 
 /***/ },
-/* 570 */
+/* 573 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Statement = __webpack_require__(571);
+	var Statement = __webpack_require__(574);
 	var Client = __webpack_require__(420);
 	var downloadCSV = __webpack_require__(417).downloadCSV;
 	var localize = __webpack_require__(429).localize;
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
 	var jpClient = __webpack_require__(425).jpClient;
-	var showTooltip = __webpack_require__(514).showTooltip;
-	var Table = __webpack_require__(517);
+	var showTooltip = __webpack_require__(517).showTooltip;
+	var Table = __webpack_require__(520);
 	
 	var StatementUI = function () {
 	    'use strict';
@@ -81981,7 +82556,7 @@
 	module.exports = StatementUI;
 
 /***/ },
-/* 571 */
+/* 574 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -81989,9 +82564,9 @@
 	var moment = __webpack_require__(305);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
-	var formatMoney = __webpack_require__(434).formatMoney;
-	var toTitleCase = __webpack_require__(450).toTitleCase;
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var toTitleCase = __webpack_require__(451).toTitleCase;
 	
 	var Statement = function () {
 	    'use strict';
@@ -82047,7 +82622,7 @@
 	module.exports = Statement;
 
 /***/ },
-/* 572 */
+/* 575 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -82099,14 +82674,14 @@
 	module.exports = TopUpVirtual;
 
 /***/ },
-/* 573 */
+/* 576 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var localize = __webpack_require__(429).localize;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var LostPassword = function () {
 	    'use strict';
@@ -82136,21 +82711,21 @@
 	module.exports = LostPassword;
 
 /***/ },
-/* 574 */
+/* 577 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var State = __webpack_require__(421).State;
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var AccountOpening = __webpack_require__(575);
-	var FormManager = __webpack_require__(485);
-	var toISOFormat = __webpack_require__(450).toISOFormat;
+	var AccountOpening = __webpack_require__(578);
+	var FormManager = __webpack_require__(487);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
 	
 	var FinancialAccOpening = function () {
 	    'use strict';
@@ -82255,21 +82830,21 @@
 	module.exports = FinancialAccOpening;
 
 /***/ },
-/* 575 */
+/* 578 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var generateBirthDate = __webpack_require__(576);
-	var BinaryPjax = __webpack_require__(468);
+	var generateBirthDate = __webpack_require__(579);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
 	var State = __webpack_require__(421).State;
 	var makeOption = __webpack_require__(431).makeOption;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	var BinarySocket = __webpack_require__(428);
 	var Cookies = __webpack_require__(422);
-	__webpack_require__(568);
+	__webpack_require__(571);
 	
 	var AccountOpening = function () {
 	    'use strict';
@@ -82436,15 +83011,15 @@
 	module.exports = AccountOpening;
 
 /***/ },
-/* 576 */
+/* 579 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var moment = __webpack_require__(305);
 	var dateValueChanged = __webpack_require__(431).dateValueChanged;
-	var toISOFormat = __webpack_require__(450).toISOFormat;
-	var DatePicker = __webpack_require__(520);
+	var toISOFormat = __webpack_require__(451).toISOFormat;
+	var DatePicker = __webpack_require__(523);
 	
 	var generateBirthDate = function generateBirthDate() {
 	    var date_of_birth = '#date_of_birth';
@@ -82462,18 +83037,18 @@
 	module.exports = generateBirthDate;
 
 /***/ },
-/* 577 */
+/* 580 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var State = __webpack_require__(421).State;
-	var AccountOpening = __webpack_require__(575);
+	var AccountOpening = __webpack_require__(578);
 	var detectHedging = __webpack_require__(431).detectHedging;
-	var FormManager = __webpack_require__(485);
+	var FormManager = __webpack_require__(487);
 	
 	var JapanAccOpening = function () {
 	    'use strict';
@@ -82523,17 +83098,17 @@
 	module.exports = JapanAccOpening;
 
 /***/ },
-/* 578 */
+/* 581 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
-	var BinaryPjax = __webpack_require__(468);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var AccountOpening = __webpack_require__(575);
-	var FormManager = __webpack_require__(485);
+	var AccountOpening = __webpack_require__(578);
+	var FormManager = __webpack_require__(487);
 	
 	var RealAccOpening = function () {
 	    'use strict';
@@ -82576,7 +83151,7 @@
 	module.exports = RealAccOpening;
 
 /***/ },
-/* 579 */
+/* 582 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -82587,8 +83162,8 @@
 	var urlFor = __webpack_require__(423).urlFor;
 	var makeOption = __webpack_require__(431).makeOption;
 	var jpClient = __webpack_require__(425).jpClient;
-	var FormManager = __webpack_require__(485);
-	var TrafficSource = __webpack_require__(580);
+	var FormManager = __webpack_require__(487);
+	var TrafficSource = __webpack_require__(583);
 	var Cookies = __webpack_require__(422);
 	
 	var VirtualAccOpening = function () {
@@ -82721,7 +83296,7 @@
 	module.exports = VirtualAccOpening;
 
 /***/ },
-/* 580 */
+/* 583 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -82820,15 +83395,15 @@
 	module.exports = TrafficSource;
 
 /***/ },
-/* 581 */
+/* 584 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var localize = __webpack_require__(429).localize;
-	var Login = __webpack_require__(466);
-	var generateBirthDate = __webpack_require__(576);
-	var FormManager = __webpack_require__(485);
+	var Login = __webpack_require__(467);
+	var generateBirthDate = __webpack_require__(579);
+	var FormManager = __webpack_require__(487);
 	
 	var ResetPassword = function () {
 	    'use strict';
@@ -82889,16 +83464,16 @@
 	module.exports = ResetPassword;
 
 /***/ },
-/* 582 */
+/* 585 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var KnowledgeTestUI = __webpack_require__(583);
-	var BinaryPjax = __webpack_require__(468);
+	var KnowledgeTestUI = __webpack_require__(586);
+	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var toJapanTimeIfNeeded = __webpack_require__(464).toJapanTimeIfNeeded;
-	var Header = __webpack_require__(495);
+	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
+	var Header = __webpack_require__(497);
 	var localize = __webpack_require__(429).localize;
 	var Url = __webpack_require__(423);
 	var BinarySocket = __webpack_require__(428);
@@ -83137,7 +83712,7 @@
 	module.exports = KnowledgeTest;
 
 /***/ },
-/* 583 */
+/* 586 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83243,33 +83818,33 @@
 	module.exports = KnowledgeTestUI;
 
 /***/ },
-/* 584 */
+/* 587 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	var Contents = __webpack_require__(585);
+	var Contents = __webpack_require__(588);
 	var Crowdin = __webpack_require__(426);
-	var Header = __webpack_require__(495);
+	var Header = __webpack_require__(497);
 	var Language = __webpack_require__(424);
 	var Localize = __webpack_require__(429);
 	var localize = __webpack_require__(429).localize;
-	var Login = __webpack_require__(466);
-	var Menu = __webpack_require__(586);
+	var Login = __webpack_require__(467);
+	var Menu = __webpack_require__(589);
 	var LocalStore = __webpack_require__(421).LocalStore;
 	var State = __webpack_require__(421).State;
 	var Url = __webpack_require__(423);
 	var checkLanguage = __webpack_require__(425).checkLanguage;
-	var scrollToTop = __webpack_require__(492).scrollToTop;
-	var TrafficSource = __webpack_require__(580);
+	var scrollToTop = __webpack_require__(494).scrollToTop;
+	var TrafficSource = __webpack_require__(583);
 	var BinarySocket = __webpack_require__(428);
-	var RealityCheck = __webpack_require__(588);
-	var AffiliatePopup = __webpack_require__(592);
+	var RealityCheck = __webpack_require__(591);
+	var AffiliatePopup = __webpack_require__(595);
 	var Cookies = __webpack_require__(422);
-	var PushNotification = __webpack_require__(593);
-	__webpack_require__(590);
-	__webpack_require__(591);
+	var PushNotification = __webpack_require__(596);
+	__webpack_require__(593);
+	__webpack_require__(594);
 	
 	var Page = function () {
 	    'use strict';
@@ -83414,7 +83989,9 @@
 	            api: 4,
 	            l: Language.get().toLowerCase(),
 	            url: 'https://whatbrowser.org/',
-	            noclose: true };
+	            noclose: true, // Do not show the 'ignore' button to close the notification
+	            text: localize('Your web browser ([_1]) is out of date and may affect your trading experience. Proceed at your own risk. [_2]Update browser[_3]', ['{brow_name}', '<a href="https://www.whatbrowser.org/" target="_blank">', '</a>']),
+	            reminder: 0 };
 	        $(document).ready(function () {
 	            $('body').append($('<script/>', { src: src }));
 	        });
@@ -83429,7 +84006,7 @@
 	module.exports = Page;
 
 /***/ },
-/* 585 */
+/* 588 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83453,13 +84030,13 @@
 	module.exports = Contents;
 
 /***/ },
-/* 586 */
+/* 589 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	__webpack_require__(587);
+	__webpack_require__(590);
 	
 	var Menu = function () {
 	    'use strict';
@@ -83576,7 +84153,7 @@
 	module.exports = Menu;
 
 /***/ },
-/* 587 */
+/* 590 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -84003,13 +84580,13 @@
 	}(jQuery);
 
 /***/ },
-/* 588 */
+/* 591 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var RealityCheckData = __webpack_require__(433);
-	var RealityCheckUI = __webpack_require__(589);
+	var RealityCheckData = __webpack_require__(434);
+	var RealityCheckUI = __webpack_require__(592);
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
 	
@@ -84053,18 +84630,18 @@
 	module.exports = RealityCheck;
 
 /***/ },
-/* 589 */
+/* 592 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var RealityCheckData = __webpack_require__(433);
+	var RealityCheckData = __webpack_require__(434);
 	var BinarySocket = __webpack_require__(428);
-	var showLocalTimeOnHover = __webpack_require__(464).showLocalTimeOnHover;
+	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
 	var urlFor = __webpack_require__(423).urlFor;
-	var FormManager = __webpack_require__(485);
-	__webpack_require__(590);
-	__webpack_require__(591);
+	var FormManager = __webpack_require__(487);
+	__webpack_require__(593);
+	__webpack_require__(594);
 	
 	var RealityCheckUI = function () {
 	    'use strict';
@@ -84203,7 +84780,7 @@
 	module.exports = RealityCheckUI;
 
 /***/ },
-/* 590 */
+/* 593 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84240,7 +84817,7 @@
 	}
 
 /***/ },
-/* 591 */
+/* 594 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84255,7 +84832,7 @@
 	}
 
 /***/ },
-/* 592 */
+/* 595 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -84299,7 +84876,7 @@
 	module.exports = AffiliatePopup;
 
 /***/ },
-/* 593 */
+/* 596 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -84307,7 +84884,7 @@
 	var Client = __webpack_require__(420);
 	var getLanguage = __webpack_require__(424).get;
 	var urlForStatic = __webpack_require__(423).urlForStatic;
-	var Pushwoosh = __webpack_require__(594).Pushwoosh;
+	var Pushwoosh = __webpack_require__(597).Pushwoosh;
 	
 	var BinaryPushwoosh = function () {
 	    var pw = new Pushwoosh();
@@ -84356,14 +84933,14 @@
 	module.exports = BinaryPushwoosh;
 
 /***/ },
-/* 594 */
+/* 597 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _Global = __webpack_require__(595);
+	var _Global = __webpack_require__(598);
 	
 	Object.defineProperty(exports, 'Pushwoosh', {
 	  enumerable: true,
@@ -84375,23 +84952,23 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /***/ },
-/* 595 */
+/* 598 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _storage = __webpack_require__(596),
-	    _functions = __webpack_require__(597),
-	    _Logger = __webpack_require__(598),
+	var _storage = __webpack_require__(599),
+	    _functions = __webpack_require__(600),
+	    _Logger = __webpack_require__(601),
 	    _Logger2 = _interopRequireDefault(_Logger),
-	    _SafariInit = __webpack_require__(599),
+	    _SafariInit = __webpack_require__(602),
 	    _SafariInit2 = _interopRequireDefault(_SafariInit),
-	    _WorkerInit = __webpack_require__(606),
+	    _WorkerInit = __webpack_require__(609),
 	    _WorkerInit2 = _interopRequireDefault(_WorkerInit),
-	    _API = __webpack_require__(604),
-	    _constants = __webpack_require__(605);
+	    _API = __webpack_require__(607),
+	    _constants = __webpack_require__(608);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -84618,7 +85195,7 @@
 	exports.default = PushwooshGlobal;
 
 /***/ },
-/* 596 */
+/* 599 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84716,7 +85293,7 @@
 	var keyValue = exports.keyValue = createKeyValue('keyValue');
 
 /***/ },
-/* 597 */
+/* 600 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84846,7 +85423,7 @@
 	}
 
 /***/ },
-/* 598 */
+/* 601 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84899,23 +85476,23 @@
 	exports.default = Logger;
 
 /***/ },
-/* 599 */
+/* 602 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _BaseInit2 = __webpack_require__(600),
+	var _BaseInit2 = __webpack_require__(603),
 	    _BaseInit3 = _interopRequireDefault(_BaseInit2),
-	    _createDoApiXHR = __webpack_require__(602),
+	    _createDoApiXHR = __webpack_require__(605),
 	    _createDoApiXHR2 = _interopRequireDefault(_createDoApiXHR),
-	    _API = __webpack_require__(604),
+	    _API = __webpack_require__(607),
 	    _API2 = _interopRequireDefault(_API),
-	    _PushwooshError = __webpack_require__(603),
+	    _PushwooshError = __webpack_require__(606),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError),
-	    _functions = __webpack_require__(597),
-	    _constants = __webpack_require__(605);
+	    _functions = __webpack_require__(600),
+	    _constants = __webpack_require__(608);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -85049,14 +85626,14 @@
 	exports.default = PushwooshSafari;
 
 /***/ },
-/* 600 */
+/* 603 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _eventemitter = __webpack_require__(601),
+	var _eventemitter = __webpack_require__(604),
 	    _eventemitter2 = _interopRequireDefault(_eventemitter);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -85079,7 +85656,7 @@
 	exports.default = BaseInit;
 
 /***/ },
-/* 601 */
+/* 604 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -85374,7 +85951,7 @@
 
 
 /***/ },
-/* 602 */
+/* 605 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -85382,7 +85959,7 @@
 	exports.__esModule = true;
 	exports.default = createDoApiXHR;
 	
-	var _PushwooshError = __webpack_require__(603),
+	var _PushwooshError = __webpack_require__(606),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -85434,7 +86011,7 @@
 	}
 
 /***/ },
-/* 603 */
+/* 606 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -85469,7 +86046,7 @@
 	exports.default = PushwooshError;
 
 /***/ },
-/* 604 */
+/* 607 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -85480,7 +86057,7 @@
 	
 	exports.createErrorAPI = createErrorAPI;
 	
-	var _functions = __webpack_require__(597);
+	var _functions = __webpack_require__(600);
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
@@ -85572,7 +86149,7 @@
 	exports.default = PushwooshAPI;
 
 /***/ },
-/* 605 */
+/* 608 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -85599,24 +86176,24 @@
 	var keyLastSentAppOpen = exports.keyLastSentAppOpen = 'pushwooshLastSentAppOpen';
 
 /***/ },
-/* 606 */
+/* 609 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _storage = __webpack_require__(596),
-	    _BaseInit2 = __webpack_require__(600),
+	var _storage = __webpack_require__(599),
+	    _BaseInit2 = __webpack_require__(603),
 	    _BaseInit3 = _interopRequireDefault(_BaseInit2),
-	    _createDoApiXHR = __webpack_require__(602),
+	    _createDoApiXHR = __webpack_require__(605),
 	    _createDoApiXHR2 = _interopRequireDefault(_createDoApiXHR),
-	    _API = __webpack_require__(604),
+	    _API = __webpack_require__(607),
 	    _API2 = _interopRequireDefault(_API),
-	    _PushwooshError = __webpack_require__(603),
+	    _PushwooshError = __webpack_require__(606),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError),
-	    _functions = __webpack_require__(597),
-	    _constants = __webpack_require__(605);
+	    _functions = __webpack_require__(600),
+	    _constants = __webpack_require__(608);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -85761,21 +86338,21 @@
 	exports.default = PushwooshWorker;
 
 /***/ },
-/* 607 */
+/* 610 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var updateBalance = __webpack_require__(608);
+	var updateBalance = __webpack_require__(611);
 	var Client = __webpack_require__(420);
-	var Clock = __webpack_require__(464);
-	var GTM = __webpack_require__(465);
-	var Header = __webpack_require__(495);
-	var Login = __webpack_require__(466);
+	var Clock = __webpack_require__(465);
+	var GTM = __webpack_require__(466);
+	var Header = __webpack_require__(497);
+	var Login = __webpack_require__(467);
 	var getPropertyValue = __webpack_require__(417).getPropertyValue;
 	var jpResidence = __webpack_require__(425).jpResidence;
-	var SessionDurationLimit = __webpack_require__(609);
+	var SessionDurationLimit = __webpack_require__(612);
 	var Cookies = __webpack_require__(422);
 	
 	var BinarySocketGeneral = function () {
@@ -85797,7 +86374,7 @@
 	        var is_available = void 0;
 	        switch (response.msg_type) {
 	            case 'website_status':
-	                is_available = /^up$/i.test(response.website_status.site_status);
+	                is_available = /^up$/i.test(getPropertyValue(response, ['website_status', 'site_status']));
 	                if (is_available && !BinarySocket.availability()) {
 	                    window.location.reload();
 	                } else if (!is_available) {
@@ -85822,6 +86399,7 @@
 	                        BinarySocket.send({ get_settings: 1 });
 	                        BinarySocket.send({ get_account_status: 1 });
 	                        BinarySocket.send({ payout_currencies: 1 });
+	                        BinarySocket.send({ mt5_login_list: 1 });
 	                        setResidence(response.authorize.country || Cookies.get('residence'));
 	                        if (!Client.get('is_virtual') && !jpResidence()) {
 	                            BinarySocket.send({ get_self_exclusion: 1 });
@@ -85893,15 +86471,15 @@
 	module.exports = BinarySocketGeneral;
 
 /***/ },
-/* 608 */
+/* 611 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var PortfolioInit = __webpack_require__(512);
-	var updateContractBalance = __webpack_require__(462).updateContractBalance;
+	var PortfolioInit = __webpack_require__(515);
+	var updateContractBalance = __webpack_require__(463).updateContractBalance;
 	var Client = __webpack_require__(420);
-	var formatMoney = __webpack_require__(434).formatMoney;
+	var formatMoney = __webpack_require__(435).formatMoney;
 	
 	var updateBalance = function updateBalance(response) {
 	    if (response.hasOwnProperty('error')) {
@@ -85923,7 +86501,7 @@
 	module.exports = updateBalance;
 
 /***/ },
-/* 609 */
+/* 612 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
