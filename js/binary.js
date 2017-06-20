@@ -37494,10 +37494,10 @@
 	var formatMoney = function formatMoney(currency_value, amount, exclude_currency) {
 	    var is_crypto = isCryptocurrency(currency_value);
 	    var is_jp = jpClient();
-	    var decimal_places = getDecimalPlaces(currency_value, amount);
+	    var decimal_places = getDecimalPlaces(currency_value);
 	    var money = void 0;
 	    if (amount) amount = String(amount).replace(/,/g, '');
-	    if (typeof Intl !== 'undefined' && currency_value && !is_crypto && amount) {
+	    if (typeof Intl !== 'undefined' && currency_value && !is_crypto && typeof amount !== 'undefined') {
 	        var options = exclude_currency ? { minimumFractionDigits: decimal_places, maximumFractionDigits: decimal_places } : { style: 'currency', currency: currency_value };
 	        var language = getLanguage().toLowerCase();
 	        money = new Intl.NumberFormat(language.replace('_', '-'), options).format(amount);
@@ -37532,13 +37532,11 @@
 	    });
 	};
 	
-	var getDecimalPlaces = function getDecimalPlaces(currency, amount) {
-	    var is_crypto = isCryptocurrency(currency);
-	    var is_jp = jpClient();
+	var getDecimalPlaces = function getDecimalPlaces(currency) {
 	    var decimal_places = 2;
-	    if (is_crypto) {
-	        decimal_places = Math.min((parseFloat(amount).toString().split('.')[1] || '').length || 0, 8);
-	    } else if (is_jp) {
+	    if (isCryptocurrency(currency)) {
+	        decimal_places = 8;
+	    } else if (jpClient()) {
 	        decimal_places = 0;
 	    }
 	    return decimal_places;
@@ -37795,7 +37793,7 @@
 	
 	        if (!is_started) {
 	            containerSetText('trade_details_entry_spot', '-');
-	            containerSetText('trade_details_message', localize('Contract is not started yet'));
+	            containerSetText('trade_details_message', localize('Contract has not started yet'));
 	        } else {
 	            if (contract.entry_spot > 0) {
 	                containerSetText('trade_details_entry_spot', contract.entry_spot);
@@ -43601,10 +43599,12 @@
 	var Tick = __webpack_require__(457);
 	var TickDisplay = __webpack_require__(469);
 	var updateValues = __webpack_require__(470);
+	var Client = __webpack_require__(427);
 	var localize = __webpack_require__(436).localize;
 	var elementInnerHtml = __webpack_require__(438).elementInnerHtml;
 	var elementTextContent = __webpack_require__(438).elementTextContent;
 	var isVisible = __webpack_require__(438).isVisible;
+	var formatMoney = __webpack_require__(442).formatMoney;
 	var padLeft = __webpack_require__(458).padLeft;
 	
 	/*
@@ -43661,6 +43661,7 @@
 	            if (barrier_element) barrier_element.textContent = '';
 	            elementTextContent(reference, localize('Your transaction reference is') + ' ' + receipt.transaction_id);
 	
+	            var currency = Client.get('currency');
 	            var payout_value = void 0,
 	                cost_value = void 0;
 	
@@ -43671,7 +43672,9 @@
 	                cost_value = passthrough.amount;
 	                payout_value = receipt.payout;
 	            }
-	            var profit_value = Math.round((payout_value - cost_value) * 100) / 100;
+	            var profit_value = formatMoney(currency, payout_value - cost_value);
+	            cost_value = formatMoney(currency, cost_value);
+	            payout_value = formatMoney(currency, payout_value);
 	
 	            elementInnerHtml(payout, localize('Potential Payout') + ' <p>' + payout_value + '</p>');
 	            elementInnerHtml(cost, localize('Total Cost') + ' <p>' + cost_value + '</p>');
@@ -44284,12 +44287,12 @@
 	    var $profit = $('#contract_purchase_profit');
 	    var currency = Client.get('currency');
 	
-	    $payout.html($('<div/>', { text: localize('Buy price') }).append($('<p/>', { text: formatMoney(currency, Math.abs(pnl), 1) })));
-	    $cost.html($('<div/>', { text: localize('Final price') }).append($('<p/>', { text: formatMoney(currency, final_price, 1) })));
+	    $payout.html($('<div/>', { text: localize('Buy price') }).append($('<p/>', { text: formatMoney(currency, pnl) })));
+	    $cost.html($('<div/>', { text: localize('Final price') }).append($('<p/>', { text: formatMoney(currency, final_price) })));
 	    if (!final_price) {
-	        $profit.html($('<div/>', { text: localize('Loss') }).append($('<p/>', { text: formatMoney(currency, pnl, 1) })));
+	        $profit.html($('<div/>', { text: localize('Loss') }).append($('<p/>', { text: formatMoney(currency, pnl) })));
 	    } else {
-	        $profit.html($('<div/>', { text: localize('Profit') }).append($('<p/>', { text: formatMoney(currency, Math.round((final_price - pnl) * 100) / 100, 1) })));
+	        $profit.html($('<div/>', { text: localize('Profit') }).append($('<p/>', { text: formatMoney(currency, final_price - pnl) })));
 	        updateContractBalance(Client.get('balance'));
 	    }
 	};
@@ -50090,7 +50093,10 @@
 	        var is_ok = true,
 	            message = '';
 	
-	        if (!(options.type === 'float' ? /^\d+(\.\d+)?$/ : /^\d+$/).test(value) || !$.isNumeric(value)) {
+	        if (+options.max < +options.min && options.custom_message) {
+	            is_ok = false;
+	            message = localize(options.custom_message);
+	        } else if (!(options.type === 'float' ? /^\d+(\.\d+)?$/ : /^\d+$/).test(value) || !$.isNumeric(value)) {
 	            is_ok = false;
 	            message = localize('Should be a valid number');
 	        } else if (options.type === 'float' && options.decimals && !new RegExp('^\\d+(\\.\\d{' + options.decimals.replace(/ /g, '') + '})?$').test(value)) {
@@ -51934,35 +51940,42 @@
 	    var accounts = void 0,
 	        $transfer = void 0;
 	
-	    var populateAccounts = function populateAccounts(response) {
-	        if (response.error) {
-	            $('#error_message').find('p').text(response.error.message).end().setVisibility(1);
+	    var populateAccounts = function populateAccounts(response_transfer, response_limits) {
+	        if (response_transfer.error || response_limits.error) {
+	            $('#error_message').find('p').text((response_transfer.error || response_limits.error).message).end().setVisibility(1);
 	            return;
 	        }
-	        accounts = response.accounts;
+	        accounts = response_transfer.accounts;
+	        var client_loginid = Client.get('loginid');
 	        var $form = $(form_id);
 	        $transfer = $form.find('#transfer');
 	        var text = void 0,
 	            from_loginid = void 0,
-	            to_loginid = void 0;
+	            to_loginid = void 0,
+	            max_balance = void 0;
 	
 	        accounts.forEach(function (account, idx) {
 	            if (+account.balance) {
 	                from_loginid = accounts[idx].loginid;
 	                to_loginid = accounts[1 - idx].loginid;
 	                text = localize('from [_1] to [_2]', [from_loginid, to_loginid]);
+	                if (client_loginid === from_loginid) {
+	                    max_balance = Math.min(+accounts[idx].balance, +response_limits.get_limits.remainder);
+	                } else {
+	                    max_balance = +accounts[idx].balance;
+	                }
 	                $transfer.append($('<option/>', {
 	                    text: text,
 	                    'data-from': from_loginid,
 	                    'data-to': to_loginid,
 	                    'data-currency': accounts[idx].currency,
-	                    'data-balance': accounts[idx].balance
+	                    'data-balance': max_balance
 	                }));
 	            }
 	        });
 	
 	        // show client's login id on top
-	        var $client_option = $transfer.find('option[data-from="' + Client.get('loginid') + '"]');
+	        var $client_option = $transfer.find('option[data-from="' + client_loginid + '"]');
 	        if ($client_option.length !== 0) {
 	            $client_option.insertBefore($transfer.find('option:eq(0)')).attr('selected', 'selected');
 	        }
@@ -51998,7 +52011,7 @@
 	    };
 	
 	    var bindValidation = function bindValidation() {
-	        FormManager.init(form_id, [{ selector: '#amount', validations: ['req', ['number', { type: 'float', decimals: '1, 2', min: 0.1, max: getTransferAttr('data-balance') }]] }, { request_field: 'transfer_between_accounts', value: 1 }, { request_field: 'account_from', value: function value() {
+	        FormManager.init(form_id, [{ selector: '#amount', validations: ['req', ['number', { type: 'float', decimals: '1, 2', min: 0.1, max: getTransferAttr('data-balance'), custom_message: 'This amount exceeds your withdrawal limit.' }]] }, { request_field: 'transfer_between_accounts', value: 1 }, { request_field: 'account_from', value: function value() {
 	                return getTransferAttr('data-from');
 	            } }, { request_field: 'account_to', value: function value() {
 	                return getTransferAttr('data-to');
@@ -52028,8 +52041,10 @@
 	    };
 	
 	    var onLoad = function onLoad() {
-	        BinarySocket.send({ transfer_between_accounts: 1 }).then(function (response) {
-	            return populateAccounts(response);
+	        BinarySocket.send({ transfer_between_accounts: 1 }).then(function (response_transfer) {
+	            BinarySocket.send({ get_limits: 1 }).then(function (response_limits) {
+	                return populateAccounts(response_transfer, response_limits);
+	            });
 	        });
 	    };
 	
@@ -73832,7 +73847,7 @@
 	            amount_element.addEventListener('input', commonTrading.debounce(function (e) {
 	                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
 	                if (isStandardFloat(e.target.value)) {
-	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency'), e.target.value));
+	                    e.target.value = parseFloat(e.target.value).toFixed(getDecimalPlaces(Defaults.get('currency')));
 	                }
 	                Defaults.set('amount', e.target.value);
 	                Price.processPriceRequest();
@@ -87344,10 +87359,12 @@
 	                        BinarySocket.send({ payout_currencies: 1 });
 	                        BinarySocket.send({ mt5_login_list: 1 });
 	                        setResidence(response.authorize.country || Cookies.get('residence'));
-	                        if (!Client.get('is_virtual') && !jpResidence()) {
+	                        if (!Client.get('is_virtual')) {
 	                            BinarySocket.send({ get_self_exclusion: 1 });
-	                            // TODO: remove this when back-end adds it as a status to get_account_status
-	                            BinarySocket.send({ get_financial_assessment: 1 });
+	                            if (!jpResidence()) {
+	                                // TODO: remove this when back-end adds it as a status to get_account_status
+	                                BinarySocket.send({ get_financial_assessment: 1 });
+	                            }
 	                        }
 	                    }
 	                    BinarySocket.sendBuffered();
