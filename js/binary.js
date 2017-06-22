@@ -37673,7 +37673,8 @@
 	        is_sell_clicked = void 0,
 	        chart_started = void 0,
 	        chart_init = void 0,
-	        chart_updated = void 0;
+	        chart_updated = void 0,
+	        sell_text_updated = void 0;
 	    var $container = void 0,
 	        $loading = void 0,
 	        btn_view = void 0;
@@ -37691,6 +37692,7 @@
 	        chart_started = false;
 	        chart_init = false;
 	        chart_updated = false;
+	        sell_text_updated = false;
 	        $container = '';
 	
 	        if (btn_view) {
@@ -37756,10 +37758,10 @@
 	        var indicative_price = final_price && is_ended ? contract.sell_price || contract.bid_price : contract.bid_price ? contract.bid_price : null;
 	
 	        if (contract.barrier_count > 1) {
-	            containerSetText('trade_details_barrier', contract.high_barrier, '', true);
-	            containerSetText('trade_details_barrier_low', contract.low_barrier, '', true);
+	            containerSetText('trade_details_barrier', formatMoney(1, contract.high_barrier, 1), '', true);
+	            containerSetText('trade_details_barrier_low', formatMoney(1, contract.low_barrier, 1), '', true);
 	        } else if (contract.barrier) {
-	            containerSetText('trade_details_barrier', contract.entry_tick_time ? contract.contract_type === 'DIGITMATCH' ? localize('Equals') + ' ' + contract.barrier : contract.contract_type === 'DIGITDIFF' ? localize('Not') + ' ' + contract.barrier : contract.barrier : '-', '', true);
+	            containerSetText('trade_details_barrier', contract.entry_tick_time ? contract.contract_type === 'DIGITMATCH' ? localize('Equals') + ' ' + formatMoney(1, contract.barrier, 1) : contract.contract_type === 'DIGITDIFF' ? localize('Not') + ' ' + formatMoney(1, contract.barrier, 1) : formatMoney(1, contract.barrier, 1) : '-', '', true);
 	        }
 	
 	        var current_spot = !is_ended ? contract.current_spot : user_sold ? '' : contract.exit_tick;
@@ -37796,7 +37798,7 @@
 	            containerSetText('trade_details_message', localize('Contract has not started yet'));
 	        } else {
 	            if (contract.entry_spot > 0) {
-	                containerSetText('trade_details_entry_spot', contract.entry_spot);
+	                containerSetText('trade_details_entry_spot', formatMoney(1, contract.entry_spot, 1));
 	            }
 	            containerSetText('trade_details_message', contract.validation_error ? contract.validation_error : '&nbsp;');
 	        }
@@ -37957,9 +37959,20 @@
 	        var sell_button_id = 'sell_at_market';
 	        var is_exist = $container.find('#' + sell_wrapper_id).length > 0;
 	        if (show) {
-	            if (is_exist) return;
+	            var is_started = !contract.is_forward_starting || contract.current_spot_time > contract.date_start;
+	            var $sell_wrapper = $container.find('#contract_sell_wrapper');
+	            if (is_exist) {
+	                if (!sell_text_updated && is_started) {
+	                    addSellNote($sell_wrapper);
+	                    $sell_wrapper.find('#' + sell_button_id).text(localize('Sell at market'));
+	                }
+	                return;
+	            }
 	
-	            $container.find('#contract_sell_wrapper').setVisibility(1).append($('<div/>', { id: sell_wrapper_id }).append($('<button/>', { id: sell_button_id, class: 'button', text: localize('Sell at market') })).append($('<div/>', { class: 'note' }).append($('<strong/>', { text: localize('Note') + ': ' })).append($('<span/>', { text: localize('Contract will be sold at the prevailing market price when the request is received by our servers. This price may differ from the indicated price.') }))));
+	            $sell_wrapper.setVisibility(1).append($('<div/>', { id: sell_wrapper_id }).append($('<button/>', { id: sell_button_id, class: 'button', text: localize(is_started ? 'Sell at market' : 'Sell') })));
+	            if (is_started) {
+	                addSellNote($sell_wrapper);
+	            }
 	
 	            $container.find('#' + sell_button_id).unbind('click').click(function (e) {
 	                e.preventDefault();
@@ -37975,6 +37988,11 @@
 	            $container.find('#' + sell_button_id).unbind('click');
 	            $container.find('#' + sell_wrapper_id).remove();
 	        }
+	    };
+	
+	    var addSellNote = function addSellNote($sell_wrapper) {
+	        sell_text_updated = true;
+	        $sell_wrapper.find('#sell_at_market_wrapper').append($('<div/>', { class: 'note' }).append($('<strong/>', { text: localize('Note') + ': ' })).append($('<span/>', { text: localize('Contract will be sold at the prevailing market price when the request is received by our servers. This price may differ from the indicated price.') })));
 	    };
 	
 	    // ===== Requests & Responses =====
@@ -38275,6 +38293,7 @@
 	var localize = __webpack_require__(436).localize;
 	var State = __webpack_require__(428).State;
 	var jpClient = __webpack_require__(432).jpClient;
+	var formatMoney = __webpack_require__(442).formatMoney;
 	__webpack_require__(463)(Highcharts);
 	
 	var Highchart = function () {
@@ -38616,10 +38635,10 @@
 	            var high_barrier = contract.high_barrier;
 	            var low_barrier = contract.low_barrier;
 	            if (barrier) {
-	                addPlotLine({ id: 'barrier', value: barrier * 1, label: localize('Barrier ([_1])', [barrier]), dashStyle: 'Dot' }, 'y');
+	                addPlotLine({ id: 'barrier', value: barrier * 1, label: localize('Barrier ([_1])', [formatMoney(1, barrier, 1)]), dashStyle: 'Dot' }, 'y');
 	            } else if (high_barrier && low_barrier) {
-	                addPlotLine({ id: 'high_barrier', value: high_barrier * 1, label: localize('High Barrier ([_1])', [high_barrier]), dashStyle: 'Dot' }, 'y');
-	                addPlotLine({ id: 'low_barrier', value: low_barrier * 1, label: localize('Low Barrier ([_1])', [low_barrier]), dashStyle: 'Dot' }, 'y');
+	                addPlotLine({ id: 'high_barrier', value: high_barrier * 1, label: localize('High Barrier ([_1])', [formatMoney(1, high_barrier, 1)]), dashStyle: 'Dot' }, 'y');
+	                addPlotLine({ id: 'low_barrier', value: low_barrier * 1, label: localize('Low Barrier ([_1])', [formatMoney(1, low_barrier, 1)]), dashStyle: 'Dot' }, 'y');
 	            }
 	        }
 	    };
@@ -39967,9 +39986,11 @@
 
 /***/ }),
 /* 452 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
+	
+	var moment = __webpack_require__(305);
 	
 	/*
 	 * Display price/spot movement variation to depict price moved up or down
@@ -40031,6 +40052,36 @@
 	    return document.getElementById('date_start');
 	};
 	
+	var checkValidTime = function checkValidTime(time_start_element, $date_start, time) {
+	    time_start_element = time_start_element || document.getElementById('time_start');
+	    $date_start = $date_start || $('#date_start');
+	    time = time_start_element.value || time;
+	    if (time) {
+	        time = time.split(':');
+	    }
+	    var now_time = moment.utc();
+	    var hour = time && time.length ? +time[0] : now_time.hour();
+	    var minute = time && time.length ? +time[1] : now_time.minute();
+	    var date_time = moment.utc(getElement().value * 1000).hour(hour).minute(minute);
+	    var min_time = getMinMaxTime($date_start).minTime;
+	    min_time = min_time.valueOf() > now_time.valueOf() ? min_time : now_time;
+	    var max_time = getMinMaxTime($date_start).maxTime;
+	    time_start_element.value = date_time.isBefore(min_time) || date_time.isAfter(max_time) ? min_time.add(5, 'minutes').utc().format('HH:mm') : time.join(':');
+	    time_start_element.setAttribute('data-value', time_start_element.value);
+	};
+	
+	var getMinMaxTime = function getMinMaxTime($setMinMaxSelector) {
+	    var minTime = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : window.time ? window.time : moment.utc();
+	
+	    var $selected_option = $setMinMaxSelector.find('option:selected');
+	    minTime = +$selected_option.val() > minTime.unix() ? moment.utc($selected_option.val() * 1000) : minTime;
+	    var maxTime = moment.utc($selected_option.attr('data-end') * 1000);
+	    return {
+	        minTime: minTime,
+	        maxTime: maxTime
+	    };
+	};
+	
 	module.exports = {
 	    displayPriceMovement: displayPriceMovement,
 	    countDecimalPlaces: countDecimalPlaces,
@@ -40038,7 +40089,9 @@
 	    getTradingTimes: function getTradingTimes() {
 	        return trading_times;
 	    },
-	    getStartDateNode: getElement
+	    getStartDateNode: getElement,
+	    checkValidTime: checkValidTime,
+	    getMinMaxTime: getMinMaxTime
 	};
 
 /***/ }),
@@ -40851,7 +40904,7 @@
 	    };
 	
 	    var reloadPage = function reloadPage() {
-	        Defaults.remove('market', 'underlying', 'formname', 'date_start', 'expiry_type', 'expiry_date', 'expirt_time', 'duration_units', 'diration_value', 'amount', 'amount_type', 'currency', 'prediction');
+	        Defaults.remove('market', 'underlying', 'formname', 'date_start', 'time_start', 'expiry_type', 'expiry_date', 'expirt_time', 'duration_units', 'diration_value', 'amount', 'amount_type', 'currency', 'prediction');
 	        location.reload();
 	    };
 	
@@ -43601,6 +43654,7 @@
 	var updateValues = __webpack_require__(470);
 	var Client = __webpack_require__(427);
 	var localize = __webpack_require__(436).localize;
+	var urlFor = __webpack_require__(430).urlFor;
 	var elementInnerHtml = __webpack_require__(438).elementInnerHtml;
 	var elementTextContent = __webpack_require__(438).elementTextContent;
 	var isVisible = __webpack_require__(438).isVisible;
@@ -43646,7 +43700,12 @@
 	            container.style.display = 'block';
 	            message_container.hide();
 	            confirmation_error.show();
-	            elementInnerHtml(confirmation_error, error.message);
+	            var message = error.message;
+	            if (/RestrictedCountry/.test(error.code)) {
+	                var additional_message = /FinancialBinaries/.test(error.code) ? localize('Try our [_1]Volatility Indices[_2].', ['<a href="' + urlFor('get-started/volidx-markets') + '" >', '</a>']) : /Random/.test(error.code) ? localize('Try our other markets.') : '';
+	                message = error.message + '. ' + additional_message;
+	            }
+	            elementInnerHtml(confirmation_error, message);
 	        } else {
 	            var guide_btn = document.getElementById('guideBtn');
 	            if (guide_btn) {
@@ -49990,7 +50049,9 @@
 	            forms[form_selector] = { $form: $form };
 	            if (Array.isArray(fields) && fields.length) {
 	                forms[form_selector].fields = fields;
+	                var $btn_submit = $form.find('button[type="submit"]');
 	
+	                var has_required = false;
 	                fields.forEach(function (field) {
 	                    field.$ = $form.find(field.selector);
 	                    if (!field.$.length || !field.validations) return;
@@ -50005,8 +50066,9 @@
 	                        if (/req/.test(field.validations)) {
 	                            var $label = $parent.parent().find('label');
 	                            if (!$label.length) $label = $parent.find('label');
-	                            if ($label.find('span.required_field_asterisk').length === 0) {
-	                                $label.append($('<span/>', { class: 'required_field_asterisk', text: '*' }));
+	                            if ($label.length && $label.find('span.required_field_asterisk').length === 0) {
+	                                $($label[0]).append($('<span/>', { class: 'required_field_asterisk', text: '*' }));
+	                                has_required = true;
 	                            }
 	                        }
 	                        if ($parent.find('div.' + error_class).length === 0) {
@@ -50027,6 +50089,9 @@
 	                        });
 	                    }
 	                });
+	                if (has_required && $form.find('.required_field_asterisk.no-margin').length === 0) {
+	                    $btn_submit.parent().append($('<p/>', { class: 'hint' }).append($('<span/>', { class: 'required_field_asterisk no-margin', text: '*' })).append($('<span/>', { text: ' ' + localize('Indicates required field') })));
+	                }
 	            }
 	        }
 	    };
@@ -50069,7 +50134,7 @@
 	        return options.regex.test(value);
 	    };
 	    var validEmailToken = function validEmailToken(value) {
-	        return value.trim().length === 8;
+	        return value.trim().length <= 30;
 	    };
 	
 	    var validCompare = function validCompare(value, options) {
@@ -51227,7 +51292,7 @@
 	                getAllAccountsInfo();
 	                MetaTraderUI.init(submit);
 	            } else {
-	                MetaTraderUI.displayPageError(localize('Sorry, this feature is not available.'));
+	                MetaTraderUI.displayPageError(localize('Sorry, this feature is not available in your jurisdiction.'));
 	            }
 	        });
 	    };
@@ -52542,7 +52607,8 @@
 	            FormManager.handleSubmit({
 	                form_selector: form_id,
 	                fnc_response_handler: withdrawResponse,
-	                fnc_additional_check: setAgentName
+	                fnc_additional_check: setAgentName,
+	                enable_button: true
 	            });
 	        } else {
 	            showPageError(localize('The Payment Agent facility is currently not available in your country.'));
@@ -52592,7 +52658,7 @@
 	                    setActiveView(view_ids.form);
 	                    $('#formMessage').setVisibility(1).html(response.error.message);
 	                } else if (response.error.code === 'InvalidToken') {
-	                    showPageError(localize('Your token has expired. Please click [_1]here[_2] to restart the verification process.', ['<a href="javascript:;" onclick="window.location.reload();">', '</a>']));
+	                    showPageError(localize('Your token has expired or is invalid. Please click [_1]here[_2] to restart the verification process.', ['<a href="javascript:;" onclick="window.location.reload();">', '</a>']));
 	                } else {
 	                    showPageError(response.error.message);
 	                }
@@ -55968,13 +56034,6 @@
 	            return 0;
 	        }
 	
-	        var yellow_border = 'light-yellow-background';
-	        if (value !== 'now') {
-	            $date_start_select.addClass(yellow_border);
-	        } else {
-	            $date_start_select.removeClass(yellow_border);
-	        }
-	
 	        $date_start_select.val(value);
 	
 	        var make_price_request = 1;
@@ -55993,7 +56052,6 @@
 	    var setNow = function setNow() {
 	        var $date_start = $('#date_start');
 	        if ($date_start.find('option[value="now"]').length) {
-	            $date_start.val('now').removeClass('light-yellow-background');
 	            Defaults.set('date_start', 'now');
 	        }
 	    };
@@ -56693,7 +56751,6 @@
 	                option = document.createElement('option');
 	                content = document.createTextNode(localize('Now'));
 	                option.setAttribute('value', 'now');
-	                $('#date_start').removeClass('light-yellow-background');
 	                option.appendChild(content);
 	                fragment.appendChild(option);
 	                has_now = 1;
@@ -56852,7 +56909,11 @@
 	
 	        if (options.maxTime) {
 	            options.maxTime = moment.utc(options.maxTime);
-	            obj_config.maxTime = { hour: parseInt(options.maxTime.hour()), minute: parseInt(options.maxTime.minute()) };
+	            var minute = parseInt(options.maxTime.minute());
+	            var hour = parseInt(options.maxTime.hour());
+	            hour = minute < 5 ? hour - 1 : hour;
+	            minute = minute < 5 ? 55 : minute - 5;
+	            obj_config.maxTime = { hour: hour, minute: minute };
 	        }
 	
 	        var $this = void 0;
@@ -56867,15 +56928,15 @@
 	            if (!time.match(/^(:?[0-3]\d):(:?[0-5]\d):(:?[0-5]\d)$/)) {
 	                time_now = timeNow();
 	                var invalid = time.match(/([a-z0-9]*):([a-z0-9]*):?([a-z0-9]*)?/);
-	                var hour = time_now.format('hh'),
-	                    minute = time_now.format('mm'),
+	                var _hour = time_now.format('hh'),
+	                    _minute = time_now.format('mm'),
 	                    second = time_now.format('ss');
 	
-	                if (typeof invalid[1] !== 'undefined' && isFinite(invalid[1])) hour = formatTime(invalid[1]);
-	                if (typeof invalid[2] !== 'undefined' && isFinite(invalid[2])) minute = formatTime(invalid[2]);
+	                if (typeof invalid[1] !== 'undefined' && isFinite(invalid[1])) _hour = formatTime(invalid[1]);
+	                if (typeof invalid[2] !== 'undefined' && isFinite(invalid[2])) _minute = formatTime(invalid[2]);
 	                if (typeof invalid[3] !== 'undefined' && isFinite(invalid[3])) second = formatTime(invalid[3]);
 	
-	                new_time = moment(time_now.format('YYYY-MM-DD') + ' ' + [hour, minute, second].join(':')).format('HH:mm');
+	                new_time = moment(time_now.format('YYYY-MM-DD') + ' ' + [_hour, _minute, second].join(':')).format('HH:mm');
 	
 	                if (old_value && old_value === new_time) return false;
 	                $this.val(new_time);
@@ -73630,6 +73691,7 @@
 	var Price = __webpack_require__(550);
 	var Process = __webpack_require__(551);
 	var Purchase = __webpack_require__(468);
+	var getMinMaxTime = __webpack_require__(452).getMinMaxTime;
 	var getStartDateNode = __webpack_require__(452).getStartDateNode;
 	var Tick = __webpack_require__(457);
 	var BinarySocket = __webpack_require__(435);
@@ -73822,8 +73884,10 @@
 	             * attach datepicker and timepicker to end time durations
 	             * have to use jquery
 	             */
-	            attachTimePicker();
-	            $('#expiry_time').on('focus click', attachTimePicker).on('keypress', function (ev) {
+	            attachTimePicker('#expiry_time');
+	            $('#expiry_time').on('focus click', function () {
+	                attachTimePicker('#expiry_time');
+	            }).on('keypress', function (ev) {
 	                onlyNumericOnKeypress(ev, [58]);
 	            }).on('change input blur', function () {
 	                if (!dateValueChanged(this, 'time')) {
@@ -73855,6 +73919,23 @@
 	            }));
 	        }
 	
+	        var timepicker_initialized = false;
+	        var initTimePicker = function initTimePicker() {
+	            if (timepicker_initialized) return;
+	            timepicker_initialized = true;
+	            attachTimePicker('#time_start', $date_start);
+	            $('#time_start').on('focus click', function () {
+	                attachTimePicker('#time_start', $date_start);
+	            }).on('change input blur', function () {
+	                if (!dateValueChanged(this, 'time')) {
+	                    return false;
+	                }
+	                Defaults.set('time_start', time_start_element.value);
+	                Price.processPriceRequest();
+	                return true;
+	            });
+	        };
+	
 	        /*
 	         * attach event to start time, display duration based on
 	         * whether start time is forward starting or not and request
@@ -73864,11 +73945,18 @@
 	        if (date_start_element) {
 	            date_start_element.addEventListener('change', function (e) {
 	                Defaults.set('date_start', e.target.value);
+	                initTimePicker();
 	                var r = Durations.onStartDateChange(e.target.value);
 	                if (r >= 0) {
 	                    Price.processPriceRequest();
 	                }
 	            });
+	        }
+	
+	        var time_start_element = document.getElementById('time_start');
+	        var $date_start = $('#date_start');
+	        if (time_start_element && date_start_element.value !== 'now') {
+	            initTimePicker();
 	        }
 	
 	        /*
@@ -74037,14 +74125,19 @@
 	        }
 	    };
 	
-	    var attachTimePicker = function attachTimePicker() {
-	        var date_start = document.getElementById('date_start').value;
-	        var now = !date_start || date_start === 'now';
-	        var current_moment = now ? window.time ? window.time : moment.utc() : parseInt(date_start) * 1000;
-	        TimePicker.init({
-	            selector: '#expiry_time',
-	            minTime: current_moment
-	        });
+	    var attachTimePicker = function attachTimePicker(selector, $setMinMaxSelector) {
+	        var minTime = window.time ? window.time : moment.utc();
+	        var maxTime = void 0;
+	        if ($setMinMaxSelector) {
+	            minTime = getMinMaxTime($setMinMaxSelector, minTime).minTime;
+	            maxTime = getMinMaxTime($setMinMaxSelector, minTime).maxTime;
+	        }
+	        var initObj = {
+	            selector: selector,
+	            minTime: minTime,
+	            maxTime: maxTime || null
+	        };
+	        TimePicker.init(initObj);
 	    };
 	
 	    return {
@@ -74444,14 +74537,11 @@
 	            return 0;
 	        }
 	
-	        var yellow_border = 'light-yellow-background';
-	        if (value !== 'now') {
-	            $date_start_select.addClass(yellow_border);
-	        } else {
-	            $date_start_select.removeClass(yellow_border);
-	        }
-	
 	        $date_start_select.val(value);
+	
+	        $('#time_start_row').setVisibility(value !== 'now');
+	        var time_start = document.getElementById('time_start');
+	        commonIndependent.checkValidTime(time_start, $date_start_select, Defaults.get('time_start'));
 	
 	        var make_price_request = 1;
 	        var $expiry_time = $('#expiry_time');
@@ -74459,7 +74549,7 @@
 	            make_price_request = -1;
 	            var end_time = moment(parseInt(value) * 1000).add(5, 'minutes').utc();
 	            Durations.setTime(commonTrading.timeIsValid($expiry_time) && Defaults.get('expiry_time') ? Defaults.get('expiry_time') : end_time.format('HH:mm'));
-	            Durations.selectEndDate(commonTrading.timeIsValid($expiry_time) && (Defaults.get('expiry_date') ? moment(Defaults.get('expiry_date')) : end_time));
+	            Durations.selectEndDate(commonTrading.timeIsValid($expiry_time) && Defaults.get('expiry_date') ? moment(Defaults.get('expiry_date')) : end_time);
 	        }
 	        commonTrading.timeIsValid($expiry_time);
 	        Durations.display();
@@ -74469,7 +74559,6 @@
 	    var setNow = function setNow() {
 	        var $date_start = $('#date_start');
 	        if ($date_start.find('option[value="now"]').length) {
-	            $date_start.val('now').removeClass('light-yellow-background');
 	            Defaults.set('date_start', 'now');
 	        }
 	    };
@@ -74541,7 +74630,8 @@
 	            subscribe: 1
 	        };
 	        var contract_type = type_of_contract;
-	        var start_time = getStartDateNode();
+	        var start_date = getStartDateNode();
+	        var start_time = document.getElementById('time_start');
 	        var underlying = document.getElementById('underlying');
 	        var amount_type = document.getElementById('amount_type');
 	        var currency = document.getElementById('currency');
@@ -74575,8 +74665,9 @@
 	            proposal.symbol = underlying.value;
 	        }
 	
-	        if (start_time && isVisible(start_time) && start_time.value !== 'now') {
-	            proposal.date_start = start_time.value;
+	        if (start_date && isVisible(start_date) && start_date.value !== 'now') {
+	            var time = start_time.value.split(':');
+	            proposal.date_start = moment.utc(Number(start_date.value) * 1000).hour(time[0]).minute(time[1]).unix();
 	        }
 	
 	        if (expiry_type && isVisible(expiry_type) && expiry_type.value === 'duration') {
@@ -75157,7 +75248,6 @@
 	                option = document.createElement('option');
 	                content = document.createTextNode(localize('Now'));
 	                option.setAttribute('value', 'now');
-	                $('#date_start').removeClass('light-yellow-background');
 	                option.appendChild(content);
 	                fragment.appendChild(option);
 	                has_now = 1;
@@ -75166,8 +75256,15 @@
 	            }
 	
 	            start_dates.list.sort(compareStartDate);
+	            var default_start = Defaults.get('date_start') || 'now';
 	
-	            var first = void 0;
+	            $('#time_start_row').setVisibility(default_start !== 'now');
+	
+	            var first = void 0,
+	                selected = void 0,
+	                day = void 0,
+	                $duplicated_option = void 0,
+	                duplicated_length = void 0;
 	            start_dates.list.forEach(function (start_date) {
 	                var a = moment.unix(start_date.open).utc();
 	                var b = moment.unix(start_date.close).utc();
@@ -75175,27 +75272,32 @@
 	                var rounding = 5 * 60 * 1000;
 	                var start = moment.utc();
 	
-	                if (moment(start).isAfter(moment(a))) {
-	                    a = start;
-	                }
-	
-	                a = moment(Math.ceil(+a / rounding) * rounding).utc();
-	
-	                while (a.isBefore(b)) {
-	                    if (a.unix() - start.unix() > 5 * 60) {
-	                        option = document.createElement('option');
-	                        option.setAttribute('value', a.utc().unix());
-	                        if (typeof first === 'undefined' && !has_now) {
-	                            first = a.utc().unix();
-	                        }
-	                        content = document.createTextNode(a.format('HH:mm ddd').replace(' ', ' GMT, '));
-	                        if (option.value === Defaults.get('date_start')) {
-	                            option.setAttribute('selected', 'selected');
-	                        }
-	                        option.appendChild(content);
-	                        fragment.appendChild(option);
+	                if (b.isAfter(start)) {
+	                    if (moment(start).isAfter(moment(a))) {
+	                        a = start;
 	                    }
-	                    a.add(5, 'minutes');
+	
+	                    a = moment(Math.ceil(+a / rounding) * rounding).utc();
+	                    day = a.format('ddd');
+	                    $duplicated_option = $(fragment).find('option:contains(' + day + ')');
+	                    duplicated_length = $duplicated_option.length;
+	                    if (duplicated_length && !new RegExp(localize('Session')).test($duplicated_option.text())) {
+	                        $($duplicated_option[0]).text($duplicated_option.text() + ' - ' + localize('Session') + ' ' + duplicated_length);
+	                    }
+	
+	                    option = document.createElement('option');
+	                    option.setAttribute('value', a.utc().unix());
+	                    option.setAttribute('data-end', b.unix());
+	                    content = document.createTextNode(day + ($duplicated_option.length ? ' - ' + localize('Session') + ' ' + (duplicated_length + 1) : ''));
+	                    if (option.value >= default_start && !selected) {
+	                        selected = true;
+	                        option.setAttribute('selected', 'selected');
+	                    }
+	                    if (typeof first === 'undefined' && !has_now) {
+	                        first = a.utc().unix();
+	                    }
+	                    option.appendChild(content);
+	                    fragment.appendChild(option);
 	                }
 	            });
 	            target.appendChild(fragment);
@@ -84117,6 +84219,7 @@
 	var Client = __webpack_require__(427);
 	var localize = __webpack_require__(436).localize;
 	var urlFor = __webpack_require__(430).urlFor;
+	var getPropertyValue = __webpack_require__(424).getPropertyValue;
 	var makeOption = __webpack_require__(438).makeOption;
 	var jpClient = __webpack_require__(432).jpClient;
 	var FormManager = __webpack_require__(494);
@@ -84212,16 +84315,24 @@
 	            return Client.processNewAccount(new_account.email, new_account.client_id, new_account.oauth_token, true);
 	        }
 	
+	        var showInvalidTokenMessage = function showInvalidTokenMessage() {
+	            var message = 'Your token has expired or is invalid. Please click <a href="[_1]">here</a> to restart the verification process.';
+	            return showFormError(message, '');
+	        };
+	
 	        switch (error.code) {
+	            case 'InputValidationFailed':
+	                {
+	                    return getPropertyValue(response, ['error', 'details', 'verification_code']) ? showInvalidTokenMessage() : showError(error.message);
+	                }
 	            case 'InvalidToken':
 	                {
-	                    var message = 'Your token has expired. Please click <a href="[_1]">here</a> to restart the verification process.';
-	                    return showFormError(message, '');
+	                    return showInvalidTokenMessage();
 	                }
 	            case 'duplicate email':
 	                {
-	                    var _message = 'The email address provided is already in use. If you forgot your password, please try our <a href="[_1]">password recovery tool</a> or contact our customer service.';
-	                    return showFormError(_message, 'user/lost_passwordws');
+	                    var message = 'The email address provided is already in use. If you forgot your password, please try our <a href="[_1]">password recovery tool</a> or contact our customer service.';
+	                    return showFormError(message, 'user/lost_passwordws');
 	                }
 	            case 'PasswordError':
 	                {
