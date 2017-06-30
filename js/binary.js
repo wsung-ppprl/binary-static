@@ -48142,10 +48142,10 @@
 	var GTM = __webpack_require__(466);
 	var localize = __webpack_require__(429).localize;
 	var Login = __webpack_require__(467);
-	var Page = __webpack_require__(587);
+	var Page = __webpack_require__(589);
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var BinarySocket = __webpack_require__(428);
-	var BinarySocketGeneral = __webpack_require__(610);
+	var BinarySocketGeneral = __webpack_require__(612);
 	
 	var BinaryLoader = function () {
 	    'use strict';
@@ -48285,17 +48285,18 @@
 	var PersonalDetails = __webpack_require__(570);
 	var Statement = __webpack_require__(572);
 	var TopUpVirtual = __webpack_require__(575);
-	var LostPassword = __webpack_require__(576);
+	var ICOSubscribe = __webpack_require__(576);
+	var LostPassword = __webpack_require__(578);
 	var MetaTrader = __webpack_require__(498);
-	var FinancialAccOpening = __webpack_require__(577);
-	var JapanAccOpening = __webpack_require__(580);
-	var RealAccOpening = __webpack_require__(581);
-	var VirtualAccOpening = __webpack_require__(582);
-	var ResetPassword = __webpack_require__(584);
+	var FinancialAccOpening = __webpack_require__(579);
+	var JapanAccOpening = __webpack_require__(582);
+	var RealAccOpening = __webpack_require__(583);
+	var VirtualAccOpening = __webpack_require__(584);
+	var ResetPassword = __webpack_require__(586);
 	var TNCApproval = __webpack_require__(496);
 	
 	var CashierJP = __webpack_require__(468);
-	var KnowledgeTest = __webpack_require__(585);
+	var KnowledgeTest = __webpack_require__(587);
 	
 	var pages_config = {
 	    account_transfer: { module: AccountTransfer, is_authenticated: true, only_real: true },
@@ -48348,6 +48349,7 @@
 	    'get-started': { module: GetStarted },
 	    'get-started-jp': { module: GetStartedJP },
 	    'home-jp': { module: HomeJP, not_authenticated: true },
+	    'ico-subscribe': { module: ICOSubscribe, is_authenticated: true, only_real: true },
 	    'job-details': { module: JobDetails },
 	    'open-positions': { module: StaticPages.OpenPositions },
 	    'open-source-projects': { module: StaticPages.OpenSourceProjects },
@@ -52837,37 +52839,36 @@
 	            return;
 	        }
 	
+	        var portfolio_data = void 0;
+	        if (data.portfolio.contracts.length !== 0) {
+	            /**
+	             * User has at least one contract
+	             **/
+	            $('#portfolio-no-contract').hide();
+	            $.each(data.portfolio.contracts, function (ci, c) {
+	                if (!values.hasOwnProperty(c.contract_id) && c.contract_type !== 'BINARYICO') {
+	                    values[c.contract_id] = {};
+	                    values[c.contract_id].buy_price = c.buy_price;
+	                    portfolio_data = Portfolio.getPortfolioData(c);
+	                    currency = portfolio_data.currency;
+	                    createPortfolioRow(portfolio_data, is_first_response);
+	                    setTimeout(function () {
+	                        $('tr.' + c.contract_id).removeClass('new');
+	                    }, 1000);
+	                }
+	            });
+	        }
 	        // no open contracts
-	        if (data.portfolio.contracts.length === 0) {
+	        if (!portfolio_data) {
 	            $('#portfolio-no-contract').show();
 	            $('#portfolio-table').setVisibility(0);
 	        } else {
-	            (function () {
-	                /**
-	                 * User has at least one contract
-	                 **/
-	                $('#portfolio-no-contract').hide();
-	                var portfolio_data = void 0;
-	                $.each(data.portfolio.contracts, function (ci, c) {
-	                    if (!values.hasOwnProperty(c.contract_id)) {
-	                        values[c.contract_id] = {};
-	                        values[c.contract_id].buy_price = c.buy_price;
-	                        portfolio_data = Portfolio.getPortfolioData(c);
-	                        currency = portfolio_data.currency;
-	                        createPortfolioRow(portfolio_data, is_first_response);
-	                        setTimeout(function () {
-	                            $('tr.' + c.contract_id).removeClass('new');
-	                        }, 1000);
-	                    }
-	                });
-	                $('#portfolio-table').setVisibility(1);
+	            $('#portfolio-table').setVisibility(1);
+	            // update footer area data
+	            updateFooter();
 	
-	                // update footer area data
-	                updateFooter();
-	
-	                // request "proposal_open_contract"
-	                BinarySocket.send({ proposal_open_contract: 1, subscribe: 1 }, { callback: updateIndicative });
-	            })();
+	            // request "proposal_open_contract"
+	            BinarySocket.send({ proposal_open_contract: 1, subscribe: 1 }, { callback: updateIndicative });
 	        }
 	        // ready to show portfolio table
 	        $('#portfolio-loading').hide();
@@ -53007,6 +53008,7 @@
 	            contract_id: c.contract_id,
 	            payout: parseFloat(c.payout),
 	            longcode:  true ? c.longcode : jpClient() ? toJapanTimeIfNeeded(undefined, undefined, c.longcode) : c.longcode,
+	            shortcode: c.shortcode,
 	            currency: c.currency,
 	            buy_price: c.buy_price,
 	            app_id: c.app_id
@@ -82829,6 +82831,206 @@
 
 	'use strict';
 	
+	var ICOPortfolio = __webpack_require__(577);
+	var BinarySocket = __webpack_require__(428);
+	var Client = __webpack_require__(420);
+	var onlyNumericOnKeypress = __webpack_require__(531);
+	var FormManager = __webpack_require__(487);
+	
+	var ICOSubscribe = function () {
+	    var $form_error = void 0;
+	
+	    var onLoad = function onLoad() {
+	        BinarySocket.wait('get_account_status').then(function (response) {
+	            var authenticated = /authenticated/.test(response.get_account_status.status);
+	            if (!Client.get('currency') || +Client.get('balance') === 0) {
+	                $('#msg_no_balance').setVisibility(1);
+	            } else if (authenticated) {
+	                $('#ico_subscribe').setVisibility(1);
+	                ICOPortfolio.onLoad();
+	                var form_id = '#frm_ico_bid';
+	                $('label[for="price"]').append(' ' + Client.get('currency'));
+	                $(form_id + ' input').on('keypress', onlyNumericOnKeypress);
+	                FormManager.init(form_id, [{ selector: '#duration', validations: ['req', ['number', { min: 1 }]], parent_node: 'parameters' }, { selector: '#price', validations: ['req', ['number', { type: 'float', decimals: '1, 2' }]] }, { request_field: 'buy', value: 1 }, { request_field: 'amount', parent_node: 'parameters', value: function value() {
+	                        return document.getElementById('price').value;
+	                    } }, { request_field: 'contract_type', parent_node: 'parameters', value: 'BINARYICO' }, { request_field: 'symbol', parent_node: 'parameters', value: 'BINARYICO' }, { request_field: 'basis', parent_node: 'parameters', value: 'stake' }, { request_field: 'currency', parent_node: 'parameters', value: Client.get('currency') }, { request_field: 'duration_unit', parent_node: 'parameters', value: 'c' }]);
+	                $form_error = $('#form_error');
+	                FormManager.handleSubmit({
+	                    form_selector: form_id,
+	                    enable_button: 1,
+	                    fnc_response_handler: handleResponse
+	                });
+	            } else {
+	                $('#msg_authenticate').setVisibility(1);
+	            }
+	        });
+	    };
+	
+	    var handleResponse = function handleResponse(response) {
+	        $form_error.setVisibility(0);
+	        if (response.error) {
+	            $form_error.text(response.error.message).setVisibility(1);
+	        }
+	    };
+	
+	    var onUnload = function onUnload() {
+	        ICOPortfolio.onUnload();
+	    };
+	
+	    return {
+	        onLoad: onLoad,
+	        onUnload: onUnload
+	    };
+	}();
+	
+	module.exports = ICOSubscribe;
+
+/***/ },
+/* 577 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Portfolio = __webpack_require__(516).Portfolio;
+	var ViewPopup = __webpack_require__(437);
+	var BinarySocket = __webpack_require__(428);
+	var localize = __webpack_require__(429).localize;
+	var showLoadingImage = __webpack_require__(417).showLoadingImage;
+	var formatMoney = __webpack_require__(435).formatMoney;
+	var toTitleCase = __webpack_require__(451).toTitleCase;
+	
+	var ICOPortfolio = function () {
+	    'use strict';
+	
+	    var values = void 0,
+	        is_initialized = void 0,
+	        is_first_response = void 0;
+	
+	    var init = function init() {
+	        if (is_initialized) return;
+	
+	        values = {};
+	        var $portfolio_loading = $('#portfolio-loading');
+	        $portfolio_loading.show();
+	        showLoadingImage($portfolio_loading);
+	        is_first_response = true;
+	        BinarySocket.send({ portfolio: 1 }).then(function (response) {
+	            updatePortfolio(response);
+	        });
+	        // Subscribe to transactions to auto update new purchases
+	        BinarySocket.send({ transaction: 1, subscribe: 1 }, { callback: transactionResponseHandler });
+	        is_initialized = true;
+	    };
+	
+	    var createPortfolioRow = function createPortfolioRow(data, is_first) {
+	        var long_code = data.longcode;
+	
+	        var new_class = is_first ? '' : 'new';
+	        var status = /bidding/i.test(long_code) ? 'Cancel Bid' : /unsuccessful/i.test(long_code) ? 'Refund Bid' : /successful/i.test(long_code) ? 'Claim Tokens' : 'Ended';
+	        var button_class = /(cancel|end)/i.test(status) ? 'button-secondary' : '';
+	        var $div = $('<div/>');
+	        $div.append($('<tr/>', { class: 'tr-first ' + new_class + ' ' + data.contract_id, id: data.contract_id }).append($('<td/>', { class: 'ref', text: data.transaction_id })).append($('<td/>', { class: 'payout' }).append($('<strong/>', { text: data.shortcode.split('_')[2] }))).append($('<td/>', { class: 'purchase' }).append($('<strong/>', { text: formatMoney(data.currency, data.buy_price) }))).append($('<td/>', { class: 'details', text: toTitleCase(long_code) })).append($('<td/>', { class: 'button' }).append($('<button/>', { class: 'button ' + button_class + ' nowrap', contract_id: data.contract_id, text: localize(status) })))).append($('<tr/>', { class: 'tr-desc ' + new_class + ' ' + data.contract_id }).append($('<td/>', { colspan: '6', text: long_code })));
+	        $('#portfolio-body').prepend($div.html());
+	    };
+	
+	    var updatePortfolio = function updatePortfolio(data) {
+	        if (data.hasOwnProperty('error')) {
+	            errorMessage(data.error.message);
+	            return;
+	        }
+	
+	        var portfolio_data = void 0;
+	        if (data.portfolio.contracts.length !== 0) {
+	            /**
+	             * User has at least one contract
+	             **/
+	            $('#portfolio-no-contract').hide();
+	            $.each(data.portfolio.contracts, function (ci, c) {
+	                if (!values.hasOwnProperty(c.contract_id) && c.contract_type === 'BINARYICO') {
+	                    values[c.contract_id] = {};
+	                    values[c.contract_id].buy_price = c.buy_price;
+	                    portfolio_data = Portfolio.getPortfolioData(c);
+	                    createPortfolioRow(portfolio_data, is_first_response);
+	                    setTimeout(function () {
+	                        $('tr.' + c.contract_id).removeClass('new');
+	                    }, 1000);
+	                }
+	            });
+	        }
+	        // no open contracts
+	        if (!portfolio_data) {
+	            $('#portfolio-no-contract').show();
+	            $('#portfolio-table').setVisibility(0);
+	        } else {
+	            $('#portfolio-table').setVisibility(1);
+	        }
+	        // ready to show portfolio table
+	        $('#portfolio-loading').hide();
+	        $('#portfolio-content').setVisibility(1);
+	        is_first_response = false;
+	    };
+	
+	    var transactionResponseHandler = function transactionResponseHandler(response) {
+	        if (response.hasOwnProperty('error')) {
+	            errorMessage(response.error.message);
+	        } else if (response.transaction.action === 'buy') {
+	            BinarySocket.send({ portfolio: 1 }).then(function (res) {
+	                updatePortfolio(res);
+	            });
+	        } else if (response.transaction.action === 'sell') {
+	            removeContract(response.transaction.contract_id);
+	        }
+	    };
+	
+	    var removeContract = function removeContract(contract_id) {
+	        delete values[contract_id];
+	        $('tr.' + contract_id).removeClass('new').css('opacity', '0.5').fadeOut(1000, function () {
+	            $(this).remove();
+	            if ($('#portfolio-body').find('tr').length === 0) {
+	                $('#portfolio-table').setVisibility(0);
+	                $('#cost-of-open-positions, #value-of-open-positions').text('');
+	                $('#portfolio-no-contract').show();
+	            }
+	        });
+	    };
+	
+	    var errorMessage = function errorMessage(msg) {
+	        var $err = $('#portfolio').find('#error-msg');
+	        if (msg) {
+	            $err.setVisibility(1).text(msg);
+	        } else {
+	            $err.setVisibility(0).text('');
+	        }
+	    };
+	
+	    var onLoad = function onLoad() {
+	        init();
+	        ViewPopup.viewButtonOnClick('#portfolio-table');
+	    };
+	
+	    var onUnload = function onUnload() {
+	        BinarySocket.send({ forget_all: 'transaction' });
+	        $('#portfolio-body').empty();
+	        $('#portfolio-content').setVisibility(0);
+	        is_initialized = false;
+	    };
+	
+	    return {
+	        updatePortfolio: updatePortfolio,
+	        transactionResponseHandler: transactionResponseHandler,
+	        onLoad: onLoad,
+	        onUnload: onUnload
+	    };
+	}();
+	
+	module.exports = ICOPortfolio;
+
+/***/ },
+/* 578 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
 	var BinaryPjax = __webpack_require__(469);
 	var localize = __webpack_require__(429).localize;
 	var FormManager = __webpack_require__(487);
@@ -82861,7 +83063,7 @@
 	module.exports = LostPassword;
 
 /***/ },
-/* 577 */
+/* 579 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -82873,7 +83075,7 @@
 	var State = __webpack_require__(421).State;
 	var defaultRedirectUrl = __webpack_require__(423).defaultRedirectUrl;
 	var isEmptyObject = __webpack_require__(417).isEmptyObject;
-	var AccountOpening = __webpack_require__(578);
+	var AccountOpening = __webpack_require__(580);
 	var FormManager = __webpack_require__(487);
 	var toISOFormat = __webpack_require__(451).toISOFormat;
 	
@@ -82980,12 +83182,12 @@
 	module.exports = FinancialAccOpening;
 
 /***/ },
-/* 578 */
+/* 580 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var generateBirthDate = __webpack_require__(579);
+	var generateBirthDate = __webpack_require__(581);
 	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var localize = __webpack_require__(429).localize;
@@ -83161,7 +83363,7 @@
 	module.exports = AccountOpening;
 
 /***/ },
-/* 579 */
+/* 581 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83187,7 +83389,7 @@
 	module.exports = generateBirthDate;
 
 /***/ },
-/* 580 */
+/* 582 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83196,7 +83398,7 @@
 	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var State = __webpack_require__(421).State;
-	var AccountOpening = __webpack_require__(578);
+	var AccountOpening = __webpack_require__(580);
 	var detectHedging = __webpack_require__(431).detectHedging;
 	var FormManager = __webpack_require__(487);
 	
@@ -83248,7 +83450,7 @@
 	module.exports = JapanAccOpening;
 
 /***/ },
-/* 581 */
+/* 583 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83257,7 +83459,7 @@
 	
 	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
-	var AccountOpening = __webpack_require__(578);
+	var AccountOpening = __webpack_require__(580);
 	var FormManager = __webpack_require__(487);
 	
 	var RealAccOpening = function () {
@@ -83301,7 +83503,7 @@
 	module.exports = RealAccOpening;
 
 /***/ },
-/* 582 */
+/* 584 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83314,7 +83516,7 @@
 	var makeOption = __webpack_require__(431).makeOption;
 	var jpClient = __webpack_require__(425).jpClient;
 	var FormManager = __webpack_require__(487);
-	var TrafficSource = __webpack_require__(583);
+	var TrafficSource = __webpack_require__(585);
 	var Cookies = __webpack_require__(422);
 	
 	var VirtualAccOpening = function () {
@@ -83455,7 +83657,7 @@
 	module.exports = VirtualAccOpening;
 
 /***/ },
-/* 583 */
+/* 585 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83554,14 +83756,14 @@
 	module.exports = TrafficSource;
 
 /***/ },
-/* 584 */
+/* 586 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var localize = __webpack_require__(429).localize;
 	var Login = __webpack_require__(467);
-	var generateBirthDate = __webpack_require__(579);
+	var generateBirthDate = __webpack_require__(581);
 	var FormManager = __webpack_require__(487);
 	
 	var ResetPassword = function () {
@@ -83623,12 +83825,12 @@
 	module.exports = ResetPassword;
 
 /***/ },
-/* 585 */
+/* 587 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var KnowledgeTestUI = __webpack_require__(586);
+	var KnowledgeTestUI = __webpack_require__(588);
 	var BinaryPjax = __webpack_require__(469);
 	var Client = __webpack_require__(420);
 	var toJapanTimeIfNeeded = __webpack_require__(465).toJapanTimeIfNeeded;
@@ -83871,7 +84073,7 @@
 	module.exports = KnowledgeTest;
 
 /***/ },
-/* 586 */
+/* 588 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -83977,33 +84179,33 @@
 	module.exports = KnowledgeTestUI;
 
 /***/ },
-/* 587 */
+/* 589 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	var Contents = __webpack_require__(588);
+	var Contents = __webpack_require__(590);
 	var Crowdin = __webpack_require__(426);
 	var Header = __webpack_require__(497);
 	var Language = __webpack_require__(424);
 	var Localize = __webpack_require__(429);
 	var localize = __webpack_require__(429).localize;
 	var Login = __webpack_require__(467);
-	var Menu = __webpack_require__(589);
+	var Menu = __webpack_require__(591);
 	var LocalStore = __webpack_require__(421).LocalStore;
 	var State = __webpack_require__(421).State;
 	var Url = __webpack_require__(423);
 	var checkLanguage = __webpack_require__(425).checkLanguage;
 	var scrollToTop = __webpack_require__(494).scrollToTop;
-	var TrafficSource = __webpack_require__(583);
+	var TrafficSource = __webpack_require__(585);
 	var BinarySocket = __webpack_require__(428);
-	var RealityCheck = __webpack_require__(591);
-	var AffiliatePopup = __webpack_require__(595);
+	var RealityCheck = __webpack_require__(593);
+	var AffiliatePopup = __webpack_require__(597);
 	var Cookies = __webpack_require__(422);
-	var PushNotification = __webpack_require__(596);
-	__webpack_require__(593);
-	__webpack_require__(594);
+	var PushNotification = __webpack_require__(598);
+	__webpack_require__(595);
+	__webpack_require__(596);
 	
 	var Page = function () {
 	    'use strict';
@@ -84165,7 +84367,7 @@
 	module.exports = Page;
 
 /***/ },
-/* 588 */
+/* 590 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -84189,13 +84391,13 @@
 	module.exports = Contents;
 
 /***/ },
-/* 589 */
+/* 591 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Client = __webpack_require__(420);
-	__webpack_require__(590);
+	__webpack_require__(592);
 	
 	var Menu = function () {
 	    'use strict';
@@ -84312,7 +84514,7 @@
 	module.exports = Menu;
 
 /***/ },
-/* 590 */
+/* 592 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -84739,13 +84941,13 @@
 	}(jQuery);
 
 /***/ },
-/* 591 */
+/* 593 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var RealityCheckData = __webpack_require__(434);
-	var RealityCheckUI = __webpack_require__(592);
+	var RealityCheckUI = __webpack_require__(594);
 	var BinarySocket = __webpack_require__(428);
 	var Client = __webpack_require__(420);
 	
@@ -84789,7 +84991,7 @@
 	module.exports = RealityCheck;
 
 /***/ },
-/* 592 */
+/* 594 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -84799,8 +85001,8 @@
 	var showLocalTimeOnHover = __webpack_require__(465).showLocalTimeOnHover;
 	var urlFor = __webpack_require__(423).urlFor;
 	var FormManager = __webpack_require__(487);
-	__webpack_require__(593);
-	__webpack_require__(594);
+	__webpack_require__(595);
+	__webpack_require__(596);
 	
 	var RealityCheckUI = function () {
 	    'use strict';
@@ -84939,7 +85141,7 @@
 	module.exports = RealityCheckUI;
 
 /***/ },
-/* 593 */
+/* 595 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84976,7 +85178,7 @@
 	}
 
 /***/ },
-/* 594 */
+/* 596 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -84991,7 +85193,7 @@
 	}
 
 /***/ },
-/* 595 */
+/* 597 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -85035,7 +85237,7 @@
 	module.exports = AffiliatePopup;
 
 /***/ },
-/* 596 */
+/* 598 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -85043,7 +85245,7 @@
 	var Client = __webpack_require__(420);
 	var getLanguage = __webpack_require__(424).get;
 	var urlForStatic = __webpack_require__(423).urlForStatic;
-	var Pushwoosh = __webpack_require__(597).Pushwoosh;
+	var Pushwoosh = __webpack_require__(599).Pushwoosh;
 	
 	var BinaryPushwoosh = function () {
 	    var pw = new Pushwoosh();
@@ -85092,14 +85294,14 @@
 	module.exports = BinaryPushwoosh;
 
 /***/ },
-/* 597 */
+/* 599 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _Global = __webpack_require__(598);
+	var _Global = __webpack_require__(600);
 	
 	Object.defineProperty(exports, 'Pushwoosh', {
 	  enumerable: true,
@@ -85111,23 +85313,23 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /***/ },
-/* 598 */
+/* 600 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _storage = __webpack_require__(599),
-	    _functions = __webpack_require__(600),
-	    _Logger = __webpack_require__(601),
+	var _storage = __webpack_require__(601),
+	    _functions = __webpack_require__(602),
+	    _Logger = __webpack_require__(603),
 	    _Logger2 = _interopRequireDefault(_Logger),
-	    _SafariInit = __webpack_require__(602),
+	    _SafariInit = __webpack_require__(604),
 	    _SafariInit2 = _interopRequireDefault(_SafariInit),
-	    _WorkerInit = __webpack_require__(609),
+	    _WorkerInit = __webpack_require__(611),
 	    _WorkerInit2 = _interopRequireDefault(_WorkerInit),
-	    _API = __webpack_require__(607),
-	    _constants = __webpack_require__(608);
+	    _API = __webpack_require__(609),
+	    _constants = __webpack_require__(610);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -85354,7 +85556,7 @@
 	exports.default = PushwooshGlobal;
 
 /***/ },
-/* 599 */
+/* 601 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -85452,7 +85654,7 @@
 	var keyValue = exports.keyValue = createKeyValue('keyValue');
 
 /***/ },
-/* 600 */
+/* 602 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -85582,7 +85784,7 @@
 	}
 
 /***/ },
-/* 601 */
+/* 603 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -85635,23 +85837,23 @@
 	exports.default = Logger;
 
 /***/ },
-/* 602 */
+/* 604 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _BaseInit2 = __webpack_require__(603),
+	var _BaseInit2 = __webpack_require__(605),
 	    _BaseInit3 = _interopRequireDefault(_BaseInit2),
-	    _createDoApiXHR = __webpack_require__(605),
+	    _createDoApiXHR = __webpack_require__(607),
 	    _createDoApiXHR2 = _interopRequireDefault(_createDoApiXHR),
-	    _API = __webpack_require__(607),
+	    _API = __webpack_require__(609),
 	    _API2 = _interopRequireDefault(_API),
-	    _PushwooshError = __webpack_require__(606),
+	    _PushwooshError = __webpack_require__(608),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError),
-	    _functions = __webpack_require__(600),
-	    _constants = __webpack_require__(608);
+	    _functions = __webpack_require__(602),
+	    _constants = __webpack_require__(610);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -85785,14 +85987,14 @@
 	exports.default = PushwooshSafari;
 
 /***/ },
-/* 603 */
+/* 605 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _eventemitter = __webpack_require__(604),
+	var _eventemitter = __webpack_require__(606),
 	    _eventemitter2 = _interopRequireDefault(_eventemitter);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -85815,7 +86017,7 @@
 	exports.default = BaseInit;
 
 /***/ },
-/* 604 */
+/* 606 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -86110,7 +86312,7 @@
 
 
 /***/ },
-/* 605 */
+/* 607 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -86118,7 +86320,7 @@
 	exports.__esModule = true;
 	exports.default = createDoApiXHR;
 	
-	var _PushwooshError = __webpack_require__(606),
+	var _PushwooshError = __webpack_require__(608),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -86170,7 +86372,7 @@
 	}
 
 /***/ },
-/* 606 */
+/* 608 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -86205,7 +86407,7 @@
 	exports.default = PushwooshError;
 
 /***/ },
-/* 607 */
+/* 609 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -86216,7 +86418,7 @@
 	
 	exports.createErrorAPI = createErrorAPI;
 	
-	var _functions = __webpack_require__(600);
+	var _functions = __webpack_require__(602);
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
@@ -86308,7 +86510,7 @@
 	exports.default = PushwooshAPI;
 
 /***/ },
-/* 608 */
+/* 610 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -86335,24 +86537,24 @@
 	var keyLastSentAppOpen = exports.keyLastSentAppOpen = 'pushwooshLastSentAppOpen';
 
 /***/ },
-/* 609 */
+/* 611 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	exports.__esModule = true;
 	
-	var _storage = __webpack_require__(599),
-	    _BaseInit2 = __webpack_require__(603),
+	var _storage = __webpack_require__(601),
+	    _BaseInit2 = __webpack_require__(605),
 	    _BaseInit3 = _interopRequireDefault(_BaseInit2),
-	    _createDoApiXHR = __webpack_require__(605),
+	    _createDoApiXHR = __webpack_require__(607),
 	    _createDoApiXHR2 = _interopRequireDefault(_createDoApiXHR),
-	    _API = __webpack_require__(607),
+	    _API = __webpack_require__(609),
 	    _API2 = _interopRequireDefault(_API),
-	    _PushwooshError = __webpack_require__(606),
+	    _PushwooshError = __webpack_require__(608),
 	    _PushwooshError2 = _interopRequireDefault(_PushwooshError),
-	    _functions = __webpack_require__(600),
-	    _constants = __webpack_require__(608);
+	    _functions = __webpack_require__(602),
+	    _constants = __webpack_require__(610);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -86497,20 +86699,20 @@
 	exports.default = PushwooshWorker;
 
 /***/ },
-/* 610 */
+/* 612 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var BinarySocket = __webpack_require__(428);
-	var updateBalance = __webpack_require__(611);
+	var updateBalance = __webpack_require__(613);
 	var Client = __webpack_require__(420);
 	var Clock = __webpack_require__(465);
 	var GTM = __webpack_require__(466);
 	var Header = __webpack_require__(497);
 	var Login = __webpack_require__(467);
 	var getPropertyValue = __webpack_require__(417).getPropertyValue;
-	var SessionDurationLimit = __webpack_require__(612);
+	var SessionDurationLimit = __webpack_require__(614);
 	var Cookies = __webpack_require__(422);
 	
 	var BinarySocketGeneral = function () {
@@ -86627,7 +86829,7 @@
 	module.exports = BinarySocketGeneral;
 
 /***/ },
-/* 611 */
+/* 613 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -86657,7 +86859,7 @@
 	module.exports = updateBalance;
 
 /***/ },
-/* 612 */
+/* 614 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
