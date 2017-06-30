@@ -2572,6 +2572,10 @@ body #not_authenticated_financial ul.checked > li {
   list-style: none;
 }
 
+.ico-subscribe-content #portfolio th.details {
+  width: auto;
+}
+
 .timeline {
   margin: 0 auto;
   overflow: hidden;

@@ -48389,27 +48389,27 @@
 	        var redirect_url = void 0;
 	        try {
 	            var tokens = storeTokens();
-	            var loginid = Cookies.get('loginid');
+	            if (!isEmptyObject(tokens)) {
+	                var loginid = Cookies.get('loginid');
+	                // Need to set cookies if OAuth hasn't set them or redirected to another domain (e.g. github.io)
+	                if (!loginid) {
+	                    (function () {
+	                        var loginids = Object.keys(tokens);
+	                        var loginid_list = '';
+	                        loginids.map(function (id) {
+	                            loginid_list += '' + (loginid_list ? '+' : '') + id + ':' + (/^V/i.test(id) ? 'V' : 'R') + ':E'; // Assume all are enabled since there is no data source to check. Disabled accounts will be handled on authorize
+	                        });
+	                        loginid = loginids[0];
+	                        // set cookies
+	                        Client.setCookie('loginid', loginid);
+	                        Client.setCookie('loginid_list', loginid_list);
+	                    })();
+	                }
+	                Client.setCookie('login', tokens[loginid].token);
 	
-	            if (!loginid) {
-	                (function () {
-	                    // redirected to another domain (e.g. github.io) so those cookie are not accessible here
-	                    var loginids = Object.keys(tokens);
-	                    var loginid_list = '';
-	                    loginids.map(function (id) {
-	                        loginid_list += '' + (loginid_list ? '+' : '') + id + ':' + (/^V/i.test(id) ? 'V' : 'R') + ':E'; // since there is not any data source to check, so assume all are enabled, disabled accounts will be handled on authorize
-	                    });
-	                    loginid = loginids[0];
-	                    // set cookies
-	                    Client.setCookie('loginid', loginid);
-	                    Client.setCookie('loginid_list', loginid_list);
-	                })();
+	                // set flags
+	                GTM.setLoginFlag();
 	            }
-	            Client.setCookie('login', tokens[loginid].token);
-	
-	            // set flags
-	            GTM.setLoginFlag();
-	
 	            // redirect url
 	            redirect_url = sessionStorage.getItem('redirect_url');
 	            sessionStorage.removeItem('redirect_url');
@@ -74950,7 +74950,7 @@
 	
 	        var jp_client = jpClient();
 	
-	        var data = [jp_client ? toJapanTimeIfNeeded(transaction.purchase_time) : profit_table_data.buyDate, '<span ' + showTooltip(profit_table_data.app_id, oauth_apps[profit_table_data.app_id]) + '>' + profit_table_data.ref + '</span>', profit_table_data.payout, '', profit_table_data.buyPrice, jp_client ? toJapanTimeIfNeeded(transaction.sell_time) : profit_table_data.sellDate, profit_table_data.sellPrice, profit_table_data.pl, ''];
+	        var data = [jp_client ? toJapanTimeIfNeeded(transaction.purchase_time) : profit_table_data.buyDate, '<span ' + showTooltip(profit_table_data.app_id, oauth_apps[profit_table_data.app_id]) + '>' + profit_table_data.ref + '</span>', /binaryico/i.test(profit_table_data.shortcode) ? '-' : profit_table_data.payout, '', profit_table_data.buyPrice, jp_client ? toJapanTimeIfNeeded(transaction.sell_time) : profit_table_data.sellDate, profit_table_data.sellPrice, profit_table_data.pl, ''];
 	        var $row = Table.createFlexTableRow(data, cols, 'data');
 	
 	        $row.children('.pl').addClass(pl_type);
@@ -74959,9 +74959,11 @@
 	            $(this).wrapInner('<div class="new-width"></div>');
 	        });
 	
-	        // create view button and append
-	        var $view_button = $('<button/>', { class: 'button open_contract_details', text: localize('View'), contract_id: profit_table_data.id });
-	        $row.children('.contract,.details').append($view_button);
+	        if (!/binaryico/i.test(profit_table_data.shortcode)) {
+	            // create view button and append
+	            var $view_button = $('<button/>', { class: 'button open_contract_details', text: localize('View'), contract_id: profit_table_data.id });
+	            $row.children('.contract,.details').append($view_button);
+	        }
 	
 	        return $row[0];
 	    };
@@ -75031,7 +75033,8 @@
 	            pl: formatMoney(currency, Number(sell_price - buy_price), !is_jp_client),
 	            desc: transaction.longcode,
 	            id: transaction.contract_id,
-	            app_id: transaction.app_id
+	            app_id: transaction.app_id,
+	            shortcode: transaction.shortcode
 	        };
 	    };
 	
@@ -82731,12 +82734,13 @@
 	        var payout = parseFloat(statement.payout);
 	        var amount = parseFloat(statement.amount);
 	        var balance = parseFloat(statement.balance_after);
+	        var is_ico_bid = /binaryico/i.test(statement.shortcode);
 	
 	        return {
 	            date: jp_client ? toJapanTimeIfNeeded(statement.transaction_time) : date_str + '\n' + time_str,
 	            ref: statement.transaction_id,
-	            payout: isNaN(payout) ? '-' : formatMoney(currency, payout, !jp_client),
-	            action: toTitleCase(statement.action_type),
+	            payout: isNaN(payout) || is_ico_bid ? '-' : formatMoney(currency, payout, !jp_client),
+	            action: is_ico_bid ? /buy/i.test(statement.action_type) ? localize('Bid') : localize('Closed Bid') : toTitleCase(statement.action_type),
 	            amount: isNaN(amount) ? '-' : formatMoney(currency, amount, !jp_client),
 	            balance: isNaN(balance) ? '-' : formatMoney(currency, balance, !jp_client),
 	            desc: statement.longcode.replace(/\n/g, '<br />'),
@@ -82841,17 +82845,16 @@
 	    var $form_error = void 0;
 	
 	    var onLoad = function onLoad() {
-	        BinarySocket.wait('get_account_status').then(function (response) {
-	            var authenticated = /authenticated/.test(response.get_account_status.status);
+	        BinarySocket.wait('balance').then(function () {
 	            if (!Client.get('currency') || +Client.get('balance') === 0) {
 	                $('#msg_no_balance').setVisibility(1);
-	            } else if (authenticated) {
+	            } else {
 	                $('#ico_subscribe').setVisibility(1);
 	                ICOPortfolio.onLoad();
 	                var form_id = '#frm_ico_bid';
 	                $('label[for="price"]').append(' ' + Client.get('currency'));
 	                $(form_id + ' input').on('keypress', onlyNumericOnKeypress);
-	                FormManager.init(form_id, [{ selector: '#duration', validations: ['req', ['number', { min: 1 }]], parent_node: 'parameters' }, { selector: '#price', validations: ['req', ['number', { type: 'float', decimals: '1, 2' }]] }, { request_field: 'buy', value: 1 }, { request_field: 'amount', parent_node: 'parameters', value: function value() {
+	                FormManager.init(form_id, [{ selector: '#duration', validations: ['req', ['number', { min: 1, max: 1000000 }]], parent_node: 'parameters' }, { selector: '#price', validations: ['req', ['number', { type: 'float', decimals: '1, 2', min: 0.01, max: 999999999999999 }]] }, { request_field: 'buy', value: 1 }, { request_field: 'amount', parent_node: 'parameters', value: function value() {
 	                        return document.getElementById('price').value;
 	                    } }, { request_field: 'contract_type', parent_node: 'parameters', value: 'BINARYICO' }, { request_field: 'symbol', parent_node: 'parameters', value: 'BINARYICO' }, { request_field: 'basis', parent_node: 'parameters', value: 'stake' }, { request_field: 'currency', parent_node: 'parameters', value: Client.get('currency') }, { request_field: 'duration_unit', parent_node: 'parameters', value: 'c' }]);
 	                $form_error = $('#form_error');
@@ -82860,8 +82863,6 @@
 	                    enable_button: 1,
 	                    fnc_response_handler: handleResponse
 	                });
-	            } else {
-	                $('#msg_authenticate').setVisibility(1);
 	            }
 	        });
 	    };
@@ -82897,7 +82898,6 @@
 	var localize = __webpack_require__(429).localize;
 	var showLoadingImage = __webpack_require__(417).showLoadingImage;
 	var formatMoney = __webpack_require__(435).formatMoney;
-	var toTitleCase = __webpack_require__(451).toTitleCase;
 	
 	var ICOPortfolio = function () {
 	    'use strict';
@@ -82926,10 +82926,12 @@
 	        var long_code = data.longcode;
 	
 	        var new_class = is_first ? '' : 'new';
-	        var status = /bidding/i.test(long_code) ? 'Cancel Bid' : /unsuccessful/i.test(long_code) ? 'Refund Bid' : /successful/i.test(long_code) ? 'Claim Tokens' : 'Ended';
+	        var status = /unsuccessful/i.test(long_code) ? 'Refund Bid' : /successful/i.test(long_code) ? 'Claim Tokens' : /bid/i.test(long_code) ? 'Cancel Bid' : 'Ended';
 	        var button_class = /(cancel|end)/i.test(status) ? 'button-secondary' : '';
+	        var action = / successful/i.test(long_code) ? 'claim' : 'cancel';
+	        var shortcode = data.shortcode.split('_');
 	        var $div = $('<div/>');
-	        $div.append($('<tr/>', { class: 'tr-first ' + new_class + ' ' + data.contract_id, id: data.contract_id }).append($('<td/>', { class: 'ref', text: data.transaction_id })).append($('<td/>', { class: 'payout' }).append($('<strong/>', { text: data.shortcode.split('_')[2] }))).append($('<td/>', { class: 'purchase' }).append($('<strong/>', { text: formatMoney(data.currency, data.buy_price) }))).append($('<td/>', { class: 'details', text: toTitleCase(long_code) })).append($('<td/>', { class: 'button' }).append($('<button/>', { class: 'button ' + button_class + ' nowrap', contract_id: data.contract_id, text: localize(status) })))).append($('<tr/>', { class: 'tr-desc ' + new_class + ' ' + data.contract_id }).append($('<td/>', { colspan: '6', text: long_code })));
+	        $div.append($('<tr/>', { class: 'tr-first ' + new_class + ' ' + data.contract_id, id: data.contract_id }).append($('<td/>', { class: 'ref', text: data.transaction_id })).append($('<td/>', { class: 'payout' }).append($('<strong/>', { text: shortcode[2] }))).append($('<td/>', { class: 'bid' }).append($('<strong/>', { text: formatMoney(data.currency, shortcode[1]) }))).append($('<td/>', { class: 'purchase' }).append($('<strong/>', { text: formatMoney(data.currency, data.buy_price) }))).append($('<td/>', { class: 'details', text: long_code })).append($('<td/>', { class: 'button' }).append($('<button/>', { class: 'button ' + button_class + ' nowrap', contract_id: data.contract_id, action: action, text: localize(status) })))).append($('<tr/>', { class: 'tr-desc ' + new_class + ' ' + data.contract_id }).append($('<td/>', { colspan: '6', text: long_code })));
 	        $('#portfolio-body').prepend($div.html());
 	    };
 	
@@ -82962,6 +82964,12 @@
 	            $('#portfolio-no-contract').show();
 	            $('#portfolio-table').setVisibility(0);
 	        } else {
+	            $('button[action="cancel"]').on('click', function () {
+	                BinarySocket.send({
+	                    sell: $(this).attr('contract_id'),
+	                    price: 0
+	                });
+	            });
 	            $('#portfolio-table').setVisibility(1);
 	        }
 	        // ready to show portfolio table
