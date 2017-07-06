@@ -2660,6 +2660,28 @@ body #not_authenticated_financial ul.checked > li {
   list-style: none;
 }
 
+.ico-subscribe-content .border-gray {
+  border: 1px solid #dedede;
+}
+.ico-subscribe-content .border-radius {
+  border-radius: 3px;
+}
+.ico-subscribe-content .margin-top {
+  margin-top: 4px;
+}
+.ico-subscribe-content #frm_ico_bid input {
+  padding: 2px 3px;
+}
+.ico-subscribe-content #frm_ico_bid button, .ico-subscribe-content #frm_ico_bid input {
+  width: 100%;
+}
+.ico-subscribe-content #frm_ico_bid .inactive {
+  color: #dedede;
+  background: #f2f2f2;
+}
+.ico-subscribe-content #frm_ico_bid .inactive:hover {
+  cursor: auto;
+}
 .ico-subscribe-content #portfolio th.details {
   width: auto;
 }
@@ -4486,7 +4508,8 @@ body.JA #mb_trading #currency {
 
 /*Vietnamese Language */
 body.VI {
-  font-kerning: none;
+  -webkit-font-kerning: none;
+          font-kerning: none;
 }
 body.VI #legal-tab li.tm-li-2 {
   margin-right: 0 !important;
