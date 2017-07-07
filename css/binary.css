@@ -2686,6 +2686,17 @@ body #not_authenticated_financial ul.checked > li {
   width: auto;
 }
 
+.liquidity-solutions-content .box {
+  border: 1px solid #c2c2c2;
+  min-height: 256px;
+}
+.liquidity-solutions-content .box img {
+  height: 48px;
+}
+.liquidity-solutions-content .white-bg {
+  background-color: #fff;
+}
+
 .timeline {
   margin: 0 auto;
   overflow: hidden;
