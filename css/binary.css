@@ -2002,6 +2002,9 @@ div.kineticjs-content {
   #mb-trading-wrapper #mb_trading .price-table .prices-wrapper .heading > div {
     padding: 5px 0;
   }
+  #mb-trading-wrapper #mb_trading #payout .hint {
+    line-height: 15px;
+  }
 }
 #mb-trading-wrapper #trading_bottom_content #tab_portfolio-content {
   overflow-x: auto;
